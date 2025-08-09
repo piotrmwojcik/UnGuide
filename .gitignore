@@ -1,6 +1,5 @@
 # Custom
 .vscode
-models/
 output/
 logs/
 # Byte-compiled / optimized / DLL files
