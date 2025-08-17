@@ -1,6 +1,6 @@
 # UnGuide: Learning to Forget with LoRA-Guided Diffusion Models
 
-[![arXiv](https://img.shields.io/badge/arXiv-2411.11024-red)](https://arxiv.org/abs/2508.05755)  [![ProjectPage](https://img.shields.io/badge/Website-UnGuide-blue)](https://github.com/gmum/UnGuide) [![GitHub Repo stars](https://img.shields.io/github/stars/gmum/UnGuide.svg?style=social&label=Star&maxAge=60)](https://github.com/gmum/UnGuide)
+[![arXiv](https://img.shields.io/badge/arXiv-2411.11024-red)](https://arxiv.org/abs/2508.05755)  [![ProjectPage](https://img.shields.io/badge/Website-UnGuide-blue)](https://gmum.github.io/UnGuide/) [![GitHub Repo stars](https://img.shields.io/github/stars/gmum/UnGuide.svg?style=social&label=Star&maxAge=60)](https://github.com/gmum/UnGuide)
 
 
 ![teaser](assets/teaser.jpg)
