@@ -1,5 +1,8 @@
 # UnGuide: Learning to Forget with LoRA-Guided Diffusion Models
 
+[![arXiv](https://img.shields.io/badge/arXiv-2411.11024-red)](https://arxiv.org/abs/2508.05755)  [![ProjectPage](https://img.shields.io/badge/Website-UnGuide-blue)](https://github.com/gmum/UnGuide) [![GitHub Repo stars](https://img.shields.io/github/stars/gmum/UnGuide.svg?style=social&label=Star&maxAge=60)](https://github.com/gmum/UnGuide)
+
+
 ![teaser](assets/teaser.jpg)
 
 > Recent advances in large-scale text-to-image diffusion models have heightened concerns about their potential misuse, especially in generating harmful or misleading content. This underscores the urgent need for effective machine unlearning, i.e., removing specific knowledge or concepts from pretrained models without compromising overall performance. One possible approach is Low-Rank Adaptation (LoRA), which offers an efficient means to fine-tune models for targeted unlearning. However, LoRA often inadvertently alters unrelated content, leading to diminished image fidelity and realism. To address this limitation, we introduce UnGuide—a novel approach which incorporates UnGuidance, a dynamic inference mechanism that leverages Classifier-Free Guidance (CFG) to
