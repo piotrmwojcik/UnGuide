@@ -1,24 +1,23 @@
-import os
-import json
 import argparse
+import json
+import os
 from functools import partial
-
 
 import numpy as np
 import torch
-
-from utils import print_trainable_parameters, set_seed, get_models
 from tqdm import tqdm
 
-
+from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
+                        inject_hyper_lora_nsfw)
 from ldm.util import instantiate_from_config
 from sampling import sample_model
-from lora import LoRALinear, inject_lora_nsfw, inject_lora
+from utils import get_models, print_trainable_parameters, set_seed
+
 
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="LoRA Fine-tuning for Stable Diffusion"
+        description="LoRA/HyperLoRA Fine-tuning for Stable Diffusion"
     )
 
     # Model configuration
@@ -48,6 +47,19 @@ def parse_args():
         nargs="+",
         default=["attn2.to_k", "attn2.to_v"],
         help="Target modules for LoRA injection",
+    )
+
+    # HyperLoRA configuration
+    parser.add_argument(
+        "--use_hypernetwork",
+        action="store_true",
+        help="Use HyperLoRA instead of regular LoRA",
+    )
+    parser.add_argument(
+        "--clip_size",
+        type=int,
+        default=768,
+        help="CLIP embedding size (768 for SD 1.5)",
     )
 
     # Training configuration
@@ -94,7 +106,6 @@ def parse_args():
     return parser.parse_args()
 
 
-
 def create_quick_sampler(
     model, sampler, image_size: int, ddim_steps: int, ddim_eta: float
 ):
@@ -117,32 +128,37 @@ def create_quick_sampler(
 def main():
     args = parse_args()
 
-    print("=== LoRA Fine-tuning Configuration ===")
+    print("=== LoRA/HyperLoRA Fine-tuning Configuration ===")
     print(f"Config: {args.config_path}")
     print(f"Checkpoint: {args.ckpt_path}")
     print(f"Device: {args.device}")
+    print(f"Use HyperNetwork: {args.use_hypernetwork}")
+    if args.use_hypernetwork:
+        print(f"CLIP size: {args.clip_size}")
     print(f"LoRA rank: {args.lora_rank}, alpha: {args.lora_alpha}")
     print(f"Target modules: {args.target_modules}")
     print(f"Training iterations: {args.iterations}")
     print(f"Learning rate: {args.lr}")
     print("=" * 40)
-    
+
     # Set seed
     if args.seed is not None:
         set_seed(args.seed)
 
     # Load prompts json
-    with open(args.prompts_json, 'r') as f:
+    with open(args.prompts_json, "r") as f:
         prompts_data = json.load(f)
 
     target_prompt = prompts_data.get("target", None)
     reference_prompt = prompts_data.get("reference", None)
     if target_prompt is None or reference_prompt is None:
         raise ValueError(f"Missing required prompt")
-    
-    config = {  
+
+    config = {
         "config": args.config_path,
         "ckpt": args.ckpt_path,
+        "use_hypernetwork": args.use_hypernetwork,
+        "clip_size": args.clip_size,
         "lora_rank": args.lora_rank,
         "lora_alpha": args.lora_alpha,
         "target_modules": args.target_modules,
@@ -158,17 +174,24 @@ def main():
         "prompts_json": args.prompts_json,
         "class_name": args.prompts_json.split("/")[-1].split(".")[0],
     }
-    
-    dir_name =  "_".join(f"{k}_{config[k]}" for k in [
-        "class_name",
-        "lora_rank",
-        "lora_alpha",
-        "iterations",
-        "lr",
-        "start_guidance",
-        "negative_guidance",
-        "ddim_steps"
-    ])
+
+    lora_type = "hyper" if args.use_hypernetwork else "lora"
+    dir_name = (
+        "_".join(
+            f"{k}_{config[k]}"
+            for k in [
+                "class_name",
+                "lora_rank",
+                "lora_alpha",
+                "iterations",
+                "lr",
+                "start_guidance",
+                "negative_guidance",
+                "ddim_steps",
+            ]
+        )
+        + f"_{lora_type}"
+    )
     os.makedirs(os.path.join(args.output_dir, dir_name, "models"), exist_ok=True)
 
     # Initialize models
@@ -177,24 +200,59 @@ def main():
         args.config_path, args.ckpt_path, args.device
     )
 
-    # Create LoRA factory function
-    lora_factory = partial(LoRALinear, rank=args.lora_rank, alpha=args.lora_alpha)
+    # Add current_conditioning attribute to model for HyperLoRA
+    model.current_conditioning = None
+
     # Freeze original model parameters
     for param in model.model.diffusion_model.parameters():
         param.requires_grad = False
 
-    # Inject LoRA layers
-    print("Injecting LoRA layers...")
-    if args.prompts_json.endswith("nsfw.json"):
-        inject_lora_nsfw(model.model.diffusion_model, lora_factory=lora_factory)
-    else:
-        inject_lora(model.model.diffusion_model, args.target_modules, lora_factory)
+    # Inject LoRA or HyperLoRA layers
+    print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
 
-    # Get trainable parameters (only LoRA layers)
-    lora_layers = list(
+    hyper_lora_layers = []
+    if args.use_hypernetwork:
+        # Create HyperLoRA factory function
+        hyper_lora_factory = partial(
+            HyperLoRALinear,
+            clip_size=args.clip_size,
+            rank=args.lora_rank,
+            alpha=args.lora_alpha,
+        )
+
+        if args.prompts_json.endswith("nsfw.json"):
+            hyper_lora_layers = inject_hyper_lora_nsfw(
+                model.model.diffusion_model, hyper_lora_factory=hyper_lora_factory
+            )
+        else:
+            hyper_lora_layers = inject_hyper_lora(
+                model.model.diffusion_model, args.target_modules, hyper_lora_factory
+            )
+
+        # Set parent model reference for all HyperLoRA layers
+        for layer in hyper_lora_layers:
+            layer.set_parent_model(model)
+
+    else:
+        # Create regular LoRA factory function
+        lora_factory = partial(
+            HyperLoRALinear, rank=args.lora_rank, alpha=args.lora_alpha, clip_size=args.clip_size
+        )
+
+        if args.prompts_json.endswith("nsfw.json"):
+            inject_hyper_lora_nsfw(
+                model.model.diffusion_model, lora_factory=lora_factory
+            )
+        else:
+            inject_hyper_lora(
+                model.model.diffusion_model, args.target_modules, lora_factory
+            )
+
+    # Get trainable parameters (only LoRA/HyperLoRA layers)
+    trainable_params = list(
         filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters())
     )
-    print(f"Total trainable parameters: {len(lora_layers)}")
+    print(f"Total trainable parameters: {len(trainable_params)}")
     print_trainable_parameters(model)
 
     # Set model to training mode
@@ -205,7 +263,7 @@ def main():
     model.model.diffusion_model.use_checkpoint = False
 
     # Initialize training components
-    optimizer = torch.optim.Adam(lora_layers, lr=args.lr)
+    optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
     criterion = torch.nn.MSELoss()
     losses = []
 
@@ -240,10 +298,14 @@ def main():
         with torch.no_grad():
             # Sample latent representation
             z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-            
+
             # Get predictions from original model
             e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
             e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+
+        # Set current conditioning for HyperLoRA layers
+        if args.use_hypernetwork:
+            model.current_conditioning = emb_n
 
         # Get prediction from trainable model
         e_n = model.apply_model(z, t_enc_ddpm, emb_n)
@@ -266,29 +328,30 @@ def main():
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
     # Save trained model
-    
+
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     lora_state_dict = {}
     for name, param in model.model.diffusion_model.named_parameters():
         if param.requires_grad:
             lora_state_dict[name] = param.cpu().detach().clone()
-    lora_path = os.path.join(args.output_dir, dir_name, "models", "lora.pth")
+
+    model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
+    lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
     torch.save(lora_state_dict, lora_path)
 
-    
     print("Training completed!")
     print(f"Final loss: {losses[-1]:.6f}")
     print(f"Average loss: {sum(losses) / len(losses):.6f}")
-    
+
     config["final_loss"] = losses[-1]
     config["average_loss"] = sum(losses) / len(losses)
-    
-    with open(os.path.join(args.output_dir, dir_name, "train_config.json"), 'w') as f:
+
+    with open(os.path.join(args.output_dir, dir_name, "train_config.json"), "w") as f:
         json.dump(config, f, indent=4)
-    print(f"Training configuration saved to {os.path.join(args.output_dir, 'train_config.json')}")
-    
+    print(
+        f"Training configuration saved to {os.path.join(args.output_dir, dir_name, 'train_config.json')}"
+    )
 
 
 if __name__ == "__main__":
     main()
-
