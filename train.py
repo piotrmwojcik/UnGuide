@@ -3,6 +3,7 @@ import json
 import os
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -50,11 +51,11 @@ def parse_args():
     )
 
     # HyperLoRA configuration
-    parser.add_argument(
-        "--use_hypernetwork",
-        action="store_true",
-        help="Use HyperLoRA instead of regular LoRA",
-    )
+    # parser.add_argument(
+    #     "--use_hypernetwork",
+    #     action="store_true",
+    #     help="Use HyperLoRA instead of regular LoRA",
+    # )
     parser.add_argument(
         "--clip_size",
         type=int,
@@ -127,6 +128,8 @@ def create_quick_sampler(
 
 def main():
     args = parse_args()
+    # temp
+    args.use_hypernetwork = True
 
     print("=== LoRA/HyperLoRA Fine-tuning Configuration ===")
     print(f"Config: {args.config_path}")
@@ -211,44 +214,28 @@ def main():
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
 
     hyper_lora_layers = []
-    if args.use_hypernetwork:
-        # Create HyperLoRA factory function
-        hyper_lora_factory = partial(
-            HyperLoRALinear,
-            clip_size=args.clip_size,
-            rank=args.lora_rank,
-            alpha=args.lora_alpha,
+
+    # Create HyperLoRA factory function
+    hyper_lora_factory = partial(
+        HyperLoRALinear,
+        clip_size=args.clip_size,
+        rank=args.lora_rank,
+        alpha=args.lora_alpha,
+    )
+
+    if args.prompts_json.endswith("nsfw.json"):
+        hyper_lora_layers = inject_hyper_lora_nsfw(
+            model.model.diffusion_model, hyper_lora_factory=hyper_lora_factory
         )
-
-        if args.prompts_json.endswith("nsfw.json"):
-            hyper_lora_layers = inject_hyper_lora_nsfw(
-                model.model.diffusion_model, hyper_lora_factory=hyper_lora_factory
-            )
-        else:
-            hyper_lora_layers = inject_hyper_lora(
-                model.model.diffusion_model, args.target_modules, hyper_lora_factory
-            )
-
-        # Set parent model reference for all HyperLoRA layers
-        for layer in hyper_lora_layers:
-            layer.set_parent_model(model)
-
     else:
-        # Create regular LoRA factory function
-        lora_factory = partial(
-            HyperLoRALinear, rank=args.lora_rank, alpha=args.lora_alpha, clip_size=args.clip_size
+        hyper_lora_layers = inject_hyper_lora(
+            model.model.diffusion_model, args.target_modules, hyper_lora_factory
         )
 
-        if args.prompts_json.endswith("nsfw.json"):
-            inject_hyper_lora_nsfw(
-                model.model.diffusion_model, lora_factory=lora_factory
-            )
-        else:
-            inject_hyper_lora(
-                model.model.diffusion_model, args.target_modules, lora_factory
-            )
+    for layer in hyper_lora_layers:
+        layer.set_parent_model(model)
 
-    # Get trainable parameters (only LoRA/HyperLoRA layers)
+    # Get trainable parameters (only HyperLoRA layers)
     trainable_params = list(
         filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters())
     )
@@ -277,57 +264,41 @@ def main():
     pbar = tqdm(range(args.iterations))
 
     for i in pbar:
-        # Prepare embeddings
         emb_0 = model.get_learned_conditioning([reference_prompt])
         emb_p = model.get_learned_conditioning([target_prompt])
         emb_n = model.get_learned_conditioning([target_prompt])
 
         optimizer.zero_grad()
 
-        # Sample random timestep
+        model.current_conditioning = emb_n
         t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
         og_num = round((int(t_enc) / args.ddim_steps) * 1000)
         og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-        # Generate random starting noise
         start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
             args.device
         )
 
         with torch.no_grad():
-            # Sample latent representation
             z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
 
-            # Get predictions from original model
             e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
             e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
-
-        # Set current conditioning for HyperLoRA layers
-        if args.use_hypernetwork:
-            model.current_conditioning = emb_n
-
-        # Get prediction from trainable model
         e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
-        # Ensure gradients are not computed for reference predictions
         e_0.requires_grad = False
         e_p.requires_grad = False
 
-        # Compute loss (negative guidance objective)
         target = e_0 - (args.negative_guidance * (e_p - e_0))
         loss = criterion(e_n, target)
 
-        # Backward pass and optimization
         loss.backward()
         optimizer.step()
 
-        # Record loss
         loss_value = loss.item()
         losses.append(loss_value)
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
-
-    # Save trained model
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     lora_state_dict = {}
@@ -338,6 +309,41 @@ def main():
     model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
     lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
     torch.save(lora_state_dict, lora_path)
+
+    # this part is unnecessary
+    print("Analyzing HyperLoRA weights...")
+    os.makedirs(os.path.join(args.output_dir, dir_name, "stats"), exist_ok=True)
+
+    avg_weights = []
+    layer_names = []
+
+    for i, layer in enumerate(hyper_lora_layers):
+        hypernetwork = layer.hyper_lora.hypernetwork
+        if hypernetwork is not None:
+            weight_avg = hypernetwork.weight.data.abs().mean().item()
+            bias_avg = hypernetwork.bias.data.abs().mean().item()
+            avg_weights.append(weight_avg)
+
+            for name, module in model.model.diffusion_model.named_modules():
+                if module is layer:
+                    layer_names.append(name)
+                    break
+            else:
+                layer_names.append(f"layer_{i}")
+
+    if avg_weights and layer_names:
+        plt.figure(figsize=(12, 8))
+        plt.bar(range(len(avg_weights)), avg_weights, tick_label=layer_names)
+        plt.xticks(rotation=90)
+        plt.ylabel("Average Absolute Weight")
+        plt.title("Average HyperLoRA Hypernetwork Weights")
+        plt.tight_layout()
+        plot_path = os.path.join(
+            args.output_dir, dir_name, "stats", "hyperlora_weights.png"
+        )
+        plt.savefig(plot_path)
+        print(f"Saved HyperLoRA weight plot to {plot_path}")
+        plt.close()
 
     print("Training completed!")
     print(f"Final loss: {losses[-1]:.6f}")
