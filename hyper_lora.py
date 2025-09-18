@@ -1,3 +1,4 @@
+import weakref
 from typing import List
 
 import torch
@@ -32,8 +33,16 @@ class HyperLora(nn.Module):
     def forward(self, clip, x):
         if self.hypernetwork is not None and clip is not None:
             weights = self.hypernetwork(clip)
-            A = weights[: self.in_dim * self.rank].view(self.in_dim, self.rank)
-            B = weights[self.in_dim * self.rank :].view(self.rank, self.out_dim)
+            A = (
+                weights[: self.in_dim * self.rank]
+                .contiguous()
+                .view(self.in_dim, self.rank)
+            )
+            B = (
+                weights[self.in_dim * self.rank :]
+                .contiguous()
+                .view(self.rank, self.out_dim)
+            )
         else:
             A = self.A
             B = self.B
@@ -62,18 +71,24 @@ class HyperLoRALinear(nn.Module):
         self.parent_model = None
 
     def set_parent_model(self, model):
-        self.parent_model = model
+        self.parent_model = weakref.ref(model)
 
     def forward(self, x):
-        clip_embedding = None
-        if self.parent_model is not None and hasattr(
-            self.parent_model, "current_conditioning"
-        ):
-            clip_embedding = self.parent_model.current_conditioning
-            if clip_embedding is not None:
-                if clip_embedding.dim() > 1:
-                    clip_embedding = clip_embedding[0]
-        
+        # use the `()` for weakref
+        parent = self.parent_model()
+        clip_embedding = parent.current_conditioning
+        if clip_embedding is None:
+            print("WARNING: this shouldn't happen")
+            return self.original(x)
+        # Expected shape: (batch_size, seq_len, hidden_size)
+        # e.g., (1, 77, 768)
+        if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
+            clip_embedding = clip_embedding[0]
+
+        # Take the mean of the sequence of embeddings
+        if clip_embedding.dim() == 2:
+            clip_embedding = clip_embedding.mean(dim=0)
+
         return self.original(x) + self.hyper_lora(clip_embedding, x)
 
 
