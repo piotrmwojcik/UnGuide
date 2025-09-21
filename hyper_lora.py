@@ -21,31 +21,16 @@ class HyperLora(nn.Module):
         self.rank = rank
         self.alpha = alpha
 
-        if clip_size > 0:
-            self.hypernetwork = nn.Linear(clip_size, (in_dim + out_dim) * rank)
-        else:
-            self.hypernetwork = None
-
-        std_dev = 1 / (rank**0.5)
-        self.A = nn.Parameter(torch.randn(in_dim, rank) * std_dev)
-        self.B = nn.Parameter(torch.zeros(rank, out_dim))
+        self.hypernetwork = nn.Linear(clip_size, (in_dim + out_dim) * rank)
 
     def forward(self, clip, x):
-        if self.hypernetwork is not None and clip is not None:
-            weights = self.hypernetwork(clip)
-            A = (
-                weights[: self.in_dim * self.rank]
-                .contiguous()
-                .view(self.in_dim, self.rank)
-            )
-            B = (
-                weights[self.in_dim * self.rank :]
-                .contiguous()
-                .view(self.rank, self.out_dim)
-            )
-        else:
-            A = self.A
-            B = self.B
+        weights = self.hypernetwork(clip)
+        A = weights[: self.in_dim * self.rank].contiguous().view(self.in_dim, self.rank)
+        B = (
+            weights[self.in_dim * self.rank :]
+            .contiguous()
+            .view(self.rank, self.out_dim)
+        )
 
         return self.alpha * (x @ A @ B)
 

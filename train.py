@@ -270,7 +270,9 @@ def main():
 
         optimizer.zero_grad()
 
-        model.current_conditioning = emb_n
+        model.current_conditioning = emb_n.detach()
+        model.current_conditioning.requires_grad = False
+
         t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
         og_num = round((int(t_enc) / args.ddim_steps) * 1000)
         og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
