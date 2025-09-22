@@ -303,6 +303,7 @@ def main():
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
+    model.current_conditioning = None
     lora_state_dict = {}
     for name, param in model.model.diffusion_model.named_parameters():
         if param.requires_grad:
