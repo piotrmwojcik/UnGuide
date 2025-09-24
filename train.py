@@ -210,7 +210,7 @@ def main():
     device = next(model.parameters()).device
 
     # --- sampling with CFG ---
-    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+    start_code = torch.randn(1, 4, 64, 64, device=args.device)
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
         samples_latent, _ = sampler.sample(
             S=50,
