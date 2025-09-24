@@ -101,7 +101,7 @@ def main():
         alpha=16,
     )
     hyper_lora_layers = inject_hyper_lora(
-        model.model.diffusion_model, args.target_modules, hyper_lora_factory
+        model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
     )
 
     for layer in hyper_lora_layers:
