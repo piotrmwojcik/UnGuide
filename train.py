@@ -253,6 +253,20 @@ def main():
     for param in model.model.diffusion_model.parameters():
         param.requires_grad = False
 
+    # --- sampling with CFG ---
+    sampler = DDIMSampler(model)
+
+    generate_and_save_sd_images(
+        model=model,
+        sampler=sampler,
+        prompt=target_prompt,
+        device=device,
+        steps=50,
+        out_dir="tmp_main",
+        prefix="orig_",
+    )
+
+
     # Inject LoRA layers
     print("Injecting LoRA layers...")
     if args.prompts_json.endswith("nsfw.json"):
