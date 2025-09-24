@@ -164,7 +164,7 @@ if __name__ == "__main__":
         )
 
         for layer in hyper_lora_layers:
-            layer.set_parent_model(model)
+            layer.set_parent_model(model_unl)
 
         updated = 0
         skipped = []
