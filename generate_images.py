@@ -7,6 +7,8 @@ from ldm.models.diffusion.ddimcopy import DDIMSampler
 from utils import load_model_from_config, apply_lora_to_model, set_seed
 from torchvision.transforms.functional import to_pil_image
 from autoguide import AutoGuidedModel
+from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
+                        inject_hyper_lora_nsfw)
 import numpy as np
 import time
 from tqdm import tqdm
