@@ -210,7 +210,6 @@ def main():
     device = next(model.parameters()).device
 
     # --- sampling with CFG ---
-    start = time.time()
     start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
         samples_latent, _ = sampler.sample(
@@ -229,7 +228,7 @@ def main():
         imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
         img = imgs[0].cpu()  # [3,H,W]
 
-        print(f"Generate: {end - start}", flush=True)
+        print(f"Generated images", flush=True)
 
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
