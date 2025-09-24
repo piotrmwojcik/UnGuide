@@ -316,7 +316,6 @@ def main():
     trainable_params = list(
         filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters())
     )
-    print(trainable_params)
     print(f"Total trainable parameters: {len(trainable_params)}")
     print_trainable_parameters(model)
 
