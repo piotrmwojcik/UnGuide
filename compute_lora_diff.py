@@ -89,7 +89,27 @@ def main():
 
     # Load LoRA parameters and apply to the model
     lora_sd = torch.load(args.lora, map_location="cpu")
-    apply_lora_to_model(model.model.diffusion_model, lora_sd, alpha=8)
+    #apply_lora_to_model(model.model.diffusion_model, lora_sd, alpha=8)
+
+    hyper_lora_factory = partial(
+        HyperLoRALinear,
+        clip_size=args.clip_size,
+        rank=args.lora_rank,
+        alpha=args.lora_alpha,
+    )
+    hyper_lora_layers = inject_hyper_lora(
+        model.model.diffusion_model, args.target_modules, hyper_lora_factory
+    )
+
+    for layer in hyper_lora_layers:
+        layer.set_parent_model(model)
+
+    def is_leaf(m):
+        return len(list(m.children())) == 0
+
+    for name, module in model.model.diffusion_model.named_modules():
+        if is_leaf(module):
+            print(f"{name}: {module.__class__.__name__}")
 
     def report_weight_diffs(model_after, model_before, topk=20, eps=1e-12, change_thresh=0.0):
         """
