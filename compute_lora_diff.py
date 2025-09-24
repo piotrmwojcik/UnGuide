@@ -114,7 +114,7 @@ def main():
     skipped = []
 
     with torch.no_grad():
-        for k, v in lora_weights.items():
+        for k, v in lora_sd.items():
             if k in sd:
                 if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
                     # match dtype/device of target param/buffer
