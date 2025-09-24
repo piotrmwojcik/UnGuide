@@ -344,6 +344,17 @@ def main():
         loss.backward()
         optimizer.step()
 
+        generate_and_save_sd_images(
+            model=model,
+            sampler=sampler,
+            prompt=target_prompt,
+            device=device,
+            steps=50,
+            out_dir="tmp_main",
+            prefix=f"orig_{i}_",
+        )
+
+
         # Record loss
         loss_value = loss.item()
         losses.append(loss_value)
