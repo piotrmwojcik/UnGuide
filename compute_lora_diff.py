@@ -6,6 +6,7 @@ import torch
 import math
 import numpy as np
 from tqdm import tqdm
+from functools import partial
 import time
 
 from utils import set_seed, load_model_from_config, apply_lora_to_model
