@@ -225,7 +225,7 @@ if __name__ == "__main__":
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
                 start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
-                auto_model.current_conditioning = cond
+                model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
