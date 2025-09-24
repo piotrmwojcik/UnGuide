@@ -256,6 +256,8 @@ def main():
     # --- sampling with CFG ---
     sampler = DDIMSampler(model)
 
+    device = next(model.parameters()).device
+
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
