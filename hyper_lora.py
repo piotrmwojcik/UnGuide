@@ -2,6 +2,7 @@ import weakref
 from typing import List
 
 import torch
+from functools import partial
 import torch.nn as nn
 
 
