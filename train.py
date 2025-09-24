@@ -230,7 +230,6 @@ def main():
         # decode latents to image space
         imgs = model.decode_first_stage(samples_latent)  # [-1,1]
         imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
-        img = imgs[0].cpu()  # [3,H,W]
 
         print(f"Generated images", flush=True)
         out_dir = Path("tmp")
@@ -344,6 +343,37 @@ def main():
     model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
     lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
     torch.save(lora_state_dict, lora_path)
+
+    start_code = torch.randn(1, 4, 64, 64, device=args.device)
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        cond = model.get_learned_conditioning([target_prompt])
+        uncond = model.get_learned_conditioning([""])
+        model.current_conditioning = cond
+        samples_latent, _ = sampler.sample(
+            S=50,
+            conditioning={"c_crossattn": [cond]},  # SD uses cross-attention conditioning
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],
+            verbose=False,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=0.0,
+            x_T=start_code
+        )
+
+        # decode latents to image space
+        imgs = model.decode_first_stage(samples_latent)  # [-1,1]
+        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
+
+        print(f"Generated images", flush=True)
+        out_dir = Path("tmp")
+        out_dir.mkdir(exist_ok=True)
+
+        for i, im in enumerate(imgs.cpu()):
+            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
+            to_pil_image(im_u8).save(out_dir / f"orig_{i:04d}.png")
+
+        print(f"Saved {len(imgs)} image(s) to {out_dir}/ with prefix 'unl_'")
+
 
     # this part is unnecessary
     print("Analyzing HyperLoRA weights...")
