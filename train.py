@@ -269,6 +269,10 @@ def main():
         args.config_path, args.ckpt_path, args.device
     )
 
+    # Freeze original model parameters
+    for param in model.model.diffusion_model.parameters():
+        param.requires_grad = False
+
     # Add current_conditioning attribute to model for HyperLoRA
     model.current_conditioning = None
 
