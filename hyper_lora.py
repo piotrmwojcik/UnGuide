@@ -26,6 +26,7 @@ class HyperLora(nn.Module):
 
     def forward(self, clip, x):
         weights = self.hypernetwork(clip)
+        std_dev = 1 / (self.rank ** 0.5)
         A = weights[: self.in_dim * self.rank].contiguous().view(self.in_dim, self.rank)
         B = (
             weights[self.in_dim * self.rank :]
@@ -33,7 +34,7 @@ class HyperLora(nn.Module):
             .view(self.rank, self.out_dim)
         )
 
-        return self.alpha * (x @ A @ B)
+        return self.alpha * (x @ (std_dev * A) @ B)
 
 
 class HyperLoRALinear(nn.Module):
