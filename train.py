@@ -128,6 +128,72 @@ def create_quick_sampler(
         verbose=False,
     )
 
+def generate_and_save_sd_images(
+    model,
+    sampler,
+    prompt: str,
+    device: torch.device,
+    steps: int = 50,
+    eta: float = 0.0,
+    batch_size: int = 1,
+    out_dir: str = "tmp",
+    prefix: str = "unl_",
+    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] (for 512x512)
+):
+    """
+    Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
+
+    - model: Stable Diffusion model (CompVis LDM style)
+    - sampler: DDIMSampler(model)
+    - prompt: text prompt
+    - device: torch.device("cuda") or torch.device("cpu")
+    - steps: DDIM steps
+    - eta: DDIM eta (0.0 => deterministic)
+    - batch_size: number of samples to generate
+    - out_dir: folder to save into
+    - prefix: file prefix, e.g., 'unl_'
+    - start_code: optional start noise of shape [B, 4, H/8, W/8]; if None, sampled internally.
+                  For 512×512 set shape to [B, 4, 64, 64].
+    """
+    # derive latent shape from start_code or default to 512×512
+    if start_code is None:
+        start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
+
+    # freeze & eval for safety
+    model.eval()
+    for p in model.model.diffusion_model.parameters():
+        p.requires_grad = False
+
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        uncond = model.get_learned_conditioning([""] * start_code.shape[0])
+
+        samples_latent, _ = sampler.sample(
+            S=steps,
+            conditioning={"c_crossattn": [cond]},
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],  # (4, H/8, W/8)
+            verbose=False,
+            unconditional_guidance_scale=7.5,                 # CFG scale; tweak if needed
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=eta,
+            x_T=start_code,
+        )
+
+        # decode latents to [0,1] images
+        imgs = model.decode_first_stage(samples_latent)       # [-1, 1]
+        imgs = (imgs.clamp(-1, 1) + 1) / 2.0                 # [0, 1]
+
+        # save
+        out_path = Path(out_dir)
+        out_path.mkdir(exist_ok=True)
+        for i, im in enumerate(imgs.cpu()):
+            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
+            to_pil_image(im_u8).save(out_path / f"{prefix}{i:04d}.png")
+
+        print(f"Saved {len(imgs)} image(s) to {out_path}/ with prefix '{prefix}'")
+        return imgs  # [B,3,H,W] in [0,1]
+
 
 def main():
     args = parse_args()
@@ -212,34 +278,17 @@ def main():
     device = next(model.parameters()).device
 
     # --- sampling with CFG ---
-    start_code = torch.randn(1, 4, 64, 64, device=args.device)
-    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond = model.get_learned_conditioning([target_prompt])
-        uncond = model.get_learned_conditioning([""])
-        samples_latent, _ = sampler.sample(
-            S=50,
-            conditioning={"c_crossattn": [cond]},  # SD uses cross-attention conditioning
-            batch_size=start_code.shape[0],
-            shape=start_code.shape[1:],
-            verbose=False,
-            unconditional_conditioning={"c_crossattn": [uncond]},
-            eta=0.0,
-            x_T=start_code
-        )
+    sampler = DDIMSampler(model)
 
-        # decode latents to image space
-        imgs = model.decode_first_stage(samples_latent)  # [-1,1]
-        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
-
-        print(f"Generated images", flush=True)
-        out_dir = Path("tmp")
-        out_dir.mkdir(exist_ok=True)
-
-        for i, im in enumerate(imgs.cpu()):
-            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
-            to_pil_image(im_u8).save(out_dir / f"orig_{i:04d}.png")
-
-        print(f"Saved {len(imgs)} image(s) to {out_dir}/ with prefix 'orig_'")
+    generate_and_save_sd_images(
+        model=model,
+        sampler=sampler,
+        prompt="a cozy cabin in the woods at sunset",
+        device=device,
+        steps=50,
+        out_dir="tmp",
+        prefix="orig_",
+    )
 
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
@@ -329,6 +378,16 @@ def main():
         loss.backward()
         optimizer.step()
 
+        generate_and_save_sd_images(
+            model=model,
+            sampler=sampler,
+            prompt=target_prompt,
+            device=device,
+            steps=50,
+            out_dir="tmp",
+            prefix=f"orig_{i}_",
+        )
+
         loss_value = loss.item()
         losses.append(loss_value)
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
@@ -343,37 +402,6 @@ def main():
     model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
     lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
     torch.save(lora_state_dict, lora_path)
-
-    start_code = torch.randn(1, 4, 64, 64, device=args.device)
-    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond = model.get_learned_conditioning([target_prompt])
-        uncond = model.get_learned_conditioning([""])
-        model.current_conditioning = cond
-        samples_latent, _ = sampler.sample(
-            S=50,
-            conditioning={"c_crossattn": [cond]},  # SD uses cross-attention conditioning
-            batch_size=start_code.shape[0],
-            shape=start_code.shape[1:],
-            verbose=False,
-            unconditional_conditioning={"c_crossattn": [uncond]},
-            eta=0.0,
-            x_T=start_code
-        )
-
-        # decode latents to image space
-        imgs = model.decode_first_stage(samples_latent)  # [-1,1]
-        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
-
-        print(f"Generated images", flush=True)
-        out_dir = Path("tmp")
-        out_dir.mkdir(exist_ok=True)
-
-        for i, im in enumerate(imgs.cpu()):
-            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
-            to_pil_image(im_u8).save(out_dir / f"unl_{i:04d}.png")
-
-        print(f"Saved {len(imgs)} image(s) to {out_dir}/ with prefix 'unl_'")
-
 
     # this part is unnecessary
     print("Analyzing HyperLoRA weights...")
