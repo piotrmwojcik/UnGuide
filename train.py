@@ -160,9 +160,6 @@ def generate_and_save_sd_images(
         start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
 
     # freeze & eval for safety
-    model.eval()
-    for p in model.model.diffusion_model.parameters():
-        p.requires_grad = False
 
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
         cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
