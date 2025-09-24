@@ -207,26 +207,28 @@ def main():
     # Add current_conditioning attribute to model for HyperLoRA
     model.current_conditioning = None
 
-    # Freeze original model parameters
-    for param in model.model.diffusion_model.parameters():
-        param.requires_grad = False
+    device = next(model.parameters()).device
 
-    cond = model.get_learned_conditioning([target_prompt])
-    uncond = model.get_learned_conditioning([""])
-    with torch.no_grad():
-        sampler = DDIMSampler(model=model)
-        start_code = torch.randn(1, 4, 64, 64, device=args.device)
-        model.current_conditioning = cond
-        from generate_images import generate_image
-        img = generate_image(
-            sampler=sampler, auto_model=model, start_code=start_code,
-            cond=cond, uncond=uncond, steps=50
+    # --- sampling with CFG ---
+    start = time.time()
+    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        samples_latent, _ = sampler.sample(
+            S=50,
+            conditioning={"c_crossattn": [cond]},  # SD uses cross-attention conditioning
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],
+            verbose=False,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=0.0,
+            x_T=start_code
         )
-        img_np = img[0].cpu().permute(1, 2, 0).numpy()
-        img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
-        #img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
-        end = time.time()
+        # decode latents to image space
+        imgs = model.decode_first_stage(samples_latent)  # [-1,1]
+        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
+        img = imgs[0].cpu()  # [3,H,W]
+
         print(f"Generate: {end - start}", flush=True)
 
     # Inject LoRA or HyperLoRA layers
