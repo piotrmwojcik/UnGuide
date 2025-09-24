@@ -96,9 +96,9 @@ def main():
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=args.clip_size,
-        rank=args.lora_rank,
-        alpha=args.lora_alpha,
+        clip_size=768,
+        rank=4,
+        alpha=16,
     )
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, args.target_modules, hyper_lora_factory
