@@ -113,7 +113,7 @@ def main():
 
     with torch.no_grad():
         for k, v in lora_sd.items():
-            if k in model.model.diffusion_model:
+            if k in model.model.diffusion_model.state_dict():
                 print('!!! ', k)
                 if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
                     # match dtype/device of target param/buffer
