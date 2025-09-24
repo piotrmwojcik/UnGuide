@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import torch
+from functools import partial
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from utils import load_model_from_config, apply_lora_to_model, set_seed
 from torchvision.transforms.functional import to_pil_image
