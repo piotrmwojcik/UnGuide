@@ -100,7 +100,7 @@ if __name__ == "__main__":
     for exp in exps:
         exp_filepath = os.path.join(args.output_dir, exp)
         img_root = os.path.join(args.output_dir, exp, "images")
-        lora_filepath = os.path.join(exp_filepath, "models", "lora.pth")
+        lora_filepath = os.path.join(exp_filepath, "models", "hyper_lora.pth")
        
 
         diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
@@ -172,7 +172,9 @@ if __name__ == "__main__":
             # Conditioning
             cond = auto_model.get_learned_conditioning([prompt])
             uncond = auto_model.get_learned_conditioning([""])
-
+                
+            print(f"cond dimensions {cond.size()}")
+            print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
             for idx in tqdm(range(args.samples), desc="Generating images"):
