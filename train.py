@@ -219,7 +219,7 @@ def main():
         model.current_conditioning = cond
         from generate_images import generate_image
         img = generate_image(
-            sampler, auto_model, start_code, cond, uncond, args.steps
+            sampler, model, start_code, cond, uncond, 50
         )
         img_np = img[0].cpu().permute(1, 2, 0).numpy()
         img_pil = to_pil_image((img_np * 255).astype(np.uint8))
