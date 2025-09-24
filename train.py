@@ -231,6 +231,14 @@ def main():
         img = imgs[0].cpu()  # [3,H,W]
 
         print(f"Generated images", flush=True)
+        out_dir = Path("tmp")
+        out_dir.mkdir(exist_ok=True)
+
+        for i, im in enumerate(imgs.cpu()):
+            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
+            to_pil_image(im_u8).save(out_dir / f"orig_{i:04d}.png")
+
+        print(f"Saved {len(imgs)} image(s) to {out_dir}/ with prefix 'orig_'")
 
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
