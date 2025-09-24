@@ -114,12 +114,11 @@ def main():
     with torch.no_grad():
         for k, v in lora_sd.items():
             if k in model.model.diffusion_model.state_dict():
-                print('!!! ', k)
                 if torch.is_tensor(lora_sd[k]) and torch.is_tensor(v) and lora_sd[k].shape == v.shape:
                     # match dtype/device of target param/buffer
-                    #sd[k].copy_(v.to(sd[k].dtype))
+                    model.model.diffusion_model.state_dict()[k].copy_(v.to(sd[k].dtype))
                     updated += 1
-                    # print("updated:", k)
+                    print("updated:", k)
                 else:
                     skipped.append((k, "shape/dtype mismatch"))
             else:
