@@ -107,9 +107,26 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
-    for k in model.model.diffusion_model.state_dict().keys():
-        if k in lora_sd.keys():
-            print('!!! ', k)
+    target = model.model.diffusion_model
+    sd = target.state_dict()
+
+    updated = 0
+    skipped = []
+
+    with torch.no_grad():
+        for k, v in lora_weights.items():
+            if k in sd:
+                if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
+                    # match dtype/device of target param/buffer
+                    sd[k].copy_(v.to(sd[k].dtype))
+                    updated += 1
+                    # print("updated:", k)
+                else:
+                    skipped.append((k, "shape/dtype mismatch"))
+            else:
+                skipped.append((k, "no such key in model"))
+
+    print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
     # Initialize DDIM samplers
     sampler_orig = DDIMSampler(model_orig)
