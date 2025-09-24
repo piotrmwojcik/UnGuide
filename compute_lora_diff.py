@@ -107,10 +107,6 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
-    for name, module in model.model.diffusion_model.named_modules():
-        if is_leaf(module):
-            print(f"{name}: {module.__class__.__name__}")
-
     for k in model.model.diffusion_model.state_dict().keys():
         if k in lora_sd.keys():
             print('!!! ', k)
