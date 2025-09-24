@@ -107,15 +107,14 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
-    target = model.model.diffusion_model
-    sd = target.state_dict()
 
     updated = 0
     skipped = []
 
     with torch.no_grad():
         for k, v in lora_sd.items():
-            if k in sd:
+            if k in model.model.diffusion_model:
+                print('!!! ', k)
                 if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
                     # match dtype/device of target param/buffer
                     sd[k].copy_(v.to(sd[k].dtype))
