@@ -107,113 +107,13 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
-    def is_leaf(m):
-        return len(list(m.children())) == 0
-
     for name, module in model.model.diffusion_model.named_modules():
         if is_leaf(module):
             print(f"{name}: {module.__class__.__name__}")
 
-    def report_weight_diffs(model_after, model_before, topk=20, eps=1e-12, change_thresh=0.0):
-        """
-        Compare state_dicts and print per-tensor diffs:
-          - l2 norm of delta
-          - relative l2 (||Δ|| / (||W_before|| + eps))
-          - max |delta|
-          - fraction of elements with |delta| > change_thresh
-        """
-        sd_after = model_after.state_dict()
-        sd_before = model_before.state_dict()
-
-        keys_after = set(sd_after.keys())
-        keys_before = set(sd_before.keys())
-
-        only_after = sorted(keys_after - keys_before)
-        only_before = sorted(keys_before - keys_after)
-
-        if only_after:
-            print(f"[INFO] {len(only_after)} tensors exist only in AFTER (likely LoRA aux):")
-            for k in only_after[:10]:
-                print("   +", k)
-            if len(only_after) > 10:
-                print("   ...")
-
-        if only_before:
-            print(f"[INFO] {len(only_before)} tensors exist only in BEFORE (unexpected):")
-            for k in only_before[:10]:
-                print("   -", k)
-            if len(only_before) > 10:
-                print("   ...")
-
-        shared = sorted(keys_after & keys_before)
-
-        rows = []
-        total_elems = 0
-        changed_elems = 0
-        total_tensors = 0
-        changed_tensors = 0
-
-        for k in shared:
-            a = sd_after[k]
-            b = sd_before[k]
-
-            # focus on floating tensors only
-            if not torch.is_floating_point(a) or not torch.is_floating_point(b):
-                continue
-            if a.shape != b.shape:
-                print(f"[WARN] shape mismatch for {k}: after={tuple(a.shape)} before={tuple(b.shape)}; skipping")
-                continue
-
-            total_tensors += 1
-            with torch.no_grad():
-                da = (a.detach().float().cpu() - b.detach().float().cpu())
-                nb = torch.linalg.vector_norm(b.detach().float().cpu())
-                nd = torch.linalg.vector_norm(da)
-                rel = (nd / (nb + eps)).item()
-                maxabs = da.abs().max().item()
-                elems = da.numel()
-                nz = (da.abs() > change_thresh).sum().item()
-
-                total_elems += elems
-                changed_elems += nz
-                if maxabs > 0:
-                    changed_tensors += 1
-
-                rows.append({
-                    "name": k,
-                    "shape": tuple(a.shape),
-                    "||Δ||2": nd.item(),
-                    "rel||Δ||": rel,
-                    "max|Δ|": maxabs,
-                    "changed_frac": nz / elems if elems > 0 else math.nan,
-                    "elems": elems,
-                })
-
-        # sort by relative change, then absolute l2
-        rows_sorted = sorted(rows, key=lambda r: (r["rel||Δ||"], r["||Δ||2"]), reverse=True)
-
-        print("\n=== Summary ===")
-        print(f"Compared tensors (float): {total_tensors}")
-        print(f"Tensors changed (max|Δ|>0): {changed_tensors}")
-        print(f"Elements total: {total_elems:,}")
-        print(f"Elements |Δ|>{change_thresh}: {changed_elems:,} "
-              f"({changed_elems / total_elems * 100:.4f}% if total>0)")
-
-        print(f"\nTop {min(topk, len(rows_sorted))} tensors by relative change:")
-        for r in rows_sorted[:topk]:
-            print(f"- {r['name']:<80} {str(r['shape']):>16}  "
-                  f"rel||Δ||={r['rel||Δ||']:.6g}  ||Δ||2={r['||Δ||2']:.6g}  "
-                  f"max|Δ|={r['max|Δ|']:.6g}  changed={r['changed_frac']:.2%}")
-
-    # --- call it on your diffusion model submodule ---
-    report_weight_diffs(
-        model_after=model.model.diffusion_model,  # after LoRA applied
-        model_before=model_orig.model.diffusion_model,
-        topk=30,
-        eps=1e-12,
-        change_thresh=0.0,  # set e.g. to 1e-12 if you want to ignore tiny fp noise
-    )
-
+    for k in model.model.diffusion_model.state_dict().keys():
+        if k in lora_sd.keys():
+            print('!!! ', k)
 
     # Initialize DDIM samplers
     sampler_orig = DDIMSampler(model_orig)
