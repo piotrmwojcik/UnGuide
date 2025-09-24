@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 import torch
+import torch
+import math
 import numpy as np
 from tqdm import tqdm
 import time
@@ -89,8 +91,6 @@ def main():
     lora_sd = torch.load(args.lora, map_location="cpu")
     apply_lora_to_model(model.model.diffusion_model, lora_sd, alpha=8)
 
-    import torch
-    import math
     def report_weight_diffs(model_after, model_before, topk=20, eps=1e-12, change_thresh=0.0):
         """
         Compare state_dicts and print per-tensor diffs:
