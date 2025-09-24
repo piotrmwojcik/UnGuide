@@ -111,12 +111,14 @@ def main():
     updated = 0
     skipped = []
 
+    sd = model.model.diffusion_model.state_dict()
+
     with torch.no_grad():
         for k, v in lora_sd.items():
-            if k in model.model.diffusion_model.state_dict():
+            if k in sd:
                 if torch.is_tensor(lora_sd[k]) and torch.is_tensor(v) and lora_sd[k].shape == v.shape:
                     # match dtype/device of target param/buffer
-                    model.model.diffusion_model.state_dict()[k].copy_(v.to(sd[k].dtype))
+                    sd[k].copy_(v.to(sd[k].dtype))
                     updated += 1
                     print("updated:", k)
                 else:
