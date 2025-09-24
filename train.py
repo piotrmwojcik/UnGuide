@@ -5,6 +5,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 from pathlib import Path
+from torchvision.transforms.functional import to_pil_image
 import numpy as np
 import torch
 from tqdm import tqdm
