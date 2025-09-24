@@ -169,7 +169,7 @@ if __name__ == "__main__":
         updated = 0
         skipped = []
 
-        sd = model.model.diffusion_model.state_dict()
+        sd = model_unl.model.diffusion_model.state_dict()
 
         with torch.no_grad():
             for k, v in lora_sd.items():
