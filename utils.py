@@ -44,7 +44,7 @@ def print_trainable_parameters(model, max_params: int = 10):
     count = 0
     for name, param in model.named_parameters():
         if param.requires_grad:
-            # print(f"  {name}")
+            print(f"  {name}")
             count += 1
             if count >= max_params:
                 break
