@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from tqdm import tqdm
+from ldm.models.diffusion.ddimcopy import DDIMSampler
 
 from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
                         inject_hyper_lora_nsfw)
@@ -210,6 +211,22 @@ def main():
     for param in model.model.diffusion_model.parameters():
         param.requires_grad = False
 
+    cond = model.get_learned_conditioning([target_prompt])
+    uncond = model.get_learned_conditioning([""])
+    with torch.no_grad():
+        sampler = DDIMSampler(model=auto_model)
+        start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+        model.current_conditioning = cond
+        img = generate_image(
+            sampler, auto_model, start_code, cond, uncond, args.steps
+        )
+        img_np = img[0].cpu().permute(1, 2, 0).numpy()
+        img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+
+        img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+        end = time.time()
+        print(f"Generate: {end - start}", flush=True)
+
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
 
@@ -360,6 +377,7 @@ def main():
     print(
         f"Training configuration saved to {os.path.join(args.output_dir, dir_name, 'train_config.json')}"
     )
+
 
 
 if __name__ == "__main__":

@@ -231,7 +231,6 @@ if __name__ == "__main__":
                 )
                 img_np = img[0].cpu().permute(1, 2, 0).numpy()
                 img_pil = to_pil_image((img_np * 255).astype(np.uint8))
-
                 
                 img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
                 end = time.time()
