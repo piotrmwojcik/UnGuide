@@ -212,8 +212,8 @@ def main():
     # --- sampling with CFG ---
     start_code = torch.randn(1, 4, 64, 64, device=args.device)
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond = auto_model.get_learned_conditioning([target_prompt])
-        uncond = auto_model.get_learned_conditioning([""])
+        cond = model.get_learned_conditioning([target_prompt])
+        uncond = model.get_learned_conditioning([""])
         samples_latent, _ = sampler.sample(
             S=50,
             conditioning={"c_crossattn": [cond]},  # SD uses cross-attention conditioning
