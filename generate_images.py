@@ -149,8 +149,39 @@ if __name__ == "__main__":
         )
 
         # Apply LoRA to unlearned model
-        lora_state_dict = torch.load(lora_filepath, map_location=args.device)
-        apply_lora_to_model(model_unl.model.diffusion_model, lora_state_dict, alpha=8)
+        lora_sd = torch.load(lora_filepath, map_location=args.device)
+        hyper_lora_factory = partial(
+            HyperLoRALinear,
+            clip_size=768,
+            rank=1,
+            alpha=8,
+        )
+        hyper_lora_layers = inject_hyper_lora(
+            model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
+        )
+
+        for layer in hyper_lora_layers:
+            layer.set_parent_model(model)
+
+        updated = 0
+        skipped = []
+
+        sd = model.model.diffusion_model.state_dict()
+
+        with torch.no_grad():
+            for k, v in lora_sd.items():
+                if k in sd:
+                    if torch.is_tensor(lora_sd[k]) and torch.is_tensor(v) and lora_sd[k].shape == v.shape:
+                        # match dtype/device of target param/buffer
+                        sd[k].copy_(v.to(sd[k].dtype))
+                        updated += 1
+                        print("updated:", k)
+                    else:
+                        skipped.append((k, "shape/dtype mismatch"))
+                else:
+                    skipped.append((k, "no such key in model"))
+
+        print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
         for prompt in prompts:
             class_name = prompt.split(" ")[-1]
