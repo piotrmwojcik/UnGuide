@@ -214,8 +214,8 @@ def main():
     cond = model.get_learned_conditioning([target_prompt])
     uncond = model.get_learned_conditioning([""])
     with torch.no_grad():
-        sampler = DDIMSampler(model=auto_model)
-        start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+        sampler = DDIMSampler(model=model)
+        start_code = torch.randn(1, 4, 64, 64, device=args.device)
         model.current_conditioning = cond
         img = generate_image(
             sampler, auto_model, start_code, cond, uncond, args.steps
@@ -223,7 +223,7 @@ def main():
         img_np = img[0].cpu().permute(1, 2, 0).numpy()
         img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
-        img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+        #img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
         end = time.time()
         print(f"Generate: {end - start}", flush=True)
 
