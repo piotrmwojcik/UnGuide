@@ -370,7 +370,7 @@ def main():
 
         for i, im in enumerate(imgs.cpu()):
             im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
-            to_pil_image(im_u8).save(out_dir / f"orig_{i:04d}.png")
+            to_pil_image(im_u8).save(out_dir / f"unl_{i:04d}.png")
 
         print(f"Saved {len(imgs)} image(s) to {out_dir}/ with prefix 'unl_'")
 
