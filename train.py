@@ -280,7 +280,7 @@ def main():
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
-        prompt="a cozy cabin in the woods at sunset",
+        prompt=target_prompt,
         device=device,
         steps=50,
         out_dir="tmp",
