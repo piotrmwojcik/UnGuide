@@ -183,9 +183,9 @@ def main():
                 )
 
                 # Compute epsilon predictions for both models
-                model.current_conditioning = cond
+                #model.current_conditioning = cond
                 eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
-                model.current_conditioning = cond_orig
+                #model.current_conditioning = cond_orig
                 eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
 
                 # Compute norm of the difference and record it
