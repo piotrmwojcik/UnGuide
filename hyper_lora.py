@@ -76,7 +76,7 @@ class HyperLoRALinear(nn.Module):
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
 
-        return self.original(x) + self.hyper_lora(clip_embedding, x)
+        return 0.8 * self.original(x) + 0.2 * self.hyper_lora(clip_embedding, x)
 
 
 def inject_hyper_lora(
