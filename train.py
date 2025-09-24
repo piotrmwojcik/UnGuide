@@ -217,6 +217,7 @@ def main():
         sampler = DDIMSampler(model=model)
         start_code = torch.randn(1, 4, 64, 64, device=args.device)
         model.current_conditioning = cond
+        from generate_images import generate_image
         img = generate_image(
             sampler, auto_model, start_code, cond, uncond, args.steps
         )
