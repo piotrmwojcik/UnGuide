@@ -234,8 +234,8 @@ class FrozenCLIPEmbedder(AbstractEncoder):
         self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77
     ):  # clip-vit-base-patch32
         super().__init__()
-        self.tokenizer = CLIPTokenizer.from_pretrained(version, local_files_only=True)
-        self.transformer = CLIPTextModel.from_pretrained(version, local_files_only=True)
+        self.tokenizer = CLIPTokenizer.from_pretrained(version, local_files_only=False)
+        self.transformer = CLIPTextModel.from_pretrained(version, local_files_only=False)
         self.device = device
         self.max_length = max_length
         self.freeze()
