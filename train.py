@@ -400,8 +400,8 @@ def main():
         loss.backward()
         optimizer.step()
 
-        if i >= args.log_from:
-            generate_and_save_sd_images(
+        if i >= args.log_from and i % 30 == 0:
+            imgs = generate_and_save_sd_images(
                 model=model,
                 sampler=sampler,
                 prompt=target_prompt,
@@ -410,10 +410,13 @@ def main():
                 out_dir="tmp",
                 prefix=f"orig_{i}_",
             )
+            if args.use_wandb:
+                wandb.log({"loss": loss_value}, step=i)
+                im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                wandb.log({"sample": wandb.Image(to_pil_image(im0))}, step=i)
 
         loss_value = loss.item()
-        if args.use_wandb:
-            wandb.log({"loss": loss_value}, step=i)
+
         losses.append(loss_value)
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
