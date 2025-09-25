@@ -410,12 +410,12 @@ def main():
                 out_dir="tmp",
                 prefix=f"unl_{i}_",
             )
-            if args.use_wandb:
-                wandb.log({"loss": loss_value}, step=i)
-                im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                wandb.log({"sample": wandb.Image(to_pil_image(im0))}, step=i)
+            im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+            wandb.log({"sample": wandb.Image(to_pil_image(im0))}, step=i)
 
         loss_value = loss.item()
+        if args.use_wandb:
+            wandb.log({"loss": loss_value}, step=i)
 
         losses.append(loss_value)
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
