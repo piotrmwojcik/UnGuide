@@ -75,6 +75,7 @@ def parse_args():
     parser.add_argument(
         "--iterations", type=int, default=200, help="Number of training iterations"
     )
+    parser.add_argument("--use-wandb", action='store_true')
     parser.add_argument("--lr", type=float, default=3e-5, help="Learning rate")
     parser.add_argument(
         "--image_size", type=int, default=512, help="Image size for training"
@@ -95,6 +96,7 @@ def parse_args():
     parser.add_argument(
         "--negative_guidance", type=float, default=2.0, help="Negative guidance scale"
     )
+    parser.add_argument("--use-wandb", action='store_true')
 
     # Output
     parser.add_argument(
@@ -215,6 +217,15 @@ def main():
     print(f"Training iterations: {args.iterations}")
     print(f"Learning rate: {args.lr}")
     print("=" * 40)
+
+
+    if args.use_wandb:
+        wandb.init(
+            project="UnGuide",
+            name='training',
+            group=None,
+            config=vars(args)
+        )
 
     # Set seed
     if args.seed is not None:
@@ -401,6 +412,8 @@ def main():
             )
 
         loss_value = loss.item()
+        if args.use_wandb:
+            wandb.log({"loss": loss_value}, step=i)
         losses.append(loss_value)
         pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
@@ -453,6 +466,9 @@ def main():
     print("Training completed!")
     print(f"Final loss: {losses[-1]:.6f}")
     print(f"Average loss: {sum(losses) / len(losses):.6f}")
+
+    if args.use_wandb:
+        wandb.finish()
 
     config["final_loss"] = losses[-1]
     config["average_loss"] = sum(losses) / len(losses)
