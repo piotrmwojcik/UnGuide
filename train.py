@@ -385,7 +385,7 @@ def main():
         loss.backward()
         optimizer.step()
 
-        if i >= 300:
+        if i >= 50:
             generate_and_save_sd_images(
                 model=model,
                 sampler=sampler,
