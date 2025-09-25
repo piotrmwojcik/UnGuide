@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import wandb
 from functools import partial
 
 import matplotlib.pyplot as plt
