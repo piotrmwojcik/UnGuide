@@ -62,7 +62,7 @@ def parse_args():
     parser.add_argument(
         "--clip_size",
         type=int,
-        default=1024,
+        default=768,
         help="CLIP embedding size",
     )
     parser.add_argument(
