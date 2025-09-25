@@ -384,15 +384,16 @@ def main():
         loss.backward()
         optimizer.step()
 
-        generate_and_save_sd_images(
-            model=model,
-            sampler=sampler,
-            prompt=target_prompt,
-            device=device,
-            steps=50,
-            out_dir="tmp",
-            prefix=f"orig_{i}_",
-        )
+        if i >= 300:
+            generate_and_save_sd_images(
+                model=model,
+                sampler=sampler,
+                prompt=target_prompt,
+                device=device,
+                steps=50,
+                out_dir="tmp",
+                prefix=f"orig_{i}_",
+            )
 
         loss_value = loss.item()
         losses.append(loss_value)
