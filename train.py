@@ -79,6 +79,7 @@ def parse_args():
     parser.add_argument(
         "--image_size", type=int, default=512, help="Image size for training"
     )
+    parser.add_argument("--log_from", type=int, default=0, help="Log debug images from iteration")
     parser.add_argument(
         "--ddim_steps", type=int, default=50, help="DDIM sampling steps"
     )
@@ -388,7 +389,7 @@ def main():
         loss.backward()
         optimizer.step()
 
-        if i >= 300:
+        if i >= args.log_from:
             generate_and_save_sd_images(
                 model=model,
                 sampler=sampler,
