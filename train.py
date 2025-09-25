@@ -96,7 +96,6 @@ def parse_args():
     parser.add_argument(
         "--negative_guidance", type=float, default=2.0, help="Negative guidance scale"
     )
-    parser.add_argument("--use-wandb", action='store_true')
 
     # Output
     parser.add_argument(
