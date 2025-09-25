@@ -27,7 +27,7 @@ def encode_batch(model, texts, batch_size=64):
     
     for i in tqdm(range(0, len(texts), batch_size), desc="Encoding"):
         batch = texts[i:i + batch_size]
-        batch_with_prefix = [f"query: {text}" for text in batch]
+        batch_with_prefix = [f"a photo of the {text}" for text in batch]
         
         with torch.no_grad():
             embeddings = model.encode(
