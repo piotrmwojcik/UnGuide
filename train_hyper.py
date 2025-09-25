@@ -45,7 +45,7 @@ def parse_args():
     # LoRA configuration
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
     parser.add_argument(
-        "--lora_alpha", type=int, default=8, help="LoRA alpha parameter"
+        "--lora_alpha", type=int, default=0.01, help="LoRA alpha parameter"
     )
     parser.add_argument(
         "--target_modules",
@@ -75,7 +75,7 @@ def parse_args():
     parser.add_argument(
         "--data_file",
         type=str,
-        default="embeddings.csv",
+        default="data/embeddings.csv",
         help="A .csv file with prompt and embeddings",
     )
     # Training configuration
@@ -101,7 +101,7 @@ def parse_args():
     parser.add_argument(
         "--negative_guidance", type=float, default=2.0, help="Negative guidance scale"
     )
-
+    parser.add_argument("--use-wandb", action="store_true")
     # Output
     parser.add_argument(
         "--output_dir",
@@ -140,6 +140,7 @@ def create_quick_sampler(
         verbose=False,
     )
 
+
 def generate_and_save_sd_images(
     model,
     sampler,
@@ -150,7 +151,7 @@ def generate_and_save_sd_images(
     batch_size: int = 1,
     out_dir: str = "tmp",
     prefix: str = "unl_",
-    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] (for 512x512)
+    start_code: torch.Tensor = None,  # optional noise tensor [B,4,64,64] (for 512x512)
 ):
     """
     Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
@@ -173,8 +174,10 @@ def generate_and_save_sd_images(
 
     # freeze & eval for safety
 
-    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+    with torch.no_grad(), torch.autocast(
+        device_type=device.type, enabled=(device.type == "cuda")
+    ):
+        cond = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
         samples_latent, _ = sampler.sample(
@@ -183,15 +186,15 @@ def generate_and_save_sd_images(
             batch_size=start_code.shape[0],
             shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
-            unconditional_guidance_scale=7.5,                 # CFG scale; tweak if needed
+            unconditional_guidance_scale=7.5,  # CFG scale; tweak if needed
             unconditional_conditioning={"c_crossattn": [uncond]},
             eta=eta,
             x_T=start_code,
         )
 
         # decode latents to [0,1] images
-        imgs = model.decode_first_stage(samples_latent)       # [-1, 1]
-        imgs = (imgs.clamp(-1, 1) + 1) / 2.0                 # [0, 1]
+        imgs = model.decode_first_stage(samples_latent)  # [-1, 1]
+        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0, 1]
 
         # save
         out_path = Path(out_dir)
@@ -221,6 +224,9 @@ def main():
     print(f"Training iterations: {args.iterations}")
     print(f"Learning rate: {args.lr}")
     print("=" * 40)
+
+    if args.use_wandb:
+        wandb.init(project="UnGuide", name="training", group=None, config=vars(args))
 
     # Set seed
     if args.seed is not None:
@@ -260,7 +266,7 @@ def main():
     dir_name = (
         "_".join(
             f"{k}_{config[k]}"
-                for k in [
+            for k in [
                 "class_name",
                 "lora_rank",
                 "lora_alpha",
@@ -277,6 +283,7 @@ def main():
 
     # Initialize models
     print("Loading models...")
+    print(args.config_path, args.ckpt_path)
     model_orig, sampler_orig, model, sampler = get_models(
         args.config_path, args.ckpt_path, args.device
     )
@@ -355,7 +362,7 @@ def main():
     # Training loop
     print("Starting training...")
     data = pd.read_csv(args.data_file)
-    
+
     for epoch in range(args.epochs):
         t = tqdm(range(len(data) // 2))
         print(f"Starting epoch {epoch + 1}:")
@@ -378,9 +385,9 @@ def main():
             og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-            start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
-                args.device
-            )
+            start_code = torch.randn(
+                (1, 4, args.image_size // 8, args.image_size // 8)
+            ).to(args.device)
 
             with torch.no_grad():
                 z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
@@ -401,6 +408,9 @@ def main():
             loss_value = loss.item()
             losses.append(loss_value)
             t.set_postfix({"loss": f"{loss_value:.6f}"})
+
+            if args.use_wandb:
+                wandb.log({"loss": loss_value}, step=i)
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     model.current_conditioning = None
@@ -448,6 +458,9 @@ def main():
         print(f"Saved HyperLoRA weight plot to {plot_path}")
         plt.close()
 
+    if args.use_wandb:
+        wandb.finish()
+
     print("Training completed!")
     print(f"Final loss: {losses[-1]:.6f}")
     print(f"Average loss: {sum(losses) / len(losses):.6f}")
@@ -460,7 +473,6 @@ def main():
     print(
         f"Training configuration saved to {os.path.join(args.output_dir, dir_name, 'train_config.json')}"
     )
-
 
 
 if __name__ == "__main__":
