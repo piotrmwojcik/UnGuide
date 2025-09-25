@@ -2,17 +2,18 @@ import argparse
 import json
 import os
 from functools import partial
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-from pathlib import Path
-from torchvision.transforms.functional import to_pil_image
 import numpy as np
+import pandas as pd
 import torch
+from torchvision.transforms.functional import to_pil_image
 from tqdm import tqdm
-from ldm.models.diffusion.ddimcopy import DDIMSampler
 
 from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
                         inject_hyper_lora_nsfw)
+from ldm.models.diffusion.ddimcopy import DDIMSampler
 from ldm.util import instantiate_from_config
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters, set_seed
@@ -64,6 +65,12 @@ def parse_args():
         type=int,
         default=1024,
         help="CLIP embedding size",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=100,
+        help="Number of epochs",
     )
     parser.add_argument(
         "--data_file",
@@ -347,57 +354,53 @@ def main():
 
     # Training loop
     print("Starting training...")
-    pbar = tqdm(range(args.iterations))
+    data = pd.read_csv(args.data_file)
+    
+    for epoch in range(args.epochs):
+        t = tqdm(range(len(data) // 2))
+        print(f"Starting epoch {epoch + 1}:")
+        for i in t:
+            reference_prompt, reference_clip = data.iloc[2 * i]
+            reference_clip = torch.tensor(eval(reference_clip)).to(device)
+            target_prompt, target_clip = data.iloc[2 * i + 1]
+            target_clip = torch.tensor(eval(target_clip)).to(device)
+            emb_0 = model.get_learned_conditioning([reference_prompt])
+            emb_p = model.get_learned_conditioning([target_prompt])
+            emb_n = model.get_learned_conditioning([target_prompt])
 
-    for i in pbar:
-        emb_0 = model.get_learned_conditioning([reference_prompt])
-        emb_p = model.get_learned_conditioning([target_prompt])
-        emb_n = model.get_learned_conditioning([target_prompt])
+            optimizer.zero_grad()
 
-        optimizer.zero_grad()
+            model.current_conditioning = target_clip
+            model.current_conditioning.requires_grad = False
 
-        model.current_conditioning = emb_n.detach()
-        model.current_conditioning.requires_grad = False
+            t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
+            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-        t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
-        og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-        og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-        t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
-
-        start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
-            args.device
-        )
-
-        with torch.no_grad():
-            z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-
-            e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-            e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
-        e_n = model.apply_model(z, t_enc_ddpm, emb_n)
-
-        e_0.requires_grad = False
-        e_p.requires_grad = False
-
-        target = e_0 - (args.negative_guidance * (e_p - e_0))
-        loss = criterion(e_n, target)
-
-        loss.backward()
-        optimizer.step()
-
-        if i >= 300:
-            generate_and_save_sd_images(
-                model=model,
-                sampler=sampler,
-                prompt=target_prompt,
-                device=device,
-                steps=50,
-                out_dir="tmp",
-                prefix=f"orig_{i}_",
+            start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
+                args.device
             )
 
-        loss_value = loss.item()
-        losses.append(loss_value)
-        pbar.set_postfix({"loss": f"{loss_value:.6f}"})
+            with torch.no_grad():
+                z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+
+                e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+                e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+            e_n = model.apply_model(z, t_enc_ddpm, emb_n)
+
+            e_0.requires_grad = False
+            e_p.requires_grad = False
+
+            target = e_0 - (args.negative_guidance * (e_p - e_0))
+            loss = criterion(e_n, target)
+
+            loss.backward()
+            optimizer.step()
+
+            loss_value = loss.item()
+            losses.append(loss_value)
+            t.set_postfix({"loss": f"{loss_value:.6f}"})
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     model.current_conditioning = None
