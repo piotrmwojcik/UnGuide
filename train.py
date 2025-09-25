@@ -44,7 +44,7 @@ def parse_args():
     # LoRA configuration
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
     parser.add_argument(
-        "--lora_alpha", type=int, default=8, help="LoRA alpha parameter"
+        "--lora_alpha", type=float, default=8, help="LoRA alpha parameter"
     )
     parser.add_argument(
         "--target_modules",

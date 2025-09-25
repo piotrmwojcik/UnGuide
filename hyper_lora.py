@@ -14,7 +14,7 @@ class HyperLora(nn.Module):
         out_dim: int,
         rank: int = 4,
         clip_size: int = 768,
-        alpha: int = 16,
+        alpha: int = 16.0,
     ):
         super().__init__()
         self.in_dim = in_dim
