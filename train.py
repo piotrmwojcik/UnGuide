@@ -408,7 +408,7 @@ def main():
                 device=device,
                 steps=50,
                 out_dir="tmp",
-                prefix=f"orig_{i}_",
+                prefix=f"unl_{i}_",
             )
             if args.use_wandb:
                 wandb.log({"loss": loss_value}, step=i)
