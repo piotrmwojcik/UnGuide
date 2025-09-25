@@ -62,10 +62,15 @@ def parse_args():
     parser.add_argument(
         "--clip_size",
         type=int,
-        default=768,
-        help="CLIP embedding size (768 for SD 1.5)",
+        default=1024,
+        help="CLIP embedding size",
     )
-
+    parser.add_argument(
+        "--data_file",
+        type=str,
+        default="embeddings.csv",
+        help="A .csv file with prompt and embeddings",
+    )
     # Training configuration
     parser.add_argument(
         "--iterations", type=int, default=200, help="Number of training iterations"
@@ -248,7 +253,7 @@ def main():
     dir_name = (
         "_".join(
             f"{k}_{config[k]}"
-            for k in [
+                for k in [
                 "class_name",
                 "lora_rank",
                 "lora_alpha",
