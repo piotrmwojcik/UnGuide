@@ -356,9 +356,6 @@ def main():
 
         optimizer.zero_grad()
 
-        model.current_conditioning = emb_n.detach()
-        model.current_conditioning.requires_grad = False
-
         t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
         og_num = round((int(t_enc) / args.ddim_steps) * 1000)
         og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
@@ -371,7 +368,11 @@ def main():
         with torch.no_grad():
             z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
 
+            model.current_conditioning = emb_0.detach()
+            model.current_conditioning.requires_grad = False
             e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+            model.current_conditioning = emb_p.detach()
+            model.current_conditioning.requires_grad = False
             e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
         e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
