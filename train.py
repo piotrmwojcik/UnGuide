@@ -400,7 +400,7 @@ def main():
         loss.backward()
         optimizer.step()
 
-        if i >= args.log_from and i % 30 == 0:
+        if i >= args.log_from and i % 10 == 0:
             imgs = generate_and_save_sd_images(
                 model=model,
                 sampler=sampler,
