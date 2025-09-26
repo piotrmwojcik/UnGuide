@@ -225,8 +225,8 @@ if __name__ == "__main__":
                 set_seed(seed)
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
-                cond = cond.expand(args.batch, 1, 1)
-                uncond = uncond.expand(args.batch, 1, 1)
+                cond = cond.expand(args.batch, -1, -1)
+                uncond = uncond.expand(args.batch, -1, -1)
 
                 start_code = torch.randn(batch, 4, 64, 64, generator=gen, device=args.device)
                 model_unl.current_conditioning = cond
