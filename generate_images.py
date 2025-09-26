@@ -217,8 +217,8 @@ if __name__ == "__main__":
             # Generation loop
 
             for idx in tqdm(range(args.samples, args.batch), desc="Generating images"):
-                if idx % WORLD_SIZE != RANK:
-                    continue
+                #if idx % WORLD_SIZE != RANK:
+                #    continue
                 start = time.time()
 
                 seed = args.seed + idx
