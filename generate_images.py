@@ -233,7 +233,6 @@ if __name__ == "__main__":
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
-                print('!!! ', img.shape)
                 for img_idx in range(0, args.batch):
                     filename = f"{(args.batch * idx + img_idx):05d}.jpg"
                     filename_path = os.path.join(img_root, class_name, filename)
