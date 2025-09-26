@@ -228,7 +228,7 @@ if __name__ == "__main__":
                 cond = cond.expand(args.batch, -1, -1)
                 uncond = uncond.expand(args.batch, -1, -1)
 
-                start_code = torch.randn(batch, 4, 64, 64, generator=gen, device=args.device)
+                start_code = torch.randn(args.batch, 4, 64, 64, generator=gen, device=args.device)
                 model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
