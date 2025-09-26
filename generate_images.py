@@ -105,6 +105,7 @@ if __name__ == "__main__":
     assert args.samples % args.batch == 0
 
     exps = os.listdir(args.output_dir)
+    print(exps)
     exps.remove("..")
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
