@@ -79,6 +79,7 @@ def generate_image(
     sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
+        print('before sampling')
         samples, _ = sampler.sample(
             S=steps,
             conditioning=cond,
