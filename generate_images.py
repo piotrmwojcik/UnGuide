@@ -233,6 +233,7 @@ if __name__ == "__main__":
                 for img_idx in range(0, args.batch):
                     filename = f"{(args.batch * idx + img_idx):05d}.jpg"
                     filename_path = os.path.join(img_root, class_name, filename)
+                    print(filename_path)
                     if os.path.exists(filename_path):
                         continue
                     img_np = img[img_idx].cpu().permute(1, 2, 0).numpy()
