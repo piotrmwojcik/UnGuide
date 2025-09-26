@@ -42,6 +42,10 @@ def parse_args():
         help=""
     )
     parser.add_argument(
+        "--batch", type=int, default=10,
+        help="batch size"
+    )
+    parser.add_argument(
         "--samples", type=int, default=50,
         help="number of images to generate"
     )
@@ -211,27 +215,30 @@ if __name__ == "__main__":
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
-            for idx in tqdm(range(args.samples), desc="Generating images"):
-                start = time.time()
-                filename = f"{idx:05d}.jpg"
-                filename_path = os.path.join(img_root, class_name, filename)
-                if os.path.exists(filename_path):
-                    continue
+            assert args.sample % args.batch == 0
+
+            for idx in tqdm(range(args.samples, args.batch), desc="Generating images"):
                 if idx % WORLD_SIZE != RANK:
                     continue
+                start = time.time()
 
                 seed = args.seed + idx
                 set_seed(seed)
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
-                start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+                start_code = torch.randn(batch, 4, 64, 64, generator=gen, device=args.device)
                 model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
-                img_np = img[0].cpu().permute(1, 2, 0).numpy()
-                img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+                for img_idx in range(0, args.batch):
+                    filename = f"{(args.batch * idx + img_idx):05d}.jpg"
+                    filename_path = os.path.join(img_root, class_name, filename)
+                    if os.path.exists(filename_path):
+                        continue
+                    img_np = img[img_idx].cpu().permute(1, 2, 0).numpy()
+                    img_pil = to_pil_image((img_np * 255).astype(np.uint8))
                 
-                img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+                    img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
                 end = time.time()
                 print(f"Generate: {end - start}", flush=True)

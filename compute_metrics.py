@@ -144,7 +144,7 @@ if __name__ == "__main__":
             prompts_data = json.load(f)
 
         # prompts in a form of `a photo of the <object>`
-        prompts = [prompts_data['target']] + prompts_data['synonyms']  + prompts_data['other']
+        prompts = [prompts_data['target']] + prompts_data['synonyms'] + prompts_data['other']
         prompts.remove("")
 
         model, preprocess = clip.load("ViT-B/32", device=args.device)
@@ -154,7 +154,6 @@ if __name__ == "__main__":
 
         samples = os.listdir(args.samples_dir)
         scores = {}
-
 
         for idx, sample_file in tqdm(enumerate(samples), total=len(samples)):
             if idx % WORLD_SIZE != RANK:
