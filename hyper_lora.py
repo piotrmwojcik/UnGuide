@@ -33,6 +33,7 @@ class HyperLora(nn.Module):
             .contiguous()
             .view(self.rank, self.out_dim)
         )
+        print('!!! ', A.shape, B.shape, x.shape, clip.shape)
 
         return self.alpha * (x @ (std_dev * A) @ B)
 
