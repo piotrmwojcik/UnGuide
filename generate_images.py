@@ -79,7 +79,6 @@ def generate_image(
     sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
-        print('before sampling')
         samples, _ = sampler.sample(
             S=steps,
             conditioning=cond,
@@ -217,7 +216,7 @@ if __name__ == "__main__":
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
-            for idx in tqdm(range(args.samples, args.batch), desc="Generating images"):
+            for idx in tqdm(range(0, args.samples, args.batch), desc="Generating images"):
                 #if idx % WORLD_SIZE != RANK:
                 #    continue
                 start = time.time()
