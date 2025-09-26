@@ -105,12 +105,12 @@ if __name__ == "__main__":
     assert args.samples % args.batch == 0
 
     exps = os.listdir(args.output_dir)
+    exps.remove("..")
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
         exp_filepath = os.path.join(args.output_dir, exp)
         img_root = os.path.join(args.output_dir, exp, "images")
         lora_filepath = os.path.join(exp_filepath, "models", "hyper_lora.pth")
-       
 
         diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
         train_json_path = os.path.join(exp_filepath, "train_config.json")
