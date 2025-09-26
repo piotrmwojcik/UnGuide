@@ -102,6 +102,8 @@ if __name__ == "__main__":
 
     args = parse_args()
 
+    assert args.samples % args.batch == 0
+
     exps = os.listdir(args.output_dir)
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
@@ -214,8 +216,6 @@ if __name__ == "__main__":
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
-
-            assert args.sample % args.batch == 0
 
             for idx in tqdm(range(args.samples, args.batch), desc="Generating images"):
                 if idx % WORLD_SIZE != RANK:
