@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Auto-guided image generation with Stable Diffusion and LoRA"    )
+        description="Auto-guided image generation with Stable Diffusion and LoRA")
     parser.add_argument(
         "--config", type=str, default="./configs/stable-diffusion/v1-inference.yaml",
         help="path to model config file"
@@ -40,10 +40,6 @@ def parse_args():
     parser.add_argument(
         "--output_dir", type=str, default="cat",
         help=""
-    )
-    parser.add_argument(
-        "--batch", type=int, default=10,
-        help="batch size"
     )
     parser.add_argument(
         "--samples", type=int, default=50,
@@ -72,11 +68,13 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def decide_w(prompt, prompt_empty, w1=-1, w2=2):
     return w1 if prompt > prompt_empty else w2
 
+
 def generate_image(
-    sampler, auto_model, start_code, cond, uncond, steps
+        sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
         samples, _ = sampler.sample(
@@ -102,8 +100,6 @@ if __name__ == "__main__":
 
     args = parse_args()
 
-    assert args.samples % args.batch == 0
-
     exps = os.listdir(args.output_dir)
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
@@ -113,7 +109,7 @@ if __name__ == "__main__":
 
         diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
         train_json_path = os.path.join(exp_filepath, "train_config.json")
-        
+
         with open(diff_results_path, 'r') as f:
             results = json.load(f)
 
@@ -128,7 +124,7 @@ if __name__ == "__main__":
         prompts = prompts[:-1]
         print("Prompts: ", prompts, flush=True)
 
-         # collect all valid subfolders
+        # collect all valid subfolders
         subs = [
             d for d in os.listdir(img_root)
             if os.path.isdir(os.path.join(img_root, d))
@@ -139,14 +135,14 @@ if __name__ == "__main__":
             path = os.path.join(img_root, sub)
             imgs = [
                 f for f in os.listdir(path)
-                if f.lower().endswith(('.png','.jpg','.jpeg','.bmp','.tiff'))
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))
             ]
             counts.append(len(imgs))
 
         if len(prompts) * args.samples == sum(counts):
             print(f"Skip: {exp}", flush=True)
             continue
-            
+
         print(f"Exp: {exp}", flush=True)
         # Load models
         model_full = load_model_from_config(
@@ -211,37 +207,32 @@ if __name__ == "__main__":
             # Conditioning
             cond = auto_model.get_learned_conditioning([prompt])
             uncond = auto_model.get_learned_conditioning([""])
-                
+
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
-            for idx in tqdm(range(0, args.samples, args.batch), desc="Generating images"):
-                #if idx % WORLD_SIZE != RANK:
-                #    continue
+            for idx in tqdm(range(args.samples), desc="Generating images"):
                 start = time.time()
+                filename = f"{idx:05d}.jpg"
+                filename_path = os.path.join(img_root, class_name, filename)
+                if os.path.exists(filename_path):
+                    continue
+                if idx % WORLD_SIZE != RANK:
+                    continue
 
                 seed = args.seed + idx
                 set_seed(seed)
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
-                cond = cond.expand(args.batch, -1, -1)
-                uncond = uncond.expand(args.batch, -1, -1)
-
-                start_code = torch.randn(args.batch, 4, 64, 64, generator=gen, device=args.device)
+                start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
                 model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
-                for img_idx in range(0, args.batch):
-                    filename = f"{(args.batch * idx + img_idx):05d}.jpg"
-                    filename_path = os.path.join(img_root, class_name, filename)
-                    print(filename_path)
-                    if os.path.exists(filename_path):
-                        continue
-                    img_np = img[img_idx].cpu().permute(1, 2, 0).numpy()
-                    img_pil = to_pil_image((img_np * 255).astype(np.uint8))
-                
-                    img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+                img_np = img[0].cpu().permute(1, 2, 0).numpy()
+                img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+
+                img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
                 end = time.time()
                 print(f"Generate: {end - start}", flush=True)
