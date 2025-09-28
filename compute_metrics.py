@@ -155,6 +155,8 @@ if __name__ == "__main__":
         samples = os.listdir(args.samples_dir)
         scores = {}
 
+        print(samples)
+
         for idx, sample_file in tqdm(enumerate(samples), total=len(samples)):
             if idx % WORLD_SIZE != RANK:
                 continue
