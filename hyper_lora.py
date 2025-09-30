@@ -18,7 +18,6 @@ class HyperLora(nn.Module):
         use_scaling=True
     ):
         super().__init__()
-        print(in_dim, out_dim, rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
@@ -45,6 +44,7 @@ class HyperLora(nn.Module):
         else:
             x_L = self.left_head(x)
         x_R = self.right_head(x)
+        print('!!! ', x_L.shape, x_R.shape)
         return (
             x_L.view(-1, self.rank, self.in_dim),
             x_R.view(-1, self.rank, self.out_dim),
