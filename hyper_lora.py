@@ -84,6 +84,7 @@ class HyperLoRALinear(nn.Module):
             return self.original(x)
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
+        print('clip ', clip_embedding.shape)
         if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
             clip_embedding = clip_embedding[0]
 
