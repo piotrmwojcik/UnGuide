@@ -4,11 +4,6 @@ import sys
 import requests
 
 
-def is_all_english_letters(word):
-    alphabet = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    return all(char in alphabet for char in word)
-
-
 def get_conceptnet_relations(word, limit=20):
     results = []
 
@@ -26,19 +21,16 @@ def get_conceptnet_relations(word, limit=20):
 
         if start_label.get("label", "").lower() == word.lower():
             target = end_label
-            if (
-                start_label.get("language", "") != "en"
-            ):  # this somehow doesn't work because the database has flaws
+            if end_label.get("language", "") != "en":
                 continue
         elif end_label.get("label", "").lower() == word.lower():
             target = start_label
-            if end_label.get("language", "") != "en":
+            if start_label.get("language", "") != "en":
                 continue
         else:
             continue
 
-        if is_all_english_letters(target["label"]):
-            results.append(target["label"])
+        results.append(target["label"])
 
     return results
 
