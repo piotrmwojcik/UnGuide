@@ -28,14 +28,14 @@ class HyperLora(nn.Module):
             nn.ReLU(),
         )
 
-        self.left_head = nn.Linear(100, in_dim  * rank)
+        self.left_head = nn.Linear(100, in_dim * rank)
         self.right_head = nn.Linear(100, out_dim * rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
 
         self.use_scaling = use_scaling
         if self.use_scaling:
-            self.alpha = nn.Parameter(torch.tensor(init_scale))
+            self.alpha = nn.Parameter(torch.tensor(alpha))
 
 
     def forward(self, clip, x):
