@@ -37,7 +37,7 @@ class HyperLora(nn.Module):
             self.alpha = nn.Parameter(torch.tensor(alpha))
 
 
-    def forward(self, clip, x):
+    def forward(self, clip):
         print('!! ', clip.shape)
         x = self.layers(clip)
         if self.use_scaling:
@@ -93,7 +93,7 @@ class HyperLoRALinear(nn.Module):
             clip_embedding = clip_embedding.mean(dim=0)
             print('clip2 ', clip_embedding.shape)
 
-        (x_L, x_R) = self.hyper_lora(clip_embedding, x)
+        (x_L, x_R) = self.hyper_lora(clip_embedding)
         print(clip_embedding.shape, x_L.shape, x_R.shape)
 
         return self.original(x) + (clip_embedding @ x_L @ x_R)
