@@ -46,7 +46,7 @@ class HyperLora(nn.Module):
             x_L = self.left_head(x)
         x_R = self.right_head(x)
         return (
-            x_L.view(-1, self.in_dim, self.rank),
+            x_L.view(-1, self.rank, self.in_dim),
             x_R.view(-1, self.rank, self.out_dim),
         )
 
