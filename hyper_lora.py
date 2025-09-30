@@ -38,6 +38,7 @@ class HyperLora(nn.Module):
 
 
     def forward(self, clip, x):
+        print('!! ', x.shape)
         x = self.layers(x)
         if self.use_scaling:
             x_L = self.alpha * self.left_head(x)
