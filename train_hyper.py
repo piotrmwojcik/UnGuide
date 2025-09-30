@@ -11,6 +11,7 @@ import torch
 from torchvision.transforms.functional import to_pil_image
 from tqdm import tqdm
 
+import wandb
 from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
                         inject_hyper_lora_nsfw)
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -101,7 +102,7 @@ def parse_args():
     parser.add_argument(
         "--negative_guidance", type=float, default=2.0, help="Negative guidance scale"
     )
-    parser.add_argument("--use-wandb", action="store_true")
+    parser.add_argument("--use-wandb", type=bool, default=True)
     # Output
     parser.add_argument(
         "--output_dir",
@@ -226,7 +227,14 @@ def main():
     print("=" * 40)
 
     if args.use_wandb:
-        wandb.init(project="UnGuide", name="training", group=None, config=vars(args))
+        print("Initializing wandb")
+        wandb.init(
+            entity="jagiellonian",
+            project="UnGuide",
+            name="training",
+            group=None,
+            config=vars(args),
+        )
 
     # Set seed
     if args.seed is not None:
@@ -410,7 +418,10 @@ def main():
             t.set_postfix({"loss": f"{loss_value:.6f}"})
 
             if args.use_wandb:
-                wandb.log({"loss": loss_value}, step=i)
+                wandb.log(
+                    {"loss": loss_value, "epoch": epoch},
+                    step=epoch * (len(data) // 2) + i,
+                )
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     model.current_conditioning = None
