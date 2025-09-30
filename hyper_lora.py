@@ -15,6 +15,7 @@ class HyperLora(nn.Module):
         rank: int = 4,
         clip_size: int = 768,
         alpha: int = 16.0,
+        use_scaling=True
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -22,19 +23,32 @@ class HyperLora(nn.Module):
         self.rank = rank
         self.alpha = alpha
 
-        self.hypernetwork = nn.Linear(clip_size, (in_dim + out_dim) * rank)
-
-    def forward(self, clip, x):
-        weights = self.hypernetwork(clip)
-        std_dev = 1 / (self.rank ** 0.5)
-        A = weights[: self.in_dim * self.rank].contiguous().view(self.in_dim, self.rank)
-        B = (
-            weights[self.in_dim * self.rank :]
-            .contiguous()
-            .view(self.rank, self.out_dim)
+        self.layers = nn.Sequential(
+            nn.Linear(clip_size, 100),
+            nn.ReLU(),
         )
 
-        return self.alpha * (x @ (std_dev * A) @ B)
+        self.left_head = nn.Linear(100, in_dim  * rank)
+        self.right_head = nn.Linear(100, out_dim * rank)
+        self.shape_l = shape_l
+        self.shape_r = shape_r
+
+        self.use_scaling = use_scaling
+        if self.use_scaling:
+            self.alpha = nn.Parameter(torch.tensor(init_scale))
+
+
+    def forward(self, clip, x):
+        x = self.layers(x)
+        if self.use_scaling:
+            x_L = self.alpha * self.left_head(x)
+        else:
+            x_L = self.left_head(x)
+        x_R = self.right_head(x)
+        return (
+            x_L.view(-1, self.shape_l[0], self.shape_l[1]),
+            x_R.view(-1, self.shape_r[0], self.shape_r[1]),
+        )
 
 
 class HyperLoRALinear(nn.Module):
@@ -76,7 +90,9 @@ class HyperLoRALinear(nn.Module):
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
 
-        return self.original(x) + self.hyper_lora(clip_embedding, x)
+        (x_L, x_R) = self.hyper_lora(clip_embedding, x)
+
+        return self.original(x) + (x @ x_L @ x_R)
 
 
 def inject_hyper_lora(
