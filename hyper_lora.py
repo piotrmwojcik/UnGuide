@@ -91,6 +91,7 @@ class HyperLoRALinear(nn.Module):
         # Take the mean of the sequence of embeddings
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
+            print('clip2 ', clip_embedding.shape)
 
         (x_L, x_R) = self.hyper_lora(clip_embedding, x)
         print(clip_embedding.shape, x_L.shape, x_R.shape)
