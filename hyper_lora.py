@@ -92,7 +92,7 @@ class HyperLoRALinear(nn.Module):
 
         (x_L, x_R) = self.hyper_lora(clip_embedding, x)
 
-        return self.original(x) + (x @ x_L @ x_R)
+        return self.original(x) + (clip_embedding @ x_L @ x_R)
 
 
 def inject_hyper_lora(
