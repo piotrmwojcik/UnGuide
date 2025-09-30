@@ -18,10 +18,10 @@ class HyperLora(nn.Module):
         use_scaling=True
     ):
         super().__init__()
+        print(in_dim, out_dim, rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
-        self.alpha = alpha
 
         self.layers = nn.Sequential(
             nn.Linear(clip_size, 100),
