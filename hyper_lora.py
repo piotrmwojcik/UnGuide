@@ -22,13 +22,13 @@ class HyperLora(nn.Module):
         self.out_dim = out_dim
         self.rank = rank
 
-        self.layers = nn.Sequential(
-            nn.Linear(clip_size, 100),
-            nn.ReLU(),
-        )
+        #self.layers = nn.Sequential(
+        #    nn.Linear(clip_size, 100),
+        #    nn.ReLU(),
+        #)
 
-        self.left_head = nn.Linear(100, in_dim * rank)
-        self.right_head = nn.Linear(100, out_dim * rank)
+        self.left_head = nn.Linear(clip_size, in_dim * rank)
+        self.right_head = nn.Linear(clip_size, out_dim * rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
 
