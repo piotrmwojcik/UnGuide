@@ -75,7 +75,7 @@ class HyperLoRALinear(nn.Module):
     def set_parent_model(self, model):
         self.parent_model = weakref.ref(model)
 
-    def forward(self, x, clip):
+    def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
         clip_embedding = parent.current_conditioning
@@ -93,7 +93,7 @@ class HyperLoRALinear(nn.Module):
             clip_embedding = clip_embedding.mean(dim=0)
             print('clip2 ', clip_embedding.shape)
 
-        (x_L, x_R) = self.hyper_lora(x, clip_embedding)
+        (x_L, x_R) = self.hyper_lora(clip_embedding)
         print(clip_embedding.shape, x_L.shape, x_R.shape)
 
         return self.original(x) + (clip_embedding @ x_L @ x_R)
