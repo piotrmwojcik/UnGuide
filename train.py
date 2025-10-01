@@ -360,7 +360,7 @@ def main():
         model, sampler, args.image_size, args.ddim_steps, args.ddim_eta
     )
 
-    data_dir = "/Users/piotrwojcik/PycharmProjects/UnGuide/data"  # <-- change me
+    data_dir = "data/"  # <-- change me
 
     ds = TargetReferenceDataset(data_dir)
     ds_loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=collate_prompts)
