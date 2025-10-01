@@ -173,12 +173,12 @@ def generate_and_save_sd_images(
     # freeze & eval for safety
 
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        #cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
         samples_latent, _ = sampler.sample(
             S=steps,
-            conditioning={"c_crossattn": [prompt]},
+            conditioning={"c_crossattn": [cond]},
             batch_size=start_code.shape[0],
             shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
@@ -306,8 +306,6 @@ def main():
     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
     model.current_conditioning = t_prompt
-    cond  = model.get_learned_conditioning([ds[0]["target"]] * 1)
-    print('!!! ', t_prompt.shape, cond.shape)
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
@@ -417,7 +415,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=model,
                     sampler=sampler,
-                    prompt=model.current_conditioning,
+                    prompt=["target"][0],
                     device=device,
                     steps=50,
                     out_dir="tmp",
