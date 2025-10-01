@@ -98,7 +98,7 @@ def main():
         HyperLoRALinear,
         clip_size=768,
         rank=1,
-        alpha=0.01,
+        alpha=0.001,
     )
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
