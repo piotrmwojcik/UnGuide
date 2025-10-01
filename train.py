@@ -381,7 +381,7 @@ def main():
             padding="max_length",
             truncation=True,
             return_tensors="pt",
-        )
+        ).to(args.device).input_ids
 
         model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
         model.current_conditioning.requires_grad = False
