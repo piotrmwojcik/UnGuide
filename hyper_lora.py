@@ -90,6 +90,7 @@ class HyperLoRALinear(nn.Module):
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
 
+        (x_L, x_R) = self.hyper_lora(clip_embedding)
         print('!!! ', (clip_embedding @ x_L).shape)
 
         return self.original(x) + (clip_embedding @ x_L @ x_R)
