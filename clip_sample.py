@@ -23,12 +23,9 @@ enc = tokenizer(
 
 # 4) Encode (no grad)
 with torch.no_grad():
-    out = clip_text_encoder(**enc)
-    last_hidden_state = out.last_hidden_state     # [batch, seq_len, hidden_size]
-    # Common quick pooling: use the CLS token (position 0)
-    text_embeds = last_hidden_state[:, 0, :]      # [batch, hidden_size]
-    # Optional: L2-normalize
-    text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
+    out = clip_text_encoder(**enc).pooler_output
+    print(out)
+
 
 print("Token embeddings:", last_hidden_state.shape)
 print("Pooled text embeddings:", text_embeds.shape)
