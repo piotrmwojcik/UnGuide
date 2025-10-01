@@ -23,7 +23,7 @@ enc = tokenizer(
 
 # 4) Encode (no grad)
 with torch.no_grad():
-    out = clip_text_encoder(**enc).pooler_output
+    out = clip_text_encoder(enc).pooler_output
     print(out)
 
 
