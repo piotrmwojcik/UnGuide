@@ -178,7 +178,7 @@ def generate_and_save_sd_images(
 
         samples_latent, _ = sampler.sample(
             S=steps,
-            conditioning={"c_crossattn": prompt},
+            conditioning={"c_crossattn": [prompt]},
             batch_size=start_code.shape[0],
             shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
@@ -306,6 +306,7 @@ def main():
     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
     model.current_conditioning = t_prompt
+    print('!!! ', t_prompt.shape)
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
