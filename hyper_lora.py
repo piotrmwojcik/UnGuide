@@ -15,7 +15,7 @@ class HyperLora(nn.Module):
         rank: int = 4,
         clip_size: int = 768,
         alpha: int = 16.0,
-        use_scaling=True
+        use_scaling=False
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -42,7 +42,7 @@ class HyperLora(nn.Module):
         if self.use_scaling:
             x_L = self.alpha * self.left_head(emb)
         else:
-            x_L = self.left_head(emb)
+            x_L = 0.01 * self.left_head(emb)
         x_R = self.right_head(emb)
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
