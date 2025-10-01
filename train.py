@@ -240,7 +240,7 @@ def main():
 
     data_dir = "data/"  # <-- change me
     ds = TargetReferenceDataset(data_dir)
-    ds_loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=collate_prompts)
+    ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
 
     config = {
