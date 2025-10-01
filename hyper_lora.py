@@ -27,8 +27,8 @@ class HyperLora(nn.Module):
             nn.ReLU(),
         )
 
-        self.left_head = nn.Linear(100, out_dim * rank)
-        self.right_head = nn.Linear(100, in_dim * rank)
+        self.left_head = nn.Linear(100, in_dim * rank)
+        self.right_head = nn.Linear(100, out_dim * rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
 
@@ -44,8 +44,8 @@ class HyperLora(nn.Module):
         else:
             x_L = self.left_head(emb)
         x_R = self.right_head(emb)
-        x_L = x_L.view(-1, self.rank, self.out_dim)
-        x_R = x_R.view(-1, self.rank, self.in_dim)
+        x_L = x_L.view(-1, self.rank, self.in_dim)
+        x_R = x_R.view(-1, self.rank, self.out_dim)
         print('!!!! ', x_L.shape, x_R.shape, x.shape)
         return (x @ x_L) @ x_R
 
@@ -82,7 +82,6 @@ class HyperLoRALinear(nn.Module):
             return self.original(x)
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
-        print('clip ', clip_embedding.shape)
         if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
             clip_embedding = clip_embedding[0]
 
