@@ -46,7 +46,6 @@ class HyperLora(nn.Module):
         x_R = self.right_head(emb)
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
-        print('!!!! ', x_L.shape, x_R.shape, x.shape, (x @ x_L).shape)
         return (x @ x_L) @ x_R
 
 
@@ -82,12 +81,12 @@ class HyperLoRALinear(nn.Module):
             return self.original(x)
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
-        if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
-            clip_embedding = clip_embedding[0]
+        #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
+        #    clip_embedding = clip_embedding[0]
 
         # Take the mean of the sequence of embeddings
-        if clip_embedding.dim() == 2:
-            clip_embedding = clip_embedding.mean(dim=0)
+        #if clip_embedding.dim() == 2:
+        #    clip_embedding = clip_embedding.mean(dim=0)
 
         print('!!! ', x.shape, clip_embedding.shape)
 
