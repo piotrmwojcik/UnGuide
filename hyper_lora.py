@@ -27,8 +27,8 @@ class HyperLora(nn.Module):
             nn.ReLU(),
         )
 
-        self.left_head = nn.Linear(100, in_dim * rank)
-        self.right_head = nn.Linear(100, out_dim * rank)
+        self.left_head = nn.Linear(100, out_dim * rank)
+        self.right_head = nn.Linear(100, in_dim * rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
 
@@ -38,17 +38,15 @@ class HyperLora(nn.Module):
 
 
     def forward(self, clip):
-        print('!! ', clip.shape)
         x = self.layers(clip)
         if self.use_scaling:
             x_L = self.alpha * self.left_head(x)
         else:
             x_L = self.left_head(x)
         x_R = self.right_head(x)
-        print('!!! ', x.shape, x_L.shape, x_R.shape)
         return (
-            x_L.view(-1, self.rank, self.in_dim),
-            x_R.view(-1, self.rank, self.out_dim),
+            x_L.view(-1, self.rank, self.out_dim),
+            x_R.view(-1, self.rank, self.in_dim),
         )
 
 
@@ -91,10 +89,8 @@ class HyperLoRALinear(nn.Module):
         # Take the mean of the sequence of embeddings
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
-            print('clip2 ', clip_embedding.shape)
 
-        (x_L, x_R) = self.hyper_lora(clip_embedding)
-        print(clip_embedding.shape, x_L.shape, x_R.shape)
+        print('!!! ', (clip_embedding @ x_L).shape)
 
         return self.original(x) + (clip_embedding @ x_L @ x_R)
 
