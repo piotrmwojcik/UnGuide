@@ -386,57 +386,60 @@ def main():
     encoder = load_model().to(device)
 
     for epoch in range(args.epochs):
-        t = tqdm(range(len(data) - 1))
+        t = tqdm(range(len(data)))
         print(f"Starting epoch {epoch + 1}:")
         for i in t:
-            with torch.no_grad():
-                reference_prompt = f"a photo of {data[i]}"
-                reference_clip = encode(encoder, reference_prompt).detach().to(device).clone()
-                target_prompt = f"a photo of {data[i + 1]}"
-                target_clip = encode(encoder, target_prompt).detach().to(device).clone()
-            emb_0 = model.get_learned_conditioning([reference_prompt])
-            emb_p = model.get_learned_conditioning([target_prompt])
-            emb_n = model.get_learned_conditioning([target_prompt])
+            for j in range(len(data)):
+                if i == j:
+                    continue
+                with torch.no_grad():
+                    reference_prompt = f"a photo of {data[i]}"
+                    reference_clip = encode(encoder, reference_prompt).detach().to(device).clone()
+                    target_prompt = f"a photo of {data[j]}"
+                    target_clip = encode(encoder, target_prompt).detach().to(device).clone()
+                emb_0 = model.get_learned_conditioning([reference_prompt])
+                emb_p = model.get_learned_conditioning([target_prompt])
+                emb_n = model.get_learned_conditioning([target_prompt])
 
-            optimizer.zero_grad()
+                optimizer.zero_grad()
 
-            model.current_conditioning = target_clip
-            model.current_conditioning.requires_grad = False
+                model.current_conditioning = target_clip
+                model.current_conditioning.requires_grad = False
 
-            t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
-            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
+                t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
+                og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+                og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+                t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-            start_code = torch.randn(
-                (1, 4, args.image_size // 8, args.image_size // 8)
-            ).to(args.device)
+                start_code = torch.randn(
+                    (1, 4, args.image_size // 8, args.image_size // 8)
+                ).to(args.device)
 
-            with torch.no_grad():
-                z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                with torch.no_grad():
+                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
 
-                e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-                e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
-            e_n = model.apply_model(z, t_enc_ddpm, emb_n)
+                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+                e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
-            e_0.requires_grad = False
-            e_p.requires_grad = False
+                e_0.requires_grad = False
+                e_p.requires_grad = False
 
-            target = e_0 - (args.negative_guidance * (e_p - e_0))
-            loss = criterion(e_n, target)
+                target = e_0 - (args.negative_guidance * (e_p - e_0))
+                loss = criterion(e_n, target)
 
-            loss.backward()
-            optimizer.step()
+                loss.backward()
+                optimizer.step()
 
-            loss_value = loss.item()
-            losses.append(loss_value)
-            t.set_postfix({"loss": f"{loss_value:.6f}"})
+                loss_value = loss.item()
+                losses.append(loss_value)
+                t.set_postfix({"loss": f"{loss_value:.6f}"})
 
-            if args.use_wandb:
-                wandb.log(
-                    {"loss": loss_value, "epoch": epoch},
-                    step=epoch * len(data) + i,
-                )
+                if args.use_wandb:
+                    wandb.log(
+                        {"loss": loss_value, "epoch": epoch},
+                        step=(epoch * len(data) + i) * len(data) + j,
+                    )
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     model.current_conditioning = None
