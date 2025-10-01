@@ -6,6 +6,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 from pathlib import Path
+from torch.utils.data import Dataset, DataLoader
 from data_utils import TargetReferenceDataset, collate_prompts
 from torchvision.transforms.functional import to_pil_image
 import numpy as np
@@ -237,10 +238,10 @@ def main():
     with open(args.prompts_json, "r") as f:
         prompts_data = json.load(f)
 
-    target_prompt = prompts_data.get("target", None)
-    reference_prompt = prompts_data.get("reference", None)
-    if target_prompt is None or reference_prompt is None:
-        raise ValueError(f"Missing required prompt")
+    data_dir = "data/"  # <-- change me
+    ds = TargetReferenceDataset(data_dir)
+    ds_loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=collate_prompts)
+
 
     config = {
         "config": args.config_path,
@@ -257,8 +258,6 @@ def main():
         "ddim_eta": args.ddim_eta,
         "start_guidance": args.start_guidance,
         "negative_guidance": args.negative_guidance,
-        "target_prompt": target_prompt,
-        "reference_prompt": reference_prompt,
         "prompts_json": args.prompts_json,
         "class_name": args.prompts_json.split("/")[-1].split(".")[0],
     }
@@ -303,7 +302,7 @@ def main():
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
-        prompt=target_prompt,
+        prompt=[ds[0]["target"]],
         device=device,
         steps=50,
         out_dir="tmp",
@@ -360,87 +359,85 @@ def main():
         model, sampler, args.image_size, args.ddim_steps, args.ddim_eta
     )
 
-    data_dir = "data/"  # <-- change me
-
-    ds = TargetReferenceDataset(data_dir)
-    ds_loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=collate_prompts)
 
     # Training loop
     print("Starting training...")
     pbar = tqdm(range(args.iterations))
-
     for i in pbar:
-        emb_0 = model.get_learned_conditioning([reference_prompt])
-        emb_p = model.get_learned_conditioning([target_prompt])
-        emb_n = model.get_learned_conditioning([target_prompt])
+        for sample in ds_loader:
 
-        optimizer.zero_grad()
 
-        t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
-        og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-        og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-        t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
+            emb_0 = model.get_learned_conditioning(sample["reference"])
+            emb_p = model.get_learned_conditioning(sample["target"])
+            emb_n = model.get_learned_conditioning(sample["target"])
 
-        inputs = tokenizer(
-            [target_prompt],
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(args.device).input_ids
+            optimizer.zero_grad()
 
-        model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
-        model.current_conditioning.requires_grad = False
+            t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
+            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-        start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
-            args.device
-        )
+            inputs = tokenizer(
+                [target_prompt],
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(args.device).input_ids
 
-        with torch.no_grad():
-            z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-            e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-            e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
-        e_n = model.apply_model(z, t_enc_ddpm, emb_n)
+            model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
+            model.current_conditioning.requires_grad = False
 
-        e_0.requires_grad = False
-        e_p.requires_grad = False
-
-        target = e_0 - (args.negative_guidance * (e_p - e_0))
-        loss = criterion(e_n, target)
-
-        loss.backward()
-        optimizer.step()
-
-        if i >= args.log_from and i % 10 == 0 and args.use_wandb:
-            imgs = generate_and_save_sd_images(
-                model=model,
-                sampler=sampler,
-                prompt=target_prompt,
-                device=device,
-                steps=50,
-                out_dir="tmp",
-                prefix=f"unl_{i}_",
+            start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
+                args.device
             )
-            im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-            wandb.log({"sample": wandb.Image(to_pil_image(im0))}, step=i)
 
-        loss_value = loss.item()
-        if args.use_wandb:
-            wandb.log({"loss": loss_value}, step=i)
+            with torch.no_grad():
+                z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+                e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+            e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
-        losses.append(loss_value)
-        pbar.set_postfix({"loss": f"{loss_value:.6f}"})
+            e_0.requires_grad = False
+            e_p.requires_grad = False
 
-    print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
-    model.current_conditioning = None
-    lora_state_dict = {}
-    for name, param in model.model.diffusion_model.named_parameters():
-        if param.requires_grad:
-            lora_state_dict[name] = param.cpu().detach().clone()
+            target = e_0 - (args.negative_guidance * (e_p - e_0))
+            loss = criterion(e_n, target)
 
-    model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
-    lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
-    torch.save(lora_state_dict, lora_path)
+            loss.backward()
+            optimizer.step()
+
+            if i >= args.log_from and i % 10 == 0 and args.use_wandb:
+                imgs = generate_and_save_sd_images(
+                    model=model,
+                    sampler=sampler,
+                    prompt=sample["target"][0],
+                    device=device,
+                    steps=50,
+                    out_dir="tmp",
+                    prefix=f"unl_{i}_",
+                )
+                im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                wandb.log({sample["target"][0]: wandb.Image(to_pil_image(im0))}, step=i)
+
+            loss_value = loss.item()
+            if args.use_wandb:
+                wandb.log({"loss": loss_value}, step=i)
+
+            losses.append(loss_value)
+            pbar.set_postfix({"loss": f"{loss_value:.6f}"})
+
+        print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
+        model.current_conditioning = None
+        lora_state_dict = {}
+        for name, param in model.model.diffusion_model.named_parameters():
+            if param.requires_grad:
+                lora_state_dict[name] = param.cpu().detach().clone()
+
+        model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
+        lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
+        torch.save(lora_state_dict, lora_path)
 
     # this part is unnecessary
     # print("Analyzing HyperLoRA weights...")
