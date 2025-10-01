@@ -108,12 +108,12 @@ def parse_args():
         default="output",
         help="Directory to save the trained model",
     )
-    parser.add_argument(
-        "--prompts_json",
-        type=str,
-        default="data/cat.json",
-        help="Path to JSON file containing prompts",
-    )
+    #parser.add_argument(
+    #    "--prompts_json",
+    #    type=str,
+    #    default="data/cat.json",
+    #    help="Path to JSON file containing prompts",
+    #)
     parser.add_argument(
         "--save_losses", action="store_true", help="Save training losses to file"
     )
@@ -234,9 +234,6 @@ def main():
     if args.seed is not None:
         set_seed(args.seed)
 
-    # Load prompts json
-    with open(args.prompts_json, "r") as f:
-        prompts_data = json.load(f)
 
     data_dir = "data/"  # <-- change me
     ds = TargetReferenceDataset(data_dir)
@@ -258,8 +255,6 @@ def main():
         "ddim_eta": args.ddim_eta,
         "start_guidance": args.start_guidance,
         "negative_guidance": args.negative_guidance,
-        "prompts_json": args.prompts_json,
-        "class_name": args.prompts_json.split("/")[-1].split(".")[0],
     }
 
     lora_type = "hyper" if args.use_hypernetwork else "lora"
@@ -267,9 +262,7 @@ def main():
         "_".join(
             f"{k}_{config[k]}"
                 for k in [
-                "class_name",
                 "lora_rank",
-                "lora_alpha",
                 "iterations",
                 "lr",
                 "start_guidance",
@@ -323,14 +316,14 @@ def main():
         alpha=args.lora_alpha,
     )
 
-    if args.prompts_json.endswith("nsfw.json"):
-        hyper_lora_layers = inject_hyper_lora_nsfw(
-            model.model.diffusion_model, hyper_lora_factory=hyper_lora_factory
-        )
-    else:
-        hyper_lora_layers = inject_hyper_lora(
-            model.model.diffusion_model, args.target_modules, hyper_lora_factory
-        )
+    #if args.prompts_json.endswith("nsfw.json"):
+    #    hyper_lora_layers = inject_hyper_lora_nsfw(
+    #        model.model.diffusion_model, hyper_lora_factory=hyper_lora_factory
+    #    )
+    #else:
+    hyper_lora_layers = inject_hyper_lora(
+        model.model.diffusion_model, args.target_modules, hyper_lora_factory
+    )
 
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
