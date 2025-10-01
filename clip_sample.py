@@ -24,8 +24,5 @@ enc = tokenizer(
 # 4) Encode (no grad)
 with torch.no_grad():
     out = clip_text_encoder(enc).pooler_output
-    print(out)
+    print(out.shape)
 
-
-print("Token embeddings:", last_hidden_state.shape)
-print("Pooled text embeddings:", text_embeds.shape)
