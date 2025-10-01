@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from torchvision.transforms.functional import to_pil_image
 import numpy as np
+from transformers import CLIPTextModel, CLIPTokenizer
 import torch
 from tqdm import tqdm
 from ldm.models.diffusion.ddimcopy import DDIMSampler
