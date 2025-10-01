@@ -6,6 +6,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 from pathlib import Path
+from data_utils import TargetReferenceDataset, collate_prompts
 from torchvision.transforms.functional import to_pil_image
 import numpy as np
 from transformers import CLIPTextModel, CLIPTokenizer
@@ -358,6 +359,11 @@ def main():
     quick_sampler = create_quick_sampler(
         model, sampler, args.image_size, args.ddim_steps, args.ddim_eta
     )
+
+    data_dir = "/Users/piotrwojcik/PycharmProjects/UnGuide/data"  # <-- change me
+
+    ds = TargetReferenceDataset(data_dir)
+    ds_loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=collate_prompts)
 
     # Training loop
     print("Starting training...")
