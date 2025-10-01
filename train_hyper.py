@@ -275,13 +275,8 @@ def main():
         set_seed(args.seed)
 
     # Load prompts json
-    with open(args.prompts_json, "r") as f:
+    with open("data/classes.json", "r") as f:
         prompts_data = json.load(f)
-
-    target_prompt = prompts_data.get("target", None)
-    reference_prompt = prompts_data.get("reference", None)
-    if target_prompt is None or reference_prompt is None:
-        raise ValueError(f"Missing required prompt")
 
     config = {
         "config": args.config_path,
@@ -403,16 +398,16 @@ def main():
 
     # Training loop
     print("Starting training...")
-    data = pd.read_csv(args.data_file)
+    data = prompts_data.keys()
 
     for epoch in range(args.epochs):
-        t = tqdm(range(len(data) // 2))
+        t = tqdm(range(len(data) - 1))
         print(f"Starting epoch {epoch + 1}:")
         for i in t:
-            reference_prompt, reference_clip = data.iloc[2 * i]
-            reference_clip = torch.tensor(eval(reference_clip)).to(device)
-            target_prompt, target_clip = data.iloc[2 * i + 1]
-            target_clip = torch.tensor(eval(target_clip)).to(device)
+            reference_prompt = data[i]
+            reference_clip = encode(reference_prompt).to(device)
+            target_prompt = data[i + 1]
+            target_clip = encode(target_prompt).to(device)
             emb_0 = model.get_learned_conditioning([reference_prompt])
             emb_p = model.get_learned_conditioning([target_prompt])
             emb_n = model.get_learned_conditioning([target_prompt])
@@ -454,7 +449,7 @@ def main():
             if args.use_wandb:
                 wandb.log(
                     {"loss": loss_value, "epoch": epoch},
-                    step=epoch * (len(data) // 2) + i,
+                    step=epoch * len(data) + i,
                 )
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
