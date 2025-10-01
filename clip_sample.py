@@ -19,7 +19,7 @@ enc = tokenizer(
     padding=True,
     truncation=True,
     return_tensors="pt"
-).to(device)
+).to(device).input_ids
 
 # 4) Encode (no grad)
 with torch.no_grad():
