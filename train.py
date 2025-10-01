@@ -173,12 +173,12 @@ def generate_and_save_sd_images(
     # freeze & eval for safety
 
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        #cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
         samples_latent, _ = sampler.sample(
             S=steps,
-            conditioning={"c_crossattn": [cond]},
+            conditioning={"c_crossattn": [prompt]},
             batch_size=start_code.shape[0],
             shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
@@ -292,10 +292,24 @@ def main():
     # --- sampling with CFG ---
     sampler = DDIMSampler(model)
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+
+    inputs = tokenizer(
+        sample["target"],
+        max_length=tokenizer.model_max_length,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    ).to(args.device).input_ids
+
+    t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+    model.current_conditioning = t_prompt
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
-        prompt=ds[0]["target"],
+        prompt=t_prompt,
         device=device,
         steps=50,
         out_dir="tmp",
@@ -304,9 +318,6 @@ def main():
 
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
-
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
     # Create HyperLoRA factory function
     hyper_lora_factory = partial(
@@ -404,7 +415,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=model,
                     sampler=sampler,
-                    prompt=sample["target"][0],
+                    prompt=model.current_conditioning,
                     device=device,
                     steps=50,
                     out_dir="tmp",
