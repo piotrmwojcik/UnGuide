@@ -376,7 +376,7 @@ def main():
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
         inputs = tokenizer(
-            prompt,
+            [target_prompt],
             max_length=tokenizer.model_max_length,
             padding="max_length",
             truncation=True,
