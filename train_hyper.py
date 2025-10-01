@@ -19,6 +19,40 @@ from ldm.util import instantiate_from_config
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters, set_seed
 
+from sentence_transformers import SentenceTransformer
+
+def load_model(model_name="intfloat/e5-large-v2", models_dir="models", device="cuda"):
+    local_path = os.path.join(models_dir, model_name.split("/")[-1])
+
+    if os.path.exists(local_path):
+        model = SentenceTransformer(local_path, device=device)
+    else:
+        os.makedirs(models_dir, exist_ok=True)
+        model = SentenceTransformer(model_name, device=device)
+        model.save(local_path)
+
+    return model
+
+def encode_batch(model, texts, batch_size=64):
+    all_embeddings = []
+
+    for i in tqdm(range(0, len(texts), batch_size), desc="Encoding"):
+        batch = texts[i : i + batch_size]
+        batch_with_prefix = [f"a photo of the {text}" for text in batch]
+
+        with torch.no_grad():
+            embeddings = model.encode(
+                batch_with_prefix,
+                batch_size=batch_size,
+                show_progress_bar=False,
+                convert_to_tensor=True,
+                normalize_embeddings=True,
+            )
+
+        all_embeddings.append(embeddings.cpu())
+        torch.cuda.empty_cache()
+
+    return torch.cat(all_embeddings, dim=0)
 
 def parse_args():
     """Parse command line arguments"""
