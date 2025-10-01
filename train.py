@@ -311,7 +311,8 @@ def main():
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
 
-    hyper_lora_layers = []
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
     # Create HyperLoRA factory function
     hyper_lora_factory = partial(
@@ -373,7 +374,15 @@ def main():
         og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-        model.current_conditioning = emb_n.detach()
+        inputs = tokenizer(
+            prompt,
+            max_length=tokenizer.model_max_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        )
+
+        model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
         model.current_conditioning.requires_grad = False
 
         start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
@@ -382,12 +391,7 @@ def main():
 
         with torch.no_grad():
             z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-
-            #model.current_conditioning = emb_0.detach()
-            #model.current_conditioning.requires_grad = False
             e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-            #model.current_conditioning = emb_p.detach()
-            #model.current_conditioning.requires_grad = False
             e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
         e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
