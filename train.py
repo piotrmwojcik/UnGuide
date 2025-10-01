@@ -296,7 +296,7 @@ def main():
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
     inputs = tokenizer(
-        sample["target"],
+        ds[0]["target"],
         max_length=tokenizer.model_max_length,
         padding="max_length",
         truncation=True,
