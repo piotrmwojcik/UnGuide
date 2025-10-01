@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+from sentence_transformers import SentenceTransformer
 from torchvision.transforms.functional import to_pil_image
 from tqdm import tqdm
 
@@ -19,7 +20,6 @@ from ldm.util import instantiate_from_config
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters, set_seed
 
-from sentence_transformers import SentenceTransformer
 
 def load_model(model_name="intfloat/e5-large-v2", models_dir="models", device="cuda"):
     local_path = os.path.join(models_dir, model_name.split("/")[-1])
@@ -33,26 +33,21 @@ def load_model(model_name="intfloat/e5-large-v2", models_dir="models", device="c
 
     return model
 
-def encode_batch(model, texts, batch_size=64):
-    all_embeddings = []
 
-    for i in tqdm(range(0, len(texts), batch_size), desc="Encoding"):
-        batch = texts[i : i + batch_size]
-        batch_with_prefix = [f"a photo of the {text}" for text in batch]
+def encode(model, prompt):
+    with torch.no_grad():
+        embeddings = model.encode(
+            prompt,
+            batch_size=1,
+            show_progress_bar=False,
+            convert_to_tensor=True,
+            normalize_embeddings=True,
+        )
+    
+    torch.cuda.empty_cache()
 
-        with torch.no_grad():
-            embeddings = model.encode(
-                batch_with_prefix,
-                batch_size=batch_size,
-                show_progress_bar=False,
-                convert_to_tensor=True,
-                normalize_embeddings=True,
-            )
+    return embeddings
 
-        all_embeddings.append(embeddings.cpu())
-        torch.cuda.empty_cache()
-
-    return torch.cat(all_embeddings, dim=0)
 
 def parse_args():
     """Parse command line arguments"""
@@ -293,8 +288,6 @@ def main():
         "ddim_eta": args.ddim_eta,
         "start_guidance": args.start_guidance,
         "negative_guidance": args.negative_guidance,
-        "target_prompt": target_prompt,
-        "reference_prompt": reference_prompt,
         "prompts_json": args.prompts_json,
         "class_name": args.prompts_json.split("/")[-1].split(".")[0],
     }
@@ -336,16 +329,6 @@ def main():
 
     # --- sampling with CFG ---
     sampler = DDIMSampler(model)
-
-    generate_and_save_sd_images(
-        model=model,
-        sampler=sampler,
-        prompt=target_prompt,
-        device=device,
-        steps=50,
-        out_dir="tmp",
-        prefix="orig_",
-    )
 
     # Inject LoRA or HyperLoRA layers
     print(f"Injecting {'HyperLoRA' if args.use_hypernetwork else 'LoRA'} layers...")
@@ -398,16 +381,19 @@ def main():
 
     # Training loop
     print("Starting training...")
-    data = prompts_data.keys()
+    data = list(prompts_data.keys())
+
+    encoder = load_model().to(device)
 
     for epoch in range(args.epochs):
         t = tqdm(range(len(data) - 1))
         print(f"Starting epoch {epoch + 1}:")
         for i in t:
-            reference_prompt = f"a photo of {data[i]}"
-            reference_clip = encode(reference_prompt).to(device)
-            target_prompt = f"a photo of {data[i + 1]}"
-            target_clip = encode(target_prompt).to(device)
+            with torch.no_grad():
+                reference_prompt = f"a photo of {data[i]}"
+                reference_clip = encode(encoder, reference_prompt).detach().to(device).clone()
+                target_prompt = f"a photo of {data[i + 1]}"
+                target_clip = encode(encoder, target_prompt).detach().to(device).clone()
             emb_0 = model.get_learned_conditioning([reference_prompt])
             emb_p = model.get_learned_conditioning([target_prompt])
             emb_n = model.get_learned_conditioning([target_prompt])
