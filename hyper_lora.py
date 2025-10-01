@@ -46,7 +46,7 @@ class HyperLora(nn.Module):
         x_R = self.right_head(x)
         x_L = x_L.view(-1, self.rank, self.out_dim)
         x_R = x_R.view(-1, self.rank, self.in_dim)
-        print('!!!! ', (x @ x_L).shape)
+        print('!!!! ', x_L.shape, x_R.shape, x.shape)
         return (x @ x_L) @ x_R
 
 
