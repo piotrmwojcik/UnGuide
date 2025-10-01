@@ -421,7 +421,7 @@ def main():
                 caption = f"target: {sample['target'][0]}"
                 im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                 wandb.log(
-                    {"sample": wandb.Image(pil, caption=caption)},
+                    {"sample": wandb.Image(im0, caption=caption)},
                     step=i,
                 )
 
