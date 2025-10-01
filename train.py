@@ -432,16 +432,16 @@ def main():
             losses.append(loss_value)
             pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
-        print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
-        model.current_conditioning = None
-        lora_state_dict = {}
-        for name, param in model.model.diffusion_model.named_parameters():
-            if param.requires_grad:
-                lora_state_dict[name] = param.cpu().detach().clone()
+    print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
+    model.current_conditioning = None
+    lora_state_dict = {}
+    for name, param in model.model.diffusion_model.named_parameters():
+        if param.requires_grad:
+            lora_state_dict[name] = param.cpu().detach().clone()
 
-        model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
-        lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
-        torch.save(lora_state_dict, lora_path)
+    model_filename = "hyper_lora.pth" if args.use_hypernetwork else "lora.pth"
+    lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
+    torch.save(lora_state_dict, lora_path)
 
     # this part is unnecessary
     # print("Analyzing HyperLoRA weights...")

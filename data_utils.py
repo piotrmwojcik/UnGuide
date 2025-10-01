@@ -40,3 +40,6 @@ if __name__ == "__main__":
 
     for batch in loader:
         print(batch['target'])
+        print()
+        print(batch['reference'])
+        print('----')
