@@ -1,8 +1,8 @@
 import weakref
+from functools import partial
 from typing import List
 
 import torch
-from functools import partial
 import torch.nn as nn
 
 

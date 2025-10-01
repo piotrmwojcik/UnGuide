@@ -1,17 +1,21 @@
-from ldm.util import instantiate_from_config
-from omegaconf import OmegaConf
-import torch
 import numpy as np
+import torch
+from omegaconf import OmegaConf
+
 from ldm.models.diffusion.ddimcopy import DDIMSampler
+from ldm.util import instantiate_from_config
+
 
 def set_seed(seed: int):
     torch.random.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
 
+
 def load_model_from_config(config_path: str, ckpt_path: str, device: str = "cpu"):
     """Load and initialize model from configuration and checkpoint"""
     config = OmegaConf.load(config_path)
+    print(config)
     model = instantiate_from_config(config.model)
 
     # Load checkpoint weights
@@ -24,6 +28,7 @@ def load_model_from_config(config_path: str, ckpt_path: str, device: str = "cpu"
     model.cond_stage_model.device = device
 
     return model
+
 
 def get_models(config_path: str, ckpt_path: str, device: str):
     """Initialize both original and trainable models with samplers"""
@@ -49,6 +54,7 @@ def print_trainable_parameters(model, max_params: int = 10):
             if count >= max_params:
                 break
 
+
 def apply_lora_to_model(model, lora_state_dict, alpha=4):
     """
     Apply LoRA adapters to a base model’s weights, scaling by the given alpha.
@@ -62,19 +68,18 @@ def apply_lora_to_model(model, lora_state_dict, alpha=4):
     model_sd = model.state_dict()
 
     for lora_A_key in [k for k in lora_state_dict if k.endswith(".lora.A")]:
-        prefix = lora_A_key[:-len(".lora.A")]
+        prefix = lora_A_key[: -len(".lora.A")]
 
         A_key = prefix + ".lora.A"
         B_key = prefix + ".lora.B"
         W_key = prefix + ".weight"  # the original weight in the model
-
 
         A = lora_state_dict[A_key].to(model_sd[W_key].device)
         B = lora_state_dict[B_key].to(model_sd[W_key].device)
 
         delta = A.matmul(B)
         delta = delta.T
-        
+
         model_sd[W_key] = model_sd[W_key] + alpha * delta
 
     model.load_state_dict(model_sd, strict=False)
