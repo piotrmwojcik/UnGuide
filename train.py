@@ -302,7 +302,7 @@ def main():
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
-        prompt=[ds[0]["target"]],
+        prompt=ds[0]["target"],
         device=device,
         steps=50,
         out_dir="tmp",
