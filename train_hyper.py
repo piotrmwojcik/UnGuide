@@ -275,7 +275,7 @@ def main():
         set_seed(args.seed)
 
     # Load prompts json
-    with open("data/classes.json", "r") as f:
+    with open("data/classes10.json", "r") as f:
         prompts_data = json.load(f)
 
     config = {
@@ -404,9 +404,9 @@ def main():
         t = tqdm(range(len(data) - 1))
         print(f"Starting epoch {epoch + 1}:")
         for i in t:
-            reference_prompt = data[i]
+            reference_prompt = f"a photo of {data[i]}"
             reference_clip = encode(reference_prompt).to(device)
-            target_prompt = data[i + 1]
+            target_prompt = f"a photo of {data[i + 1]}"
             target_clip = encode(target_prompt).to(device)
             emb_0 = model.get_learned_conditioning([reference_prompt])
             emb_p = model.get_learned_conditioning([target_prompt])
