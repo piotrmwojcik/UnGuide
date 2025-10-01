@@ -44,10 +44,9 @@ class HyperLora(nn.Module):
         else:
             x_L = self.left_head(x)
         x_R = self.right_head(x)
-        return (
-            x_L.view(-1, self.rank, self.out_dim),
-            x_R.view(-1, self.rank, self.in_dim),
-        )
+        x_L = x_L.view(-1, self.rank, self.out_dim)
+        x_R = x_R.view(-1, self.rank, self.in_dim)
+        return (x @ x_L) @ x_R
 
 
 class HyperLoRALinear(nn.Module):
@@ -90,10 +89,7 @@ class HyperLoRALinear(nn.Module):
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
 
-        (x_L, x_R) = self.hyper_lora(clip_embedding)
-        print('!!! ', (clip_embedding @ x_L).shape)
-
-        return self.original(x) + (clip_embedding @ x_L @ x_R)
+        return self.original(x) + self.hyper_lora(clip_embedding)
 
 
 def inject_hyper_lora(
