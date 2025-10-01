@@ -306,7 +306,7 @@ def main():
     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
     model.current_conditioning = t_prompt
-    cond  = model.get_learned_conditioning([t_prompt ] * 1)
+    cond  = model.get_learned_conditioning([ds[0]["target"]] * 1)
     print('!!! ', t_prompt.shape, cond.shape)
     generate_and_save_sd_images(
         model=model,
