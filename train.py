@@ -364,8 +364,7 @@ def main():
     print("Starting training...")
     pbar = tqdm(range(args.iterations))
     for i in pbar:
-        for sample in ds_loader:
-
+        for sample_ids, sample in enumerate(ds_loader):
 
             emb_0 = model.get_learned_conditioning(sample["reference"])
             emb_p = model.get_learned_conditioning(sample["target"])
@@ -408,7 +407,7 @@ def main():
             loss.backward()
             optimizer.step()
 
-            if i >= args.log_from and i % 10 == 0 and args.use_wandb:
+            if i >= args.log_from and i % 10 == 0 and args.use_wandb and sample_ids == 0:
                 imgs = generate_and_save_sd_images(
                     model=model,
                     sampler=sampler,
@@ -418,8 +417,13 @@ def main():
                     out_dir="tmp",
                     prefix=f"unl_{i}_",
                 )
+
+                caption = f"target: {sample['target'][0]}"
                 im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                wandb.log({sample["target"][0]: wandb.Image(to_pil_image(im0))}, step=i)
+                wandb.log(
+                    {"sample": wandb.Image(pil, caption=caption)},
+                    step=i,
+                )
 
             loss_value = loss.item()
             if args.use_wandb:
