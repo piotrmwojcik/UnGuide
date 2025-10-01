@@ -37,13 +37,13 @@ class HyperLora(nn.Module):
             self.alpha = nn.Parameter(torch.tensor(alpha))
 
 
-    def forward(self, clip):
-        x = self.layers(clip)
+    def forward(self, x, clip):
+        emb = self.layers(clip)
         if self.use_scaling:
-            x_L = self.alpha * self.left_head(x)
+            x_L = self.alpha * self.left_head(emb)
         else:
-            x_L = self.left_head(x)
-        x_R = self.right_head(x)
+            x_L = self.left_head(emb)
+        x_R = self.right_head(emb)
         x_L = x_L.view(-1, self.rank, self.out_dim)
         x_R = x_R.view(-1, self.rank, self.in_dim)
         print('!!!! ', x_L.shape, x_R.shape, x.shape)
@@ -90,7 +90,7 @@ class HyperLoRALinear(nn.Module):
         if clip_embedding.dim() == 2:
             clip_embedding = clip_embedding.mean(dim=0)
 
-        return self.original(x) + self.hyper_lora(clip_embedding)
+        return self.original(x) + self.hyper_lora(x, clip_embedding)
 
 
 def inject_hyper_lora(
