@@ -3,6 +3,7 @@ import json
 import argparse
 import torch
 from functools import partial
+from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from utils import load_model_from_config, apply_lora_to_model, set_seed
 from torchvision.transforms.functional import to_pil_image
@@ -100,6 +101,10 @@ if __name__ == "__main__":
 
     args = parse_args()
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+
+
     exps = os.listdir(args.output_dir)
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
@@ -158,7 +163,7 @@ if __name__ == "__main__":
             HyperLoRALinear,
             clip_size=768,
             rank=1,
-            alpha=0.01,
+            alpha=0.001,
         )
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
@@ -226,6 +231,18 @@ if __name__ == "__main__":
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
                 start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+                inputs = tokenizer(
+                    prompts[0],
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(args.device).input_ids
+
+                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+                model.current_conditioning = t_prompt
+
                 model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
