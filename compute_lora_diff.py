@@ -5,6 +5,7 @@ import torch
 import torch
 import math
 import numpy as np
+from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
 from functools import partial
 import time
@@ -107,6 +108,8 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
     updated = 0
     skipped = []
@@ -182,10 +185,21 @@ def main():
                     verbose=False,
                 )
 
+                inputs = tokenizer(
+                    prompt,
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(args.device).input_ids
+
+                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+
                 # Compute epsilon predictions for both models
-                model.current_conditioning = cond
+                model.current_conditioning = t_prompt
                 eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
-                model.current_conditioning = cond_orig
+                #model.current_conditioning = cond_orig
                 eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
 
                 # Compute norm of the difference and record it
