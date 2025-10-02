@@ -241,9 +241,8 @@ if __name__ == "__main__":
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                model.current_conditioning = t_prompt
+                model_unl.current_conditioning = t_prompt
 
-                model_unl.current_conditioning = cond
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
