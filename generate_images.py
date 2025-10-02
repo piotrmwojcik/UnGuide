@@ -102,7 +102,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
 
 
     exps = os.listdir(args.output_dir)
