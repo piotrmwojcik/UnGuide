@@ -185,7 +185,6 @@ def main():
                     verbose=False,
                 )
 
-                print(prompts[0])
                 inputs = tokenizer(
                     prompts[0],
                     max_length=tokenizer.model_max_length,
@@ -195,7 +194,6 @@ def main():
                 ).to(args.device).input_ids
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
-
 
                 # Compute epsilon predictions for both models
                 model.current_conditioning = t_prompt
