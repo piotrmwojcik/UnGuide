@@ -186,7 +186,7 @@ def main():
                 )
 
                 inputs = tokenizer(
-                    prompts[0],
+                    "a photo of the frog",
                     max_length=tokenizer.model_max_length,
                     padding="max_length",
                     truncation=True,
