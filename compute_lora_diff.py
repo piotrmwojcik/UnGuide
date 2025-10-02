@@ -185,6 +185,7 @@ def main():
                     verbose=False,
                 )
 
+                print(prompts[0])
                 inputs = tokenizer(
                     prompts[0],
                     max_length=tokenizer.model_max_length,
