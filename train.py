@@ -414,7 +414,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=model,
                     sampler=sampler,
-                    prompt=["target"][0],
+                    prompt=sample["target"][0],
                     device=device,
                     steps=50,
                     out_dir="tmp",
