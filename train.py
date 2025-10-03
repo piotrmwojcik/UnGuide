@@ -295,7 +295,16 @@ def main():
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
-    model.current_conditioning = t_prompt
+    inputs = tokenizer(
+        ds[0]["target"],
+        max_length=tokenizer.model_max_length,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    ).to(args.device).input_ids
+
+    model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
+
     generate_and_save_sd_images(
         model=model,
         sampler=sampler,
