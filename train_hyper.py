@@ -453,41 +453,6 @@ def main():
     lora_path = os.path.join(args.output_dir, dir_name, "models", model_filename)
     torch.save(lora_state_dict, lora_path)
 
-    # this part is unnecessary
-    print("Analyzing HyperLoRA weights...")
-    os.makedirs(os.path.join(args.output_dir, dir_name, "stats"), exist_ok=True)
-
-    avg_weights = []
-    layer_names = []
-
-    for i, layer in enumerate(hyper_lora_layers):
-        hypernetwork = layer.hyper_lora.hypernetwork
-        if hypernetwork is not None:
-            weight_avg = hypernetwork.weight.data.abs().mean().item()
-            bias_avg = hypernetwork.bias.data.abs().mean().item()
-            avg_weights.append(weight_avg)
-
-            for name, module in model.model.diffusion_model.named_modules():
-                if module is layer:
-                    layer_names.append(name)
-                    break
-            else:
-                layer_names.append(f"layer_{i}")
-
-    if avg_weights and layer_names:
-        plt.figure(figsize=(12, 8))
-        plt.bar(range(len(avg_weights)), avg_weights, tick_label=layer_names)
-        plt.xticks(rotation=90)
-        plt.ylabel("Average Absolute Weight")
-        plt.title("Average HyperLoRA Hypernetwork Weights")
-        plt.tight_layout()
-        plot_path = os.path.join(
-            args.output_dir, dir_name, "stats", "hyperlora_weights.png"
-        )
-        plt.savefig(plot_path)
-        print(f"Saved HyperLoRA weight plot to {plot_path}")
-        plt.close()
-
     if args.use_wandb:
         wandb.finish()
 
