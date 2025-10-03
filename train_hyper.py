@@ -75,7 +75,7 @@ def parse_args():
     # LoRA configuration
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
     parser.add_argument(
-        "--lora_alpha", type=int, default=0.01, help="LoRA alpha parameter"
+        "--lora_alpha", type=float, default=0.01, help="LoRA alpha parameter"
     )
     parser.add_argument(
         "--target_modules",
@@ -93,7 +93,7 @@ def parse_args():
     parser.add_argument(
         "--clip_size",
         type=int,
-        default=1024,
+        default=1024 * 2,
         help="CLIP embedding size",
     )
     parser.add_argument(
@@ -397,13 +397,14 @@ def main():
                     reference_clip = encode(encoder, reference_prompt).detach().to(device).clone()
                     target_prompt = f"a photo of {data[j]}"
                     target_clip = encode(encoder, target_prompt).detach().to(device).clone()
+                    clip = torch.cat((reference_clip, target_clip), dim=0)
                 emb_0 = model.get_learned_conditioning([reference_prompt])
                 emb_p = model.get_learned_conditioning([target_prompt])
                 emb_n = model.get_learned_conditioning([target_prompt])
 
                 optimizer.zero_grad()
 
-                model.current_conditioning = target_clip
+                model.current_conditioning = clip
                 model.current_conditioning.requires_grad = False
 
                 t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
