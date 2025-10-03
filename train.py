@@ -305,7 +305,7 @@ def main():
         return_tensors="pt",
     ).to(args.device).input_ids
 
-    model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
+    #model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
 
     generate_and_save_sd_images(
         model=model,
