@@ -400,8 +400,8 @@ def main():
 
             model.current_conditioning = (clip_text_encoder(inputs[0]).pooler_output.detach(),
                                           clip_text_encoder(inputs[1]).pooler_output.detach())
-            model.current_conditioning.requires_grad[0] = False
-            model.current_conditioning.requires_grad[1] = False
+            model.current_conditioning[0].requires_grad = False
+            model.current_conditioning[1].requires_grad = False
 
             start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
                 args.device
