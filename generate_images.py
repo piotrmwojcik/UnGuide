@@ -163,7 +163,7 @@ if __name__ == "__main__":
             HyperLoRALinear,
             clip_size=768,
             rank=1,
-            alpha=0.001,
+            alpha=0.00001,
         )
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
