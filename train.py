@@ -293,7 +293,7 @@ def main():
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
-    print('!!! ', ds[0]["target"])
+    #print('!!! ', ds[0]["target"])
 
     #inputs = tokenizer(
     #    ds[0]["target"],
@@ -380,15 +380,25 @@ def main():
             og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-            inputs = tokenizer(
+            inputs = (tokenizer(
                 sample["target"],
                 max_length=tokenizer.model_max_length,
                 padding="max_length",
                 truncation=True,
                 return_tensors="pt",
-            ).to(args.device).input_ids
+            ).to(args.device).input_ids,
 
-            model.current_conditioning = clip_text_encoder(inputs).pooler_output.detach()
+                      tokenizer(
+                          sample["reference"],
+                          max_length=tokenizer.model_max_length,
+                          padding="max_length",
+                          truncation=True,
+                          return_tensors="pt",
+                      ).to(args.device).input_ids,
+                      )
+
+            model.current_conditioning = (clip_text_encoder(inputs[0]).pooler_output.detach(),
+                                          clip_text_encoder(inputs[1]).pooler_output.detach())
             model.current_conditioning.requires_grad = False
 
             start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(

@@ -13,7 +13,7 @@ class HyperLora(nn.Module):
         in_dim: int,
         out_dim: int,
         rank: int = 4,
-        clip_size: int = 768,
+        clip_size: int = 1536,
         alpha_init: int = 16.0,
         use_scaling=True
     ):
@@ -56,7 +56,7 @@ class HyperLoRALinear(nn.Module):
     def __init__(
         self,
         original_linear: nn.Linear,
-        clip_size: int = 768,
+        clip_size: int = 1536,
         rank: int = 1,
         alpha: int = 16,
     ):
@@ -77,7 +77,7 @@ class HyperLoRALinear(nn.Module):
     def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
-        clip_embedding = parent.current_conditioning
+        clip_embedding = torch.cat(parent.current_conditioning[0], parent.current_conditioning[1], -1)
         if clip_embedding is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
