@@ -77,7 +77,7 @@ class HyperLoRALinear(nn.Module):
     def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
-        clip_embedding = torch.cat(parent.current_conditioning[0], parent.current_conditioning[1], -1)
+        clip_embedding = torch.cat(parent.current_conditioning, -1)
         if clip_embedding is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
