@@ -1,0 +1,21 @@
+{
+  "target": "a photo of the boy",
+  "reference": "a photo of the sea",
+  "synonyms": [
+    "a photo of the boy",
+    "a photo of the boy",
+    "a photo of the boy"
+  ],
+  "other": [
+    "a photo of the lizard",
+    "a photo of the crab",
+    "a photo of the lion",
+    "a photo of the maple tree",
+    "a photo of the butterfly",
+    "a photo of the mouse",
+    "a photo of the raccoon",
+    "a photo of the cattle",
+    "a photo of the fox",
+    "a photo of the lamp"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "target": "a photo of the dolphin",
+  "reference": "a photo of the forest",
+  "synonyms": [
+    "a photo of the cetacean",
+    "a photo of the marine mammal",
+    "a photo of the porpoise"
+  ],
+  "other": [
+    "a photo of the worm",
+    "a photo of the skunk",
+    "a photo of the kangaroo",
+    "a photo of the cockroach",
+    "a photo of the motorcycle",
+    "a photo of the whale",
+    "a photo of the chimpanzee",
+    "a photo of the pear",
+    "a photo of the tractor",
+    "a photo of the telephone"
+  ]
+}

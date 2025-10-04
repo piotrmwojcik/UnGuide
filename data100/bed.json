@@ -1,0 +1,21 @@
+{
+  "target": "a photo of the bed",
+  "reference": "a photo of the street",
+  "synonyms": [
+    "a photo of the single bed",
+    "a photo of the double bed",
+    "a photo of the bunk bed"
+  ],
+  "other": [
+    "a photo of the mouse",
+    "a photo of the boy",
+    "a photo of the can",
+    "a photo of the squirrel",
+    "a photo of the streetcar",
+    "a photo of the snake",
+    "a photo of the clock",
+    "a photo of the raccoon",
+    "a photo of the ray",
+    "a photo of the pine tree"
+  ]
+}

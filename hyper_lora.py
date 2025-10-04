@@ -22,6 +22,7 @@ class HyperLora(nn.Module):
         self.out_dim = out_dim
         self.rank = rank
 
+        ## it should (?) be shared
         self.layers = nn.Sequential(
             nn.Linear(clip_size, 100),
             nn.ReLU(),

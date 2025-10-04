@@ -1,0 +1,21 @@
+{
+  "target": "an photo of the oak tree",
+  "reference": "a photo of the sea",
+  "synonyms": [
+    "a photo of the quercus",
+    "an photo of the oak",
+    "an photo of the oak sapling"
+  ],
+  "other": [
+    "a photo of the sweet pepper",
+    "a photo of the cockroach",
+    "a photo of the whale",
+    "an photo of the elephant",
+    "a photo of the cloud",
+    "a photo of the rabbit",
+    "a photo of the tulip",
+    "a photo of the streetcar",
+    "a photo of the flatfish",
+    "a photo of the shark"
+  ]
+}

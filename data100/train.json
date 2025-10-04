@@ -1,0 +1,21 @@
+{
+  "target": "a photo of the train",
+  "reference": "a photo of the street",
+  "synonyms": [
+    "a photo of the railway train",
+    "a photo of the locomotive",
+    "a photo of the railcar"
+  ],
+  "other": [
+    "a photo of the cockroach",
+    "a photo of the lamp",
+    "a photo of the fox",
+    "an photo of the elephant",
+    "a photo of the butterfly",
+    "a photo of the bottle",
+    "a photo of the willow tree",
+    "a photo of the cloud",
+    "a photo of the poppy",
+    "a photo of the rose"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "target": "a photo of the hamster",
+  "reference": "a photo of the ground",
+  "synonyms": [
+    "a photo of the rodent",
+    "a photo of the golden hamster",
+    "a photo of the syrian hamster"
+  ],
+  "other": [
+    "a photo of the boy",
+    "a photo of the worm",
+    "a photo of the skyscraper",
+    "a photo of the leopard",
+    "a photo of the bed",
+    "a photo of the flatfish",
+    "a photo of the raccoon",
+    "a photo of the snake",
+    "a photo of the cockroach",
+    "a photo of the snail"
+  ]
+}

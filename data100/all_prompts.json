@@ -1,0 +1,2102 @@
+{
+  "apple": {
+    "target": "an photo of the apple",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the malus",
+      "a photo of the pippin",
+      "a photo of the granny smith"
+    ],
+    "other": [
+      "a photo of the castle",
+      "a photo of the mountain",
+      "a photo of the trout",
+      "an photo of the orchid",
+      "a photo of the pear",
+      "a photo of the spider",
+      "a photo of the boy",
+      "a photo of the poppy",
+      "a photo of the girl",
+      "a photo of the cup"
+    ]
+  },
+  "aquarium_fish": {
+    "target": "an photo of the aquarium fish",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "an photo of the aquarium fish",
+      "an photo of the aquarium fish",
+      "an photo of the aquarium fish"
+    ],
+    "other": [
+      "a photo of the train",
+      "a photo of the rose",
+      "a photo of the bowl",
+      "a photo of the caterpillar",
+      "a photo of the road",
+      "a photo of the possum",
+      "a photo of the turtle",
+      "a photo of the castle",
+      "a photo of the leopard",
+      "a photo of the boy"
+    ]
+  },
+  "baby": {
+    "target": "a photo of the baby",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the baby",
+      "a photo of the baby",
+      "a photo of the baby"
+    ],
+    "other": [
+      "a photo of the bee",
+      "a photo of the bed",
+      "an photo of the orchid",
+      "a photo of the mouse",
+      "a photo of the cattle",
+      "a photo of the clock",
+      "a photo of the pine tree",
+      "a photo of the bicycle",
+      "a photo of the rose",
+      "a photo of the chair"
+    ]
+  },
+  "bear": {
+    "target": "a photo of the bear",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "an photo of the ursid",
+      "a photo of the brown bear",
+      "a photo of the polar bear"
+    ],
+    "other": [
+      "a photo of the plain",
+      "a photo of the skunk",
+      "an photo of the oak tree",
+      "a photo of the cup",
+      "a photo of the bed",
+      "a photo of the wardrobe",
+      "a photo of the whale",
+      "a photo of the lamp",
+      "a photo of the sweet pepper",
+      "a photo of the tank"
+    ]
+  },
+  "beaver": {
+    "target": "a photo of the beaver",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the rodent",
+      "a photo of the castor",
+      "a photo of the north american beaver"
+    ],
+    "other": [
+      "a photo of the possum",
+      "a photo of the raccoon",
+      "a photo of the sweet pepper",
+      "an photo of the aquarium fish",
+      "a photo of the leopard",
+      "a photo of the streetcar",
+      "an photo of the orange",
+      "a photo of the pickup truck",
+      "a photo of the shark",
+      "a photo of the crocodile"
+    ]
+  },
+  "bed": {
+    "target": "a photo of the bed",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the single bed",
+      "a photo of the double bed",
+      "a photo of the bunk bed"
+    ],
+    "other": [
+      "an photo of the orchid",
+      "a photo of the caterpillar",
+      "a photo of the house",
+      "an photo of the otter",
+      "a photo of the possum",
+      "a photo of the road",
+      "a photo of the beetle",
+      "a photo of the table",
+      "a photo of the turtle",
+      "a photo of the wolf"
+    ]
+  },
+  "bee": {
+    "target": "a photo of the bee",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the honeybee",
+      "a photo of the bumblebee",
+      "an photo of the apis"
+    ],
+    "other": [
+      "a photo of the chimpanzee",
+      "a photo of the dolphin",
+      "a photo of the crocodile",
+      "a photo of the shrew",
+      "an photo of the oak tree",
+      "a photo of the kangaroo",
+      "a photo of the crab",
+      "an photo of the orange",
+      "a photo of the fox",
+      "a photo of the plate"
+    ]
+  },
+  "beetle": {
+    "target": "a photo of the beetle",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the beetle",
+      "a photo of the beetle",
+      "a photo of the beetle"
+    ],
+    "other": [
+      "an photo of the otter",
+      "a photo of the cloud",
+      "a photo of the motorcycle",
+      "a photo of the sweet pepper",
+      "a photo of the telephone",
+      "an photo of the oak tree",
+      "a photo of the spider",
+      "a photo of the bus",
+      "a photo of the chair",
+      "a photo of the sea"
+    ]
+  },
+  "bicycle": {
+    "target": "a photo of the bicycle",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the bicycle",
+      "a photo of the bicycle",
+      "a photo of the bicycle"
+    ],
+    "other": [
+      "a photo of the woman",
+      "a photo of the worm",
+      "a photo of the beaver",
+      "a photo of the butterfly",
+      "a photo of the lizard",
+      "a photo of the cockroach",
+      "a photo of the pickup truck",
+      "a photo of the motorcycle",
+      "a photo of the mouse",
+      "a photo of the plate"
+    ]
+  },
+  "bottle": {
+    "target": "a photo of the bottle",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the glass bottle",
+      "a photo of the plastic bottle",
+      "a photo of the flask"
+    ],
+    "other": [
+      "a photo of the willow tree",
+      "a photo of the lizard",
+      "a photo of the camel",
+      "a photo of the fox",
+      "a photo of the rose",
+      "a photo of the plate",
+      "a photo of the butterfly",
+      "a photo of the lawn mower",
+      "a photo of the telephone",
+      "a photo of the boy"
+    ]
+  },
+  "bowl": {
+    "target": "a photo of the bowl",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the dish",
+      "a photo of the serving bowl",
+      "a photo of the soup bowl"
+    ],
+    "other": [
+      "a photo of the dolphin",
+      "a photo of the cattle",
+      "a photo of the lamp",
+      "a photo of the cockroach",
+      "a photo of the pickup truck",
+      "a photo of the worm",
+      "a photo of the bear",
+      "a photo of the raccoon",
+      "a photo of the lobster",
+      "a photo of the kangaroo"
+    ]
+  },
+  "boy": {
+    "target": "a photo of the boy",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the boy",
+      "a photo of the boy",
+      "a photo of the boy"
+    ],
+    "other": [
+      "a photo of the mouse",
+      "a photo of the girl",
+      "a photo of the television",
+      "a photo of the squirrel",
+      "a photo of the lobster",
+      "a photo of the streetcar",
+      "a photo of the wardrobe",
+      "a photo of the flatfish",
+      "an photo of the orchid",
+      "a photo of the fox"
+    ]
+  },
+  "bridge": {
+    "target": "a photo of the bridge",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the span",
+      "an photo of the overpass",
+      "an photo of the arch bridge"
+    ],
+    "other": [
+      "a photo of the road",
+      "a photo of the tulip",
+      "a photo of the dinosaur",
+      "a photo of the boy",
+      "a photo of the bear",
+      "a photo of the seal",
+      "a photo of the tiger",
+      "a photo of the camel",
+      "a photo of the pickup truck",
+      "a photo of the wolf"
+    ]
+  },
+  "bus": {
+    "target": "a photo of the bus",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the bus",
+      "a photo of the bus",
+      "a photo of the bus"
+    ],
+    "other": [
+      "a photo of the couch",
+      "a photo of the lamp",
+      "a photo of the sweet pepper",
+      "a photo of the clock",
+      "a photo of the tank",
+      "a photo of the baby",
+      "a photo of the trout",
+      "a photo of the butterfly",
+      "a photo of the lion",
+      "a photo of the palm tree"
+    ]
+  },
+  "butterfly": {
+    "target": "a photo of the butterfly",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the lepidopteran",
+      "a photo of the nymphalid",
+      "a photo of the swallowtail"
+    ],
+    "other": [
+      "a photo of the kangaroo",
+      "a photo of the computer keyboard",
+      "a photo of the bottle",
+      "a photo of the can",
+      "a photo of the skyscraper",
+      "a photo of the cup",
+      "an photo of the orange",
+      "a photo of the snail",
+      "a photo of the leopard",
+      "a photo of the bear"
+    ]
+  },
+  "camel": {
+    "target": "a photo of the camel",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the dromedary",
+      "a photo of the bactrian camel",
+      "a photo of the camelid"
+    ],
+    "other": [
+      "a photo of the lobster",
+      "a photo of the mountain",
+      "a photo of the woman",
+      "a photo of the chair",
+      "a photo of the caterpillar",
+      "a photo of the cloud",
+      "a photo of the forest",
+      "a photo of the beetle",
+      "a photo of the tractor",
+      "a photo of the beaver"
+    ]
+  },
+  "can": {
+    "target": "a photo of the can",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the can",
+      "a photo of the can",
+      "a photo of the can"
+    ],
+    "other": [
+      "a photo of the chair",
+      "a photo of the table",
+      "a photo of the palm tree",
+      "a photo of the lamp",
+      "a photo of the maple tree",
+      "a photo of the mountain",
+      "a photo of the cloud",
+      "a photo of the raccoon",
+      "a photo of the snail",
+      "a photo of the plate"
+    ]
+  },
+  "castle": {
+    "target": "a photo of the castle",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the fortress",
+      "a photo of the keep",
+      "a photo of the stronghold"
+    ],
+    "other": [
+      "a photo of the lamp",
+      "a photo of the television",
+      "a photo of the lion",
+      "a photo of the turtle",
+      "an photo of the otter",
+      "a photo of the palm tree",
+      "a photo of the ray",
+      "a photo of the wolf",
+      "a photo of the bicycle",
+      "a photo of the bowl"
+    ]
+  },
+  "caterpillar": {
+    "target": "a photo of the caterpillar",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the caterpillar",
+      "a photo of the caterpillar",
+      "a photo of the caterpillar"
+    ],
+    "other": [
+      "a photo of the whale",
+      "a photo of the girl",
+      "a photo of the bee",
+      "a photo of the dolphin",
+      "a photo of the poppy",
+      "a photo of the motorcycle",
+      "a photo of the turtle",
+      "a photo of the skunk",
+      "a photo of the plain",
+      "a photo of the rabbit"
+    ]
+  },
+  "cattle": {
+    "target": "a photo of the cattle",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the bovine",
+      "a photo of the cow",
+      "a photo of the bull"
+    ],
+    "other": [
+      "a photo of the couch",
+      "a photo of the kangaroo",
+      "a photo of the bus",
+      "a photo of the mouse",
+      "a photo of the man",
+      "a photo of the lawn mower",
+      "a photo of the mushroom",
+      "a photo of the crab",
+      "a photo of the pickup truck",
+      "a photo of the crocodile"
+    ]
+  },
+  "chair": {
+    "target": "a photo of the chair",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the seat",
+      "an photo of the armchair",
+      "a photo of the stool"
+    ],
+    "other": [
+      "a photo of the tank",
+      "a photo of the road",
+      "a photo of the leopard",
+      "a photo of the sunflower",
+      "a photo of the bottle",
+      "a photo of the possum",
+      "a photo of the sweet pepper",
+      "a photo of the rose",
+      "a photo of the castle",
+      "a photo of the pickup truck"
+    ]
+  },
+  "chimpanzee": {
+    "target": "a photo of the chimpanzee",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the pan troglodytes",
+      "a photo of the chimp",
+      "a photo of the great ape"
+    ],
+    "other": [
+      "a photo of the boy",
+      "a photo of the can",
+      "a photo of the cup",
+      "a photo of the woman",
+      "a photo of the butterfly",
+      "a photo of the bicycle",
+      "a photo of the kangaroo",
+      "a photo of the lamp",
+      "a photo of the rose",
+      "a photo of the forest"
+    ]
+  },
+  "clock": {
+    "target": "a photo of the clock",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the timepiece",
+      "a photo of the wall clock",
+      "an photo of the alarm clock"
+    ],
+    "other": [
+      "a photo of the girl",
+      "a photo of the lamp",
+      "a photo of the sea",
+      "a photo of the beaver",
+      "a photo of the maple tree",
+      "a photo of the bicycle",
+      "a photo of the bus",
+      "a photo of the dinosaur",
+      "a photo of the porcupine",
+      "a photo of the whale"
+    ]
+  },
+  "cloud": {
+    "target": "a photo of the cloud",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the cloud",
+      "a photo of the cloud",
+      "a photo of the cloud"
+    ],
+    "other": [
+      "an photo of the otter",
+      "a photo of the plate",
+      "a photo of the possum",
+      "an photo of the aquarium fish",
+      "a photo of the willow tree",
+      "a photo of the streetcar",
+      "a photo of the bowl",
+      "a photo of the trout",
+      "a photo of the skyscraper",
+      "a photo of the castle"
+    ]
+  },
+  "cockroach": {
+    "target": "a photo of the cockroach",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the cockroach",
+      "a photo of the cockroach",
+      "a photo of the cockroach"
+    ],
+    "other": [
+      "a photo of the baby",
+      "a photo of the couch",
+      "a photo of the cup",
+      "a photo of the train",
+      "a photo of the trout",
+      "a photo of the lamp",
+      "a photo of the spider",
+      "a photo of the pickup truck",
+      "a photo of the pine tree",
+      "a photo of the hamster"
+    ]
+  },
+  "couch": {
+    "target": "a photo of the couch",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the sofa",
+      "a photo of the settee",
+      "a photo of the lounge"
+    ],
+    "other": [
+      "a photo of the boy",
+      "a photo of the wolf",
+      "a photo of the pine tree",
+      "a photo of the mushroom",
+      "a photo of the palm tree",
+      "a photo of the mountain",
+      "a photo of the leopard",
+      "a photo of the caterpillar",
+      "a photo of the snail",
+      "a photo of the poppy"
+    ]
+  },
+  "crab": {
+    "target": "a photo of the crab",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the decapod",
+      "a photo of the shore crab",
+      "a photo of the blue crab"
+    ],
+    "other": [
+      "a photo of the worm",
+      "a photo of the rose",
+      "a photo of the cockroach",
+      "a photo of the telephone",
+      "a photo of the chair",
+      "a photo of the hamster",
+      "an photo of the orchid",
+      "a photo of the motorcycle",
+      "a photo of the chimpanzee",
+      "a photo of the streetcar"
+    ]
+  },
+  "crocodile": {
+    "target": "a photo of the crocodile",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the crocodylid",
+      "a photo of the croc",
+      "a photo of the niloticus"
+    ],
+    "other": [
+      "a photo of the mouse",
+      "a photo of the flatfish",
+      "a photo of the butterfly",
+      "an photo of the elephant",
+      "a photo of the motorcycle",
+      "a photo of the house",
+      "a photo of the skunk",
+      "a photo of the porcupine",
+      "a photo of the chimpanzee",
+      "a photo of the bed"
+    ]
+  },
+  "cup": {
+    "target": "a photo of the cup",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the teacup",
+      "a photo of the mug",
+      "a photo of the coffee cup"
+    ],
+    "other": [
+      "a photo of the flatfish",
+      "a photo of the lion",
+      "a photo of the turtle",
+      "a photo of the bridge",
+      "a photo of the cloud",
+      "a photo of the raccoon",
+      "a photo of the mountain",
+      "a photo of the worm",
+      "a photo of the lobster",
+      "a photo of the skyscraper"
+    ]
+  },
+  "dinosaur": {
+    "target": "a photo of the dinosaur",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the dinosaur",
+      "a photo of the dinosaur",
+      "a photo of the dinosaur"
+    ],
+    "other": [
+      "an photo of the orange",
+      "a photo of the girl",
+      "an photo of the orchid",
+      "a photo of the snake",
+      "a photo of the bicycle",
+      "a photo of the rabbit",
+      "a photo of the man",
+      "a photo of the ray",
+      "a photo of the lion",
+      "a photo of the streetcar"
+    ]
+  },
+  "dolphin": {
+    "target": "a photo of the dolphin",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the cetacean",
+      "a photo of the marine mammal",
+      "a photo of the porpoise"
+    ],
+    "other": [
+      "an photo of the elephant",
+      "a photo of the hamster",
+      "a photo of the man",
+      "a photo of the streetcar",
+      "a photo of the seal",
+      "a photo of the rabbit",
+      "a photo of the pickup truck",
+      "a photo of the fox",
+      "a photo of the motorcycle",
+      "a photo of the wolf"
+    ]
+  },
+  "elephant": {
+    "target": "an photo of the elephant",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the pachyderm",
+      "an photo of the asian elephant",
+      "an photo of the african elephant"
+    ],
+    "other": [
+      "a photo of the dinosaur",
+      "a photo of the shrew",
+      "an photo of the oak tree",
+      "a photo of the palm tree",
+      "an photo of the apple",
+      "a photo of the chair",
+      "a photo of the plate",
+      "a photo of the rose",
+      "a photo of the television",
+      "a photo of the cattle"
+    ]
+  },
+  "flatfish": {
+    "target": "a photo of the flatfish",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the flounder",
+      "a photo of the halibut",
+      "a photo of the sole"
+    ],
+    "other": [
+      "a photo of the raccoon",
+      "a photo of the trout",
+      "a photo of the tractor",
+      "a photo of the tiger",
+      "a photo of the lobster",
+      "a photo of the worm",
+      "a photo of the whale",
+      "a photo of the lamp",
+      "an photo of the elephant",
+      "a photo of the chimpanzee"
+    ]
+  },
+  "forest": {
+    "target": "a photo of the forest",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the forest",
+      "a photo of the forest",
+      "a photo of the forest"
+    ],
+    "other": [
+      "a photo of the tractor",
+      "a photo of the chair",
+      "a photo of the bowl",
+      "an photo of the orchid",
+      "a photo of the sunflower",
+      "a photo of the tulip",
+      "a photo of the lion",
+      "a photo of the road",
+      "a photo of the plate",
+      "a photo of the cattle"
+    ]
+  },
+  "fox": {
+    "target": "a photo of the fox",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the vulpine",
+      "a photo of the red fox",
+      "a photo of the vulpes"
+    ],
+    "other": [
+      "a photo of the raccoon",
+      "a photo of the bee",
+      "a photo of the squirrel",
+      "a photo of the lamp",
+      "a photo of the bottle",
+      "a photo of the kangaroo",
+      "a photo of the dolphin",
+      "an photo of the oak tree",
+      "a photo of the girl",
+      "a photo of the skyscraper"
+    ]
+  },
+  "girl": {
+    "target": "a photo of the girl",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the girl",
+      "a photo of the girl",
+      "a photo of the girl"
+    ],
+    "other": [
+      "a photo of the porcupine",
+      "a photo of the lawn mower",
+      "a photo of the sunflower",
+      "a photo of the willow tree",
+      "a photo of the maple tree",
+      "a photo of the motorcycle",
+      "a photo of the kangaroo",
+      "a photo of the plate",
+      "a photo of the shrew",
+      "a photo of the ray"
+    ]
+  },
+  "hamster": {
+    "target": "a photo of the hamster",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the rodent",
+      "a photo of the golden hamster",
+      "a photo of the syrian hamster"
+    ],
+    "other": [
+      "a photo of the camel",
+      "a photo of the fox",
+      "a photo of the wolf",
+      "a photo of the rose",
+      "a photo of the skyscraper",
+      "a photo of the clock",
+      "a photo of the snail",
+      "a photo of the porcupine",
+      "a photo of the possum",
+      "a photo of the poppy"
+    ]
+  },
+  "house": {
+    "target": "a photo of the house",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the home",
+      "a photo of the residence",
+      "a photo of the dwelling"
+    ],
+    "other": [
+      "a photo of the bottle",
+      "a photo of the mouse",
+      "a photo of the poppy",
+      "a photo of the wolf",
+      "a photo of the chair",
+      "a photo of the woman",
+      "a photo of the palm tree",
+      "a photo of the bridge",
+      "a photo of the cockroach",
+      "a photo of the fox"
+    ]
+  },
+  "kangaroo": {
+    "target": "a photo of the kangaroo",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the macropod",
+      "a photo of the roo",
+      "a photo of the red kangaroo"
+    ],
+    "other": [
+      "a photo of the pickup truck",
+      "a photo of the spider",
+      "a photo of the flatfish",
+      "a photo of the possum",
+      "a photo of the willow tree",
+      "a photo of the crab",
+      "a photo of the house",
+      "a photo of the streetcar",
+      "an photo of the orchid",
+      "a photo of the can"
+    ]
+  },
+  "computer_keyboard": {
+    "target": "a photo of the computer keyboard",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the pc keyboard",
+      "a photo of the qwerty keyboard",
+      "a photo of the mechanical keyboard"
+    ],
+    "other": [
+      "a photo of the seal",
+      "a photo of the woman",
+      "a photo of the shark",
+      "a photo of the palm tree",
+      "a photo of the beaver",
+      "a photo of the bee",
+      "a photo of the tiger",
+      "a photo of the shrew",
+      "a photo of the bottle",
+      "an photo of the elephant"
+    ]
+  },
+  "lamp": {
+    "target": "a photo of the lamp",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the desk lamp",
+      "a photo of the table lamp",
+      "a photo of the light"
+    ],
+    "other": [
+      "a photo of the turtle",
+      "a photo of the trout",
+      "a photo of the pear",
+      "a photo of the mushroom",
+      "a photo of the caterpillar",
+      "an photo of the aquarium fish",
+      "a photo of the possum",
+      "a photo of the television",
+      "a photo of the sunflower",
+      "a photo of the sweet pepper"
+    ]
+  },
+  "lawn_mower": {
+    "target": "a photo of the lawn mower",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the mower",
+      "a photo of the push mower",
+      "a photo of the ride-on mower"
+    ],
+    "other": [
+      "a photo of the train",
+      "a photo of the cup",
+      "a photo of the beetle",
+      "a photo of the raccoon",
+      "a photo of the wardrobe",
+      "a photo of the whale",
+      "a photo of the boy",
+      "a photo of the fox",
+      "a photo of the skyscraper",
+      "a photo of the possum"
+    ]
+  },
+  "leopard": {
+    "target": "a photo of the leopard",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the panthera pardus",
+      "a photo of the spotted feline",
+      "a photo of the big cat"
+    ],
+    "other": [
+      "a photo of the woman",
+      "a photo of the cattle",
+      "a photo of the whale",
+      "a photo of the tulip",
+      "a photo of the train",
+      "a photo of the lizard",
+      "a photo of the rose",
+      "a photo of the dolphin",
+      "a photo of the bee",
+      "a photo of the sunflower"
+    ]
+  },
+  "lion": {
+    "target": "a photo of the lion",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the big cat",
+      "a photo of the panthera leo",
+      "a photo of the male lion"
+    ],
+    "other": [
+      "a photo of the sunflower",
+      "a photo of the shark",
+      "a photo of the train",
+      "a photo of the mouse",
+      "a photo of the snail",
+      "a photo of the leopard",
+      "a photo of the woman",
+      "a photo of the baby",
+      "a photo of the beaver",
+      "a photo of the ray"
+    ]
+  },
+  "lizard": {
+    "target": "a photo of the lizard",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the reptile",
+      "a photo of the gecko",
+      "an photo of the iguana"
+    ],
+    "other": [
+      "a photo of the motorcycle",
+      "a photo of the camel",
+      "a photo of the boy",
+      "a photo of the woman",
+      "a photo of the crocodile",
+      "a photo of the flatfish",
+      "a photo of the bottle",
+      "a photo of the sweet pepper",
+      "a photo of the ray",
+      "a photo of the palm tree"
+    ]
+  },
+  "lobster": {
+    "target": "a photo of the lobster",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the decapod",
+      "a photo of the clawed lobster",
+      "a photo of the homarus"
+    ],
+    "other": [
+      "a photo of the computer keyboard",
+      "a photo of the fox",
+      "a photo of the can",
+      "a photo of the trout",
+      "a photo of the bus",
+      "a photo of the rocket",
+      "a photo of the house",
+      "a photo of the pear",
+      "a photo of the crocodile",
+      "a photo of the bear"
+    ]
+  },
+  "man": {
+    "target": "a photo of the man",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the man",
+      "a photo of the man",
+      "a photo of the man"
+    ],
+    "other": [
+      "a photo of the mountain",
+      "a photo of the lamp",
+      "a photo of the bridge",
+      "a photo of the motorcycle",
+      "a photo of the wolf",
+      "a photo of the fox",
+      "a photo of the sunflower",
+      "a photo of the plate",
+      "a photo of the bee",
+      "a photo of the tractor"
+    ]
+  },
+  "maple_tree": {
+    "target": "a photo of the maple tree",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "an photo of the acer",
+      "a photo of the maple",
+      "a photo of the maple sapling"
+    ],
+    "other": [
+      "a photo of the chimpanzee",
+      "a photo of the cattle",
+      "an photo of the orange",
+      "a photo of the computer keyboard",
+      "a photo of the squirrel",
+      "a photo of the bridge",
+      "a photo of the shrew",
+      "a photo of the tractor",
+      "a photo of the rocket",
+      "an photo of the otter"
+    ]
+  },
+  "motorcycle": {
+    "target": "a photo of the motorcycle",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the motorbike",
+      "a photo of the bike",
+      "a photo of the two-wheeler"
+    ],
+    "other": [
+      "a photo of the skyscraper",
+      "a photo of the bottle",
+      "a photo of the leopard",
+      "a photo of the cloud",
+      "a photo of the bicycle",
+      "a photo of the train",
+      "a photo of the computer keyboard",
+      "a photo of the pickup truck",
+      "a photo of the turtle",
+      "a photo of the snail"
+    ]
+  },
+  "mountain": {
+    "target": "a photo of the mountain",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the mountain",
+      "a photo of the mountain",
+      "a photo of the mountain"
+    ],
+    "other": [
+      "a photo of the ray",
+      "a photo of the forest",
+      "a photo of the squirrel",
+      "a photo of the lamp",
+      "a photo of the wolf",
+      "a photo of the pine tree",
+      "a photo of the palm tree",
+      "a photo of the cockroach",
+      "a photo of the tank",
+      "a photo of the skyscraper"
+    ]
+  },
+  "mouse": {
+    "target": "a photo of the mouse",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the rodent",
+      "a photo of the house mouse",
+      "a photo of the field mouse"
+    ],
+    "other": [
+      "a photo of the bottle",
+      "a photo of the bicycle",
+      "an photo of the orchid",
+      "a photo of the train",
+      "a photo of the camel",
+      "a photo of the can",
+      "a photo of the porcupine",
+      "a photo of the house",
+      "a photo of the plain",
+      "a photo of the caterpillar"
+    ]
+  },
+  "mushroom": {
+    "target": "a photo of the mushroom",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "an photo of the agaric",
+      "a photo of the toadstool",
+      "a photo of the basidiomycete"
+    ],
+    "other": [
+      "a photo of the woman",
+      "a photo of the kangaroo",
+      "a photo of the castle",
+      "a photo of the leopard",
+      "a photo of the chimpanzee",
+      "a photo of the cloud",
+      "a photo of the plate",
+      "a photo of the wolf",
+      "an photo of the oak tree",
+      "a photo of the bottle"
+    ]
+  },
+  "oak_tree": {
+    "target": "an photo of the oak tree",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the quercus",
+      "an photo of the oak",
+      "an photo of the oak sapling"
+    ],
+    "other": [
+      "a photo of the rocket",
+      "a photo of the clock",
+      "a photo of the raccoon",
+      "a photo of the ray",
+      "a photo of the kangaroo",
+      "a photo of the sunflower",
+      "a photo of the streetcar",
+      "a photo of the flatfish",
+      "a photo of the worm",
+      "a photo of the tank"
+    ]
+  },
+  "orange": {
+    "target": "an photo of the orange",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the citrus",
+      "a photo of the navel orange",
+      "a photo of the blood orange"
+    ],
+    "other": [
+      "a photo of the table",
+      "a photo of the sea",
+      "a photo of the girl",
+      "a photo of the road",
+      "a photo of the woman",
+      "a photo of the snake",
+      "a photo of the lamp",
+      "an photo of the elephant",
+      "a photo of the seal",
+      "a photo of the hamster"
+    ]
+  },
+  "orchid": {
+    "target": "an photo of the orchid",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "an photo of the orchidaceae",
+      "a photo of the phalaenopsis",
+      "a photo of the cattleya"
+    ],
+    "other": [
+      "a photo of the snake",
+      "a photo of the seal",
+      "a photo of the plate",
+      "a photo of the shark",
+      "a photo of the spider",
+      "a photo of the trout",
+      "a photo of the road",
+      "a photo of the lamp",
+      "a photo of the house",
+      "a photo of the palm tree"
+    ]
+  },
+  "otter": {
+    "target": "an photo of the otter",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the mustelid",
+      "a photo of the sea otter",
+      "a photo of the river otter"
+    ],
+    "other": [
+      "a photo of the snail",
+      "a photo of the telephone",
+      "a photo of the trout",
+      "a photo of the bridge",
+      "a photo of the sunflower",
+      "a photo of the wolf",
+      "a photo of the butterfly",
+      "a photo of the bed",
+      "a photo of the crocodile",
+      "a photo of the beaver"
+    ]
+  },
+  "palm_tree": {
+    "target": "a photo of the palm tree",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "an photo of the arecaceae",
+      "a photo of the palm",
+      "a photo of the date palm"
+    ],
+    "other": [
+      "a photo of the cloud",
+      "a photo of the house",
+      "a photo of the butterfly",
+      "a photo of the shark",
+      "a photo of the tractor",
+      "a photo of the pine tree",
+      "a photo of the porcupine",
+      "a photo of the chimpanzee",
+      "a photo of the man",
+      "a photo of the skunk"
+    ]
+  },
+  "pear": {
+    "target": "a photo of the pear",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the pyrus",
+      "a photo of the bartlett pear",
+      "an photo of the anjou pear"
+    ],
+    "other": [
+      "a photo of the tractor",
+      "a photo of the pine tree",
+      "a photo of the porcupine",
+      "a photo of the shark",
+      "an photo of the orchid",
+      "a photo of the pickup truck",
+      "a photo of the motorcycle",
+      "an photo of the apple",
+      "a photo of the raccoon",
+      "a photo of the possum"
+    ]
+  },
+  "pickup_truck": {
+    "target": "a photo of the pickup truck",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the pickup",
+      "an photo of the ute",
+      "a photo of the light truck"
+    ],
+    "other": [
+      "a photo of the forest",
+      "a photo of the dinosaur",
+      "a photo of the whale",
+      "a photo of the cockroach",
+      "a photo of the castle",
+      "a photo of the hamster",
+      "an photo of the apple",
+      "a photo of the tiger",
+      "a photo of the bus",
+      "a photo of the cloud"
+    ]
+  },
+  "pine_tree": {
+    "target": "a photo of the pine tree",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the pinus",
+      "a photo of the pine",
+      "a photo of the conifer"
+    ],
+    "other": [
+      "an photo of the aquarium fish",
+      "a photo of the bridge",
+      "a photo of the ray",
+      "a photo of the cup",
+      "a photo of the crab",
+      "a photo of the cattle",
+      "a photo of the sea",
+      "a photo of the butterfly",
+      "a photo of the bed",
+      "a photo of the skyscraper"
+    ]
+  },
+  "plain": {
+    "target": "a photo of the plain",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the plain",
+      "a photo of the plain",
+      "a photo of the plain"
+    ],
+    "other": [
+      "a photo of the snake",
+      "a photo of the cloud",
+      "a photo of the beaver",
+      "a photo of the squirrel",
+      "a photo of the tank",
+      "a photo of the bicycle",
+      "a photo of the maple tree",
+      "a photo of the willow tree",
+      "a photo of the tiger",
+      "a photo of the rabbit"
+    ]
+  },
+  "plate": {
+    "target": "a photo of the plate",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the dinner plate",
+      "a photo of the dish",
+      "a photo of the charger plate"
+    ],
+    "other": [
+      "an photo of the aquarium fish",
+      "a photo of the poppy",
+      "a photo of the seal",
+      "a photo of the trout",
+      "a photo of the lamp",
+      "a photo of the chair",
+      "a photo of the computer keyboard",
+      "a photo of the wardrobe",
+      "a photo of the rabbit",
+      "a photo of the possum"
+    ]
+  },
+  "poppy": {
+    "target": "a photo of the poppy",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the papaver",
+      "an photo of the opium poppy",
+      "a photo of the corn poppy"
+    ],
+    "other": [
+      "a photo of the wardrobe",
+      "a photo of the flatfish",
+      "a photo of the television",
+      "a photo of the fox",
+      "a photo of the man",
+      "an photo of the elephant",
+      "a photo of the plate",
+      "an photo of the oak tree",
+      "a photo of the woman",
+      "a photo of the cattle"
+    ]
+  },
+  "porcupine": {
+    "target": "a photo of the porcupine",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "an photo of the erethizon",
+      "a photo of the rodent",
+      "a photo of the hystricid"
+    ],
+    "other": [
+      "a photo of the beaver",
+      "a photo of the cattle",
+      "a photo of the lizard",
+      "a photo of the telephone",
+      "an photo of the oak tree",
+      "a photo of the bridge",
+      "a photo of the butterfly",
+      "a photo of the shrew",
+      "a photo of the turtle",
+      "a photo of the skunk"
+    ]
+  },
+  "possum": {
+    "target": "a photo of the possum",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "an photo of the opossum",
+      "a photo of the didelphid",
+      "a photo of the virginia opossum"
+    ],
+    "other": [
+      "a photo of the can",
+      "a photo of the leopard",
+      "a photo of the man",
+      "an photo of the oak tree",
+      "a photo of the dinosaur",
+      "a photo of the fox",
+      "a photo of the tank",
+      "an photo of the otter",
+      "a photo of the tractor",
+      "a photo of the crocodile"
+    ]
+  },
+  "rabbit": {
+    "target": "a photo of the rabbit",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the bunny",
+      "a photo of the hare",
+      "a photo of the lagomorph"
+    ],
+    "other": [
+      "a photo of the bear",
+      "a photo of the maple tree",
+      "an photo of the orchid",
+      "a photo of the porcupine",
+      "a photo of the snail",
+      "a photo of the clock",
+      "a photo of the beetle",
+      "an photo of the otter",
+      "a photo of the cloud",
+      "a photo of the couch"
+    ]
+  },
+  "raccoon": {
+    "target": "a photo of the raccoon",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the procyonid",
+      "a photo of the procyon lotor",
+      "a photo of the trash panda"
+    ],
+    "other": [
+      "a photo of the cattle",
+      "a photo of the hamster",
+      "a photo of the snail",
+      "a photo of the sea",
+      "a photo of the crab",
+      "a photo of the leopard",
+      "a photo of the lion",
+      "an photo of the aquarium fish",
+      "a photo of the pine tree",
+      "a photo of the squirrel"
+    ]
+  },
+  "ray": {
+    "target": "a photo of the ray",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the batoid",
+      "a photo of the manta ray",
+      "a photo of the stingray"
+    ],
+    "other": [
+      "a photo of the mouse",
+      "a photo of the maple tree",
+      "a photo of the fox",
+      "a photo of the bottle",
+      "a photo of the trout",
+      "a photo of the road",
+      "an photo of the oak tree",
+      "a photo of the tractor",
+      "a photo of the rose",
+      "a photo of the sea"
+    ]
+  },
+  "road": {
+    "target": "a photo of the road",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the highway",
+      "a photo of the street",
+      "a photo of the paved road"
+    ],
+    "other": [
+      "a photo of the rocket",
+      "a photo of the worm",
+      "a photo of the streetcar",
+      "a photo of the bowl",
+      "a photo of the caterpillar",
+      "a photo of the girl",
+      "a photo of the tiger",
+      "a photo of the raccoon",
+      "a photo of the computer keyboard",
+      "an photo of the orchid"
+    ]
+  },
+  "rocket": {
+    "target": "a photo of the rocket",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the space rocket",
+      "a photo of the launch vehicle",
+      "a photo of the booster"
+    ],
+    "other": [
+      "a photo of the forest",
+      "a photo of the worm",
+      "a photo of the shrew",
+      "a photo of the mountain",
+      "a photo of the maple tree",
+      "a photo of the shark",
+      "an photo of the otter",
+      "a photo of the seal",
+      "a photo of the streetcar",
+      "a photo of the lobster"
+    ]
+  },
+  "rose": {
+    "target": "a photo of the rose",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the rosa",
+      "a photo of the rose bloom",
+      "a photo of the garden rose"
+    ],
+    "other": [
+      "a photo of the sunflower",
+      "a photo of the computer keyboard",
+      "a photo of the couch",
+      "a photo of the woman",
+      "a photo of the television",
+      "a photo of the shark",
+      "a photo of the pine tree",
+      "a photo of the house",
+      "a photo of the palm tree",
+      "a photo of the bicycle"
+    ]
+  },
+  "sea": {
+    "target": "a photo of the sea",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the sea",
+      "a photo of the sea",
+      "a photo of the sea"
+    ],
+    "other": [
+      "a photo of the streetcar",
+      "a photo of the seal",
+      "a photo of the boy",
+      "a photo of the rabbit",
+      "an photo of the oak tree",
+      "a photo of the crab",
+      "a photo of the lobster",
+      "a photo of the castle",
+      "an photo of the orange",
+      "a photo of the beetle"
+    ]
+  },
+  "seal": {
+    "target": "a photo of the seal",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the pinniped",
+      "an photo of the earless seal",
+      "a photo of the harbor seal"
+    ],
+    "other": [
+      "a photo of the baby",
+      "a photo of the girl",
+      "a photo of the bear",
+      "a photo of the porcupine",
+      "a photo of the lawn mower",
+      "a photo of the skunk",
+      "a photo of the beaver",
+      "a photo of the lion",
+      "a photo of the worm",
+      "a photo of the tulip"
+    ]
+  },
+  "shark": {
+    "target": "a photo of the shark",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the selachian",
+      "a photo of the great white",
+      "a photo of the hammerhead"
+    ],
+    "other": [
+      "a photo of the can",
+      "a photo of the possum",
+      "a photo of the porcupine",
+      "a photo of the pine tree",
+      "a photo of the mouse",
+      "a photo of the snake",
+      "a photo of the squirrel",
+      "a photo of the sea",
+      "a photo of the baby",
+      "an photo of the aquarium fish"
+    ]
+  },
+  "shrew": {
+    "target": "a photo of the shrew",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the shrew",
+      "a photo of the shrew",
+      "a photo of the shrew"
+    ],
+    "other": [
+      "a photo of the boy",
+      "a photo of the seal",
+      "a photo of the man",
+      "a photo of the lion",
+      "a photo of the squirrel",
+      "a photo of the mushroom",
+      "a photo of the beetle",
+      "a photo of the tractor",
+      "a photo of the bicycle",
+      "a photo of the girl"
+    ]
+  },
+  "skunk": {
+    "target": "a photo of the skunk",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the mephitid",
+      "a photo of the striped skunk",
+      "a photo of the mephitis"
+    ],
+    "other": [
+      "an photo of the elephant",
+      "a photo of the bus",
+      "a photo of the bridge",
+      "a photo of the telephone",
+      "a photo of the baby",
+      "an photo of the orange",
+      "a photo of the chimpanzee",
+      "a photo of the shrew",
+      "a photo of the plain",
+      "a photo of the wardrobe"
+    ]
+  },
+  "skyscraper": {
+    "target": "a photo of the skyscraper",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the high-rise",
+      "a photo of the tower block",
+      "an photo of the office tower"
+    ],
+    "other": [
+      "a photo of the baby",
+      "a photo of the willow tree",
+      "a photo of the tank",
+      "a photo of the bowl",
+      "a photo of the chair",
+      "a photo of the camel",
+      "a photo of the rabbit",
+      "a photo of the streetcar",
+      "a photo of the poppy",
+      "a photo of the sweet pepper"
+    ]
+  },
+  "snail": {
+    "target": "a photo of the snail",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the gastropod",
+      "a photo of the land snail",
+      "a photo of the garden snail"
+    ],
+    "other": [
+      "a photo of the cup",
+      "a photo of the shrew",
+      "a photo of the dolphin",
+      "a photo of the fox",
+      "a photo of the can",
+      "a photo of the bottle",
+      "a photo of the chair",
+      "a photo of the couch",
+      "a photo of the worm",
+      "a photo of the train"
+    ]
+  },
+  "snake": {
+    "target": "a photo of the snake",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the serpent",
+      "a photo of the colubrid",
+      "a photo of the viper"
+    ],
+    "other": [
+      "a photo of the dinosaur",
+      "a photo of the sweet pepper",
+      "a photo of the castle",
+      "a photo of the boy",
+      "a photo of the mushroom",
+      "a photo of the hamster",
+      "a photo of the skunk",
+      "a photo of the can",
+      "an photo of the elephant",
+      "a photo of the bed"
+    ]
+  },
+  "spider": {
+    "target": "a photo of the spider",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "an photo of the arachnid",
+      "a photo of the tarantula",
+      "an photo of the orb weaver"
+    ],
+    "other": [
+      "a photo of the road",
+      "an photo of the otter",
+      "a photo of the woman",
+      "a photo of the skunk",
+      "a photo of the telephone",
+      "a photo of the train",
+      "a photo of the rose",
+      "a photo of the mouse",
+      "a photo of the whale",
+      "a photo of the table"
+    ]
+  },
+  "squirrel": {
+    "target": "a photo of the squirrel",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the squirrel",
+      "a photo of the squirrel",
+      "a photo of the squirrel"
+    ],
+    "other": [
+      "a photo of the baby",
+      "a photo of the lobster",
+      "a photo of the possum",
+      "a photo of the butterfly",
+      "a photo of the snail",
+      "a photo of the poppy",
+      "a photo of the road",
+      "a photo of the lion",
+      "a photo of the boy",
+      "a photo of the lizard"
+    ]
+  },
+  "streetcar": {
+    "target": "a photo of the streetcar",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the tram",
+      "a photo of the trolley",
+      "a photo of the light rail"
+    ],
+    "other": [
+      "a photo of the chair",
+      "a photo of the tank",
+      "a photo of the man",
+      "a photo of the porcupine",
+      "a photo of the lion",
+      "a photo of the television",
+      "a photo of the motorcycle",
+      "a photo of the crocodile",
+      "a photo of the pickup truck",
+      "a photo of the beetle"
+    ]
+  },
+  "sunflower": {
+    "target": "a photo of the sunflower",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the helianthus",
+      "a photo of the flower head",
+      "a photo of the sunflower bloom"
+    ],
+    "other": [
+      "a photo of the kangaroo",
+      "a photo of the squirrel",
+      "a photo of the snail",
+      "a photo of the tulip",
+      "a photo of the mushroom",
+      "a photo of the worm",
+      "a photo of the cup",
+      "a photo of the poppy",
+      "a photo of the tiger",
+      "a photo of the bowl"
+    ]
+  },
+  "sweet_pepper": {
+    "target": "a photo of the sweet pepper",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the bell pepper",
+      "a photo of the capsicum",
+      "a photo of the paprika"
+    ],
+    "other": [
+      "a photo of the can",
+      "a photo of the squirrel",
+      "a photo of the castle",
+      "a photo of the beetle",
+      "a photo of the bus",
+      "a photo of the plain",
+      "a photo of the dinosaur",
+      "a photo of the mountain",
+      "a photo of the maple tree",
+      "a photo of the chimpanzee"
+    ]
+  },
+  "table": {
+    "target": "a photo of the table",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the desk",
+      "a photo of the worktable",
+      "a photo of the dining table"
+    ],
+    "other": [
+      "a photo of the lion",
+      "a photo of the bear",
+      "a photo of the chimpanzee",
+      "a photo of the cup",
+      "a photo of the pine tree",
+      "a photo of the can",
+      "a photo of the bus",
+      "a photo of the couch",
+      "a photo of the sunflower",
+      "a photo of the wolf"
+    ]
+  },
+  "tank": {
+    "target": "a photo of the tank",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "an photo of the armored vehicle",
+      "a photo of the battle tank",
+      "a photo of the mbt"
+    ],
+    "other": [
+      "an photo of the elephant",
+      "a photo of the rose",
+      "an photo of the apple",
+      "a photo of the seal",
+      "a photo of the bridge",
+      "a photo of the rocket",
+      "a photo of the mouse",
+      "an photo of the oak tree",
+      "a photo of the squirrel",
+      "a photo of the leopard"
+    ]
+  },
+  "telephone": {
+    "target": "a photo of the telephone",
+    "reference": "a photo of the street",
+    "synonyms": [
+      "a photo of the phone",
+      "a photo of the handset",
+      "a photo of the telephone set"
+    ],
+    "other": [
+      "a photo of the caterpillar",
+      "a photo of the rocket",
+      "a photo of the mouse",
+      "a photo of the willow tree",
+      "a photo of the tank",
+      "a photo of the bottle",
+      "a photo of the forest",
+      "a photo of the shark",
+      "a photo of the turtle",
+      "a photo of the pine tree"
+    ]
+  },
+  "television": {
+    "target": "a photo of the television",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the tv",
+      "a photo of the television set",
+      "a photo of the receiver"
+    ],
+    "other": [
+      "a photo of the beetle",
+      "a photo of the mushroom",
+      "a photo of the man",
+      "a photo of the bicycle",
+      "a photo of the chimpanzee",
+      "a photo of the forest",
+      "a photo of the bowl",
+      "a photo of the computer keyboard",
+      "a photo of the whale",
+      "an photo of the otter"
+    ]
+  },
+  "tiger": {
+    "target": "a photo of the tiger",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the big cat",
+      "a photo of the striped feline",
+      "a photo of the panthera tigris"
+    ],
+    "other": [
+      "a photo of the spider",
+      "a photo of the plate",
+      "a photo of the telephone",
+      "a photo of the bee",
+      "a photo of the palm tree",
+      "a photo of the girl",
+      "a photo of the dinosaur",
+      "a photo of the lion",
+      "a photo of the flatfish",
+      "a photo of the porcupine"
+    ]
+  },
+  "tractor": {
+    "target": "a photo of the tractor",
+    "reference": "a photo of the sky",
+    "synonyms": [
+      "a photo of the tractor",
+      "a photo of the tractor",
+      "a photo of the tractor"
+    ],
+    "other": [
+      "an photo of the otter",
+      "a photo of the maple tree",
+      "a photo of the whale",
+      "a photo of the mountain",
+      "a photo of the plain",
+      "a photo of the turtle",
+      "a photo of the woman",
+      "a photo of the lamp",
+      "a photo of the lion",
+      "a photo of the shrew"
+    ]
+  },
+  "train": {
+    "target": "a photo of the train",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the railway train",
+      "a photo of the locomotive",
+      "a photo of the railcar"
+    ],
+    "other": [
+      "a photo of the cup",
+      "a photo of the road",
+      "a photo of the possum",
+      "a photo of the beetle",
+      "a photo of the can",
+      "a photo of the lion",
+      "a photo of the wolf",
+      "a photo of the leopard",
+      "a photo of the sunflower",
+      "a photo of the house"
+    ]
+  },
+  "trout": {
+    "target": "a photo of the trout",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the salmonid",
+      "a photo of the brown trout",
+      "a photo of the rainbow trout"
+    ],
+    "other": [
+      "a photo of the bear",
+      "an photo of the elephant",
+      "an photo of the orange",
+      "a photo of the mountain",
+      "a photo of the tank",
+      "a photo of the camel",
+      "an photo of the otter",
+      "a photo of the mouse",
+      "a photo of the woman",
+      "an photo of the oak tree"
+    ]
+  },
+  "tulip": {
+    "target": "a photo of the tulip",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the liliaceous",
+      "a photo of the tulipa",
+      "a photo of the flowering tulip"
+    ],
+    "other": [
+      "a photo of the rabbit",
+      "a photo of the sunflower",
+      "a photo of the lawn mower",
+      "a photo of the house",
+      "a photo of the maple tree",
+      "a photo of the telephone",
+      "a photo of the can",
+      "a photo of the baby",
+      "a photo of the porcupine",
+      "a photo of the man"
+    ]
+  },
+  "turtle": {
+    "target": "a photo of the turtle",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the cheloniid",
+      "a photo of the sea turtle",
+      "a photo of the freshwater turtle"
+    ],
+    "other": [
+      "a photo of the flatfish",
+      "a photo of the bowl",
+      "a photo of the mountain",
+      "an photo of the elephant",
+      "an photo of the oak tree",
+      "a photo of the bicycle",
+      "a photo of the fox",
+      "a photo of the computer keyboard",
+      "a photo of the bee",
+      "a photo of the lion"
+    ]
+  },
+  "wardrobe": {
+    "target": "a photo of the wardrobe",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the closet",
+      "an photo of the armoire",
+      "a photo of the clothes press"
+    ],
+    "other": [
+      "an photo of the orange",
+      "a photo of the table",
+      "a photo of the skunk",
+      "a photo of the shrew",
+      "a photo of the can",
+      "a photo of the leopard",
+      "a photo of the pine tree",
+      "a photo of the sunflower",
+      "an photo of the oak tree",
+      "a photo of the caterpillar"
+    ]
+  },
+  "whale": {
+    "target": "a photo of the whale",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the cetacean",
+      "a photo of the sea mammal",
+      "a photo of the baleen whale"
+    ],
+    "other": [
+      "a photo of the man",
+      "a photo of the raccoon",
+      "a photo of the telephone",
+      "a photo of the cup",
+      "a photo of the dolphin",
+      "a photo of the ray",
+      "a photo of the can",
+      "a photo of the wardrobe",
+      "an photo of the aquarium fish",
+      "a photo of the lamp"
+    ]
+  },
+  "willow_tree": {
+    "target": "a photo of the willow tree",
+    "reference": "a photo of the sea",
+    "synonyms": [
+      "a photo of the salix",
+      "a photo of the willow",
+      "a photo of the weeping willow"
+    ],
+    "other": [
+      "a photo of the shrew",
+      "a photo of the crocodile",
+      "a photo of the maple tree",
+      "a photo of the rose",
+      "a photo of the caterpillar",
+      "a photo of the worm",
+      "a photo of the palm tree",
+      "a photo of the possum",
+      "a photo of the pine tree",
+      "a photo of the fox"
+    ]
+  },
+  "wolf": {
+    "target": "a photo of the wolf",
+    "reference": "a photo of the forest",
+    "synonyms": [
+      "a photo of the canis lupus",
+      "a photo of the wild dog",
+      "a photo of the timber wolf"
+    ],
+    "other": [
+      "a photo of the tractor",
+      "a photo of the maple tree",
+      "a photo of the dolphin",
+      "a photo of the squirrel",
+      "an photo of the aquarium fish",
+      "an photo of the elephant",
+      "an photo of the apple",
+      "a photo of the train",
+      "an photo of the orange",
+      "a photo of the telephone"
+    ]
+  },
+  "woman": {
+    "target": "a photo of the woman",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the woman",
+      "a photo of the woman",
+      "a photo of the woman"
+    ],
+    "other": [
+      "a photo of the camel",
+      "a photo of the sweet pepper",
+      "a photo of the bear",
+      "a photo of the rocket",
+      "a photo of the computer keyboard",
+      "an photo of the elephant",
+      "a photo of the trout",
+      "a photo of the shark",
+      "an photo of the oak tree",
+      "a photo of the porcupine"
+    ]
+  },
+  "worm": {
+    "target": "a photo of the worm",
+    "reference": "a photo of the ground",
+    "synonyms": [
+      "a photo of the worm",
+      "a photo of the worm",
+      "a photo of the worm"
+    ],
+    "other": [
+      "a photo of the pear",
+      "a photo of the trout",
+      "a photo of the cattle",
+      "a photo of the possum",
+      "an photo of the apple",
+      "a photo of the chimpanzee",
+      "a photo of the whale",
+      "a photo of the dinosaur",
+      "a photo of the clock",
+      "a photo of the table"
+    ]
+  }
+}
