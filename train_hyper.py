@@ -400,51 +400,58 @@ def main():
                     target_prompt = f"a photo of {data[j]}"
                     target_clip = encode(encoder, target_prompt).detach().to(device).clone()
                     clip = torch.cat((reference_clip, target_clip), dim=0)
-                emb_0 = model.get_learned_conditioning([reference_prompt])
-                emb_p = model.get_learned_conditioning([target_prompt])
-                emb_n = model.get_learned_conditioning([target_prompt])
-
-                optimizer.zero_grad()
-
+                
                 model.current_conditioning = clip
                 model.current_conditioning.requires_grad = False
 
-                t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
-                og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-                og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-                t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
+                for id, synonym in enumerate([data[i]] + prompts_data[data[i]]):
+                    
+                    for g in optimizer.param_groups:
+                        g['lr'] = args.lr if i == 0 else args.lr / 10
 
-                start_code = torch.randn(
-                    (1, 4, args.image_size // 8, args.image_size // 8)
-                ).to(args.device)
+                    target_prompt = f"a photo of {synonym}"
+                    emb_0 = model.get_learned_conditioning([reference_prompt])
+                    emb_p = model.get_learned_conditioning([target_prompt])
+                    emb_n = model.get_learned_conditioning([target_prompt])
 
-                with torch.no_grad():
-                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    optimizer.zero_grad()
 
-                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
-                e_n = model.apply_model(z, t_enc_ddpm, emb_n)
+                    t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
+                    og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+                    og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+                    t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-                e_0.requires_grad = False
-                e_p.requires_grad = False
+                    start_code = torch.randn(
+                        (1, 4, args.image_size // 8, args.image_size // 8)
+                    ).to(args.device)
 
-                target = e_0 - (args.negative_guidance * (e_p - e_0))
-                loss = criterion(e_n, target)
+                    with torch.no_grad():
+                        z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
 
-                loss.backward()
-                optimizer.step()
+                        e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+                        e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+                    e_n = model.apply_model(z, t_enc_ddpm, emb_n)
 
-                loss_value = loss.item()
-                losses.append(loss_value)
-                t.set_postfix({"loss": f"{loss_value:.6f}"})
+                    e_0.requires_grad = False
+                    e_p.requires_grad = False
 
-                if args.use_wandb:
-                    wandb.log(
-                        {"loss": loss_value, "epoch": epoch},
-                        step=index,
-                    )
+                    target = e_0 - (args.negative_guidance * (e_p - e_0))
+                    loss = criterion(e_n, target)
 
-                index += 1
+                    loss.backward()
+                    optimizer.step()
+
+                    loss_value = loss.item()
+                    losses.append(loss_value)
+                    t.set_postfix({"loss": f"{loss_value:.6f}"})
+
+                    if args.use_wandb:
+                        wandb.log(
+                            {"loss": loss_value, "epoch": epoch},
+                            step=index,
+                        )
+
+                    index += 1
 
         if args.use_wandb:
             imgs = generate_and_save_sd_images(
