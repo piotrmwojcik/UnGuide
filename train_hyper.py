@@ -384,6 +384,8 @@ def main():
     data = list(prompts_data.keys())
 
     encoder = load_model().to(device)
+    
+    index = 1
 
     for epoch in range(args.epochs):
         t = tqdm(range(len(data)))
@@ -439,8 +441,29 @@ def main():
                 if args.use_wandb:
                     wandb.log(
                         {"loss": loss_value, "epoch": epoch},
-                        step=(epoch * len(data) + i) * len(data) + j,
+                        step=index,
                     )
+
+                index += 1
+
+        if args.use_wandb:
+            imgs = generate_and_save_sd_images(
+                model=model,
+                sampler=sampler,
+                prompt=target_prompt,
+                device=device,
+                steps=50,
+                out_dir="tmp",
+                prefix=f"unl_{index}",
+            )
+
+            caption = f"target: {data[-1]}"
+            im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+            wandb.log(
+                {"sample": wandb.Image(im0, caption=caption)},
+                step=index,
+            )
+
 
     print(f"Saving trained model to {args.output_dir}/{dir_name}/models")
     model.current_conditioning = None
