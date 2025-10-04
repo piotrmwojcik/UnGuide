@@ -380,22 +380,23 @@ def main():
             og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
 
-            inputs = (tokenizer(
-                sample["target"],
-                max_length=tokenizer.model_max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).to(args.device).input_ids,
+            def encode(text: str):
+                return (
+                    tokenizer(
+                        text,
+                        max_length=tokenizer.model_max_length,
+                        padding="max_length",
+                        truncation=True,
+                        return_tensors="pt",
+                    )
+                        .to(args.device)
+                        .input_ids
+                )
 
-                      tokenizer(
-                          sample["reference"],
-                          max_length=tokenizer.model_max_length,
-                          padding="max_length",
-                          truncation=True,
-                          return_tensors="pt",
-                      ).to(args.device).input_ids,
-                      )
+            inputs = (
+                encode(sample["target"]),
+                encode(sample["reference"]),
+            )
 
             model.current_conditioning = (clip_text_encoder(inputs[0]).pooler_output.detach(),
                                           clip_text_encoder(inputs[1]).pooler_output.detach())
