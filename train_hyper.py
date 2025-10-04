@@ -447,7 +447,7 @@ def main():
 
                     if args.use_wandb:
                         wandb.log(
-                            {"loss": loss_value, "epoch": epoch},
+                            {"loss": loss_value, "epoch": epoch, "lora": f"{data[i]} -> {data[j]}", "prompt": synonym},
                             step=index,
                         )
 
