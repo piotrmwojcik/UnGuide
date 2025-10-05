@@ -97,7 +97,7 @@ def main():
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=768,
+        clip_size=1536,
         rank=1,
         alpha=0.001,
     )
