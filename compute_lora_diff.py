@@ -199,8 +199,8 @@ def main():
                     )
 
                 t_prompt = (
-                    encode(sample["target"]),
-                    encode(sample["reference"]),
+                    encode(data.get("target")),
+                    encode(data.get("reference")),
                 )
 
                 model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
