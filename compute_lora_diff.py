@@ -185,18 +185,26 @@ def main():
                     verbose=False,
                 )
 
-                inputs = tokenizer(
-                    prompts[0],
-                    max_length=tokenizer.model_max_length,
-                    padding="max_length",
-                    truncation=True,
-                    return_tensors="pt",
-                ).to(args.device).input_ids
+                def encode(text: str):
+                    return (
+                        tokenizer(
+                            text,
+                            max_length=tokenizer.model_max_length,
+                            padding="max_length",
+                            truncation=True,
+                            return_tensors="pt",
+                        )
+                            .to(args.device)
+                            .input_ids
+                    )
 
-                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+                t_prompt = (
+                    encode(sample["target"]),
+                    encode(sample["reference"]),
+                )
 
-                # Compute epsilon predictions for both models
-                model.current_conditioning = t_prompt
+                model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
+                                              clip_text_encoder(t_prompt[1]).pooler_output.detach())
                 eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
                 #model.current_conditioning = cond_orig
                 eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
