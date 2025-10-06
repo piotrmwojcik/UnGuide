@@ -253,7 +253,11 @@ def main():
     # Prepare for DDP / Mixed precision
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
 
-    # Create sampler AFTER prepare so it uses the wrapped model
+    base = accelerator.unwrap_model(model)
+    for layer in hyper_lora_layers:
+        layer.set_parent_model(base)
+
+        # Create sampler AFTER prepare so it uses the wrapped model
     sampler = DDIMSampler(model)
 
     # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
