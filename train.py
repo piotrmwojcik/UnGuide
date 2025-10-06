@@ -325,12 +325,13 @@ def main():
         )
         + f"_{lora_type}"
     )
-    os.makedirs(os.path.join(args.output_dir, dir_name, "models"), exist_ok=True)
+    if accelerator.is_main_process:
+        os.makedirs(os.path.join(args.output_dir, dir_name, "models"), exist_ok=True)
 
     # Initialize models
     print("Loading models...")
     model_orig, sampler_orig, model, sampler = get_models(
-        args.config_path, args.ckpt_path, args.device
+        args.config_path, args.ckpt_path, accelerator.device
     )
 
     # Freeze original model parameters
@@ -340,13 +341,13 @@ def main():
     # Add current_conditioning attribute to model for HyperLoRA
     model.current_conditioning = None
 
-    device = next(model.parameters()).device
+    #device = next(model.parameters()).device
 
     # --- sampling with CFG ---
     sampler = DDIMSampler(model)
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
     #print('!!! ', ds[0]["target"])
 
@@ -364,7 +365,7 @@ def main():
         model=model,
         sampler=sampler,
         prompt=ds[0]["target"],
-        device=device,
+        device=accelerator.device,
         steps=50,
         out_dir="tmp",
         prefix="orig_",
@@ -430,10 +431,10 @@ def main():
 
             optimizer.zero_grad()
 
-            t_enc = torch.randint(args.ddim_steps, (1,), device=args.device)
+            t_enc = torch.randint(args.ddim_steps, (1,), device=accelerator.device)
             og_num = round((int(t_enc) / args.ddim_steps) * 1000)
             og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=args.device)
+            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             def encode(text: str):
                 return (
@@ -444,7 +445,7 @@ def main():
                         truncation=True,
                         return_tensors="pt",
                     )
-                        .to(args.device)
+                        .to(accelerator.device)
                         .input_ids
                 )
 
@@ -459,7 +460,7 @@ def main():
             model.current_conditioning[1].requires_grad = False
 
             start_code = torch.randn((1, 4, args.image_size // 8, args.image_size // 8)).to(
-                args.device
+                accelerator.device
             )
 
             with torch.no_grad():
@@ -482,7 +483,7 @@ def main():
                     model=model,
                     sampler=sampler,
                     prompt=sample["target"][0],
-                    device=device,
+                    device=accelerator.device,
                     steps=50,
                     out_dir="tmp",
                     prefix=f"unl_{i}_",
