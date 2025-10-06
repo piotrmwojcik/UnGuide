@@ -250,8 +250,14 @@ def main():
 
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
+    if is_main:
+        print('Before prepare')
+
     # Prepare for DDP / Mixed precision
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
+
+    if is_main:
+        print('After prepare')
 
     base = accelerator.unwrap_model(model)
     for layer in hyper_lora_layers:
