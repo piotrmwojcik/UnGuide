@@ -287,7 +287,7 @@ def main():
     losses = []
 
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
-    if accelerator.is_local_main_process:
+    if is_main:
         print('!!!!!!!!!!')
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
@@ -326,7 +326,7 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = (cond_target, cond_ref)
-            if accelerator.is_local_main_process:
+            if is_main:
                 print('!!! ', model.current_conditioning, base.current_conditioning)
 
             # starting latent code
