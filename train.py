@@ -200,7 +200,7 @@ def main():
         log_with=args.report_to,
         project_config=accelerator_project_config,
     )
-    logger = get_logger(__name__)
+    #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
@@ -266,7 +266,7 @@ def main():
     # Optionally log a baseline image (main only)
     if is_main:
         imgs0 = generate_and_save_sd_images(
-            model=orig_model,
+            model=model_orig,
             sampler=sampler,
             prompt=ds[0]["target"],
             device=accelerator.device,
