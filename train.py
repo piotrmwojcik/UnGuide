@@ -288,7 +288,7 @@ def main():
         if args.use_wandb and imgs0 is not None:
             im0 = (imgs0[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
             wandb.log({"baseline": wandb.Image(to_pil_image(im0))}, step=0)
-
+    print('After image generation')
     # Training
     criterion = torch.nn.MSELoss()
     losses = []
