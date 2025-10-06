@@ -77,7 +77,7 @@ class HyperLoRALinear(nn.Module):
     def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
-        if clip_embedding is None:
+        if parent.current_conditioning is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
         else:
