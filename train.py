@@ -72,6 +72,14 @@ def parse_args():
         default=768,
         help="CLIP embedding size",
     )
+
+    parser.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+        help="Number of updates steps to accumulate before performing a backward/update pass.",
+    )
+
     parser.add_argument(
         "--data_file",
         type=str,
@@ -99,6 +107,18 @@ def parse_args():
             "[TensorBoard](https://www.tensorflow.org/tensorboard) log directory. "
             "Will default to"
             " *output_dir/runs/**CURRENT_DATETIME_HOSTNAME***."
+        ),
+    )
+
+    parser.add_argument(
+        "--mixed_precision",
+        type=str,
+        default=None,
+        choices=["no", "fp16", "bf16"],
+        help=(
+            "Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). Bf16 requires PyTorch >="
+            " 1.10.and an Nvidia Ampere GPU.  Default to the value of accelerate config of the current system or the"
+            " flag passed with the `accelerate.launch` command. Use this argument to override the accelerate config."
         ),
     )
 
@@ -271,6 +291,13 @@ def main():
 
     accelerator_project_config = ProjectConfiguration(
         project_dir=args.output_dir, logging_dir=args.logging_dir
+    )
+
+    accelerator = Accelerator(
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        mixed_precision=args.mixed_precision,
+        log_with=args.report_to,
+        project_config=accelerator_project_config,
     )
 
     lora_type = "hyper" if args.use_hypernetwork else "lora"
