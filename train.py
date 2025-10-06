@@ -266,7 +266,7 @@ def main():
     # Optionally log a baseline image (main only)
     if is_main:
         imgs0 = generate_and_save_sd_images(
-            model=model,
+            model=orig_model,
             sampler=sampler,
             prompt=ds[0]["target"],
             device=accelerator.device,
