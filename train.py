@@ -325,7 +325,8 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = (cond_target, cond_ref)
-            print('!!! ', model.current_conditioning, base.current_conditioning)
+            if accelerator.is_local_main_process:
+                print('!!! ', model.current_conditioning, base.current_conditioning)
 
             # starting latent code
             start_code = torch.randn(
