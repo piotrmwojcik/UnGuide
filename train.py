@@ -250,14 +250,8 @@ def main():
 
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
-    if is_main:
-        print('Before prepare')
-
     # Prepare for DDP / Mixed precision
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
-
-    if is_main:
-        print('After prepare')
 
     base = accelerator.unwrap_model(model)
     for layer in hyper_lora_layers:
@@ -275,7 +269,6 @@ def main():
 
     # Optionally log a baseline image (main only)
     if is_main:
-        print('Generating')
         imgs0 = generate_and_save_sd_images(
             model=model_orig,
             sampler=sampler,
@@ -288,14 +281,11 @@ def main():
         if args.use_wandb and imgs0 is not None:
             im0 = (imgs0[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
             wandb.log({"baseline": wandb.Image(to_pil_image(im0))}, step=0)
-    print('After image generation')
     # Training
     criterion = torch.nn.MSELoss()
     losses = []
 
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
-    if is_main:
-        print('!!!!!!!!!!')
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             # Get conditional embeddings (strings) directly for LDM
@@ -333,8 +323,6 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = (cond_target, cond_ref)
-            if is_main:
-                print('!!! ', model.current_conditioning, base.current_conditioning)
 
             # starting latent code
             start_code = torch.randn(
