@@ -77,10 +77,11 @@ class HyperLoRALinear(nn.Module):
     def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
-        clip_embedding = torch.cat(parent.current_conditioning, -1)
         if clip_embedding is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
+        else:
+            clip_embedding = torch.cat(parent.current_conditioning, -1)
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
         #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
