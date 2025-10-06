@@ -123,6 +123,16 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--report_to",
+        type=str,
+        default="wandb",
+        help=(
+            'The integration to report the results and logs to. Supported platforms are `"tensorboard"`'
+            ' (default), `"wandb"` and `"comet_ml"`. Use `"all"` to report to all integrations.'
+        ),
+    )
+
+    parser.add_argument(
         "--seed", type=int, default=None, help="Random seed for reproducibility"
     )
     parser.add_argument(
