@@ -287,7 +287,8 @@ def main():
     losses = []
 
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
-    print('!!!!!!!!!!')
+    if accelerator.is_local_main_process:
+        print('!!!!!!!!!!')
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             # Get conditional embeddings (strings) directly for LDM
