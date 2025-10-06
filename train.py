@@ -6,6 +6,9 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 from pathlib import Path
+from accelerate import Accelerator
+from accelerate.logging import get_logger
+from accelerate.utils import ProjectConfiguration, set_seed
 from torch.utils.data import Dataset, DataLoader
 from data_utils import TargetReferenceDataset, collate_prompts
 from torchvision.transforms.functional import to_pil_image
@@ -254,6 +257,10 @@ def main():
         "start_guidance": args.start_guidance,
         "negative_guidance": args.negative_guidance,
     }
+
+    accelerator_project_config = ProjectConfiguration(
+        project_dir=args.output_dir, logging_dir=args.logging_dir
+    )
 
     lora_type = "hyper" if args.use_hypernetwork else "lora"
     dir_name = (
