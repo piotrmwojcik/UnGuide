@@ -92,6 +92,17 @@ def parse_args():
         "--ddim_steps", type=int, default=50, help="DDIM sampling steps"
     )
     parser.add_argument(
+        "--logging_dir",
+        type=str,
+        default="logs",
+        help=(
+            "[TensorBoard](https://www.tensorflow.org/tensorboard) log directory. "
+            "Will default to"
+            " *output_dir/runs/**CURRENT_DATETIME_HOSTNAME***."
+        ),
+    )
+
+    parser.add_argument(
         "--seed", type=int, default=None, help="Random seed for reproducibility"
     )
     parser.add_argument(
