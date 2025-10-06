@@ -275,6 +275,7 @@ def main():
 
     # Optionally log a baseline image (main only)
     if is_main:
+        print('Generating')
         imgs0 = generate_and_save_sd_images(
             model=model_orig,
             sampler=sampler,
