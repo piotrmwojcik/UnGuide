@@ -359,7 +359,7 @@ def main():
                 and sample_ids == 0
             ):
                 imgs = generate_and_save_sd_images(
-                    model=model,
+                    model=base,
                     sampler=sampler,
                     prompt=sample["target"][0],
                     device=accelerator.device,
@@ -382,6 +382,7 @@ def main():
                 pbar.set_postfix({"loss": f"{loss_value:.6f}"})
 
         # Save LoRA/HyperLoRA weights each iteration (or move outside loop if you prefer)
+        accelerator.wait_for_everyone()
         if is_main:
             save_dir = os.path.join(args.output_dir, f"rank_{args.lora_rank}_it_{args.iterations}_lr_{args.lr}_sg_{args.start_guidance}_ng_{args.negative_guidance}_ddim_{args.ddim_steps}_" + ("hyper" if use_hyper else "lora"))
             os.makedirs(os.path.join(save_dir, "models"), exist_ok=True)
