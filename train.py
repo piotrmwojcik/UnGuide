@@ -337,7 +337,7 @@ def main():
                 e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
                 e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
 
-            e_n = model.apply_model(z, t_enc_ddpm, emb_n)
+            e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
 
             # targets and loss
             e_0.requires_grad = False
