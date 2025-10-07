@@ -270,8 +270,10 @@ def main():
         set_seed(args.seed)
 
     # Load prompts json
-    with open("data/classes10.json", "r") as f:
-        prompts_data = json.load(f)
+    with open("data/classes10.txt", "r") as f:
+        classes = f.readlines()
+    
+    data = {class: json.load(f"data/{class}.json") for class in classes}
 
     config = {
         "config": args.config_path,
@@ -404,12 +406,12 @@ def main():
                 model.current_conditioning = clip
                 model.current_conditioning.requires_grad = False
 
-                for id, synonym in enumerate([data[i]] + prompts_data[data[i]]):
+                for id, synonym in enumerate([data[i]] + prompts_data[data[i]]["synonyms"]):
                     
                     for g in optimizer.param_groups:
                         g['lr'] = args.lr if i == 0 else args.lr / 10
 
-                    target_prompt = f"a photo of {synonym}"
+                    target_prompt = synonym
                     emb_0 = model.get_learned_conditioning([reference_prompt])
                     emb_p = model.get_learned_conditioning([target_prompt])
                     emb_n = model.get_learned_conditioning([target_prompt])
