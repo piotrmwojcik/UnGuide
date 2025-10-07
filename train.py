@@ -71,6 +71,13 @@ def parse_args():
     parser.add_argument("--start_guidance", type=float, default=9.0, help="Starting guidance scale")
     parser.add_argument("--negative_guidance", type=float, default=2.0, help="Negative guidance scale")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
+    parser.add_argument(
+        "--train_batch_size",
+        type=int,
+        default=1,
+        help="Batch size (per device) for the training dataloader.",
+    )
+
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
@@ -197,7 +204,7 @@ def main():
     args.lr = (
             args.lr
             * args.gradient_accumulation_steps
-            * args.batch
+            * args.batch_size
             * accelerator.num_processes
     )
 
