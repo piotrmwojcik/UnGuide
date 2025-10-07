@@ -220,6 +220,9 @@ def main():
         args.config_path, args.ckpt_path, accelerator.device
     )
 
+    if model_orig is model:
+        print('!!!!!')
+
     # Freeze original model
     for p in model_orig.model.diffusion_model.parameters():
         p.requires_grad = False
