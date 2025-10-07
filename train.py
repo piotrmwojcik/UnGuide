@@ -258,7 +258,7 @@ def main():
         layer.set_parent_model(base)
 
         # Create sampler AFTER prepare so it uses the wrapped model
-    sampler = DDIMSampler(model)
+    sampler = DDIMSampler(base)
 
     # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
