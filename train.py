@@ -265,7 +265,7 @@ def main():
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
     # Quick sampler
-    quick_sampler = create_quick_sampler(model, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
+    quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
 
     sampler_orig = DDIMSampler(model_orig)
 
