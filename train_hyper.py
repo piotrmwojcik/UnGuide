@@ -270,10 +270,14 @@ def main():
         set_seed(args.seed)
 
     # Load prompts json
-    with open("data/classes10.txt", "r") as f:
-        classes = f.readlines()
-    
-    data = {class: json.load(f"data/{class}.json") for class in classes}
+    with open("data/cifar10.txt", "r") as f:
+        classes = list(f)
+
+    prompts_data = dict()
+
+    for class_name in classes:
+        with open(f"data/{class_name.strip()}.json") as f:
+            prompts_data[class_name] = json.load(f)
 
     config = {
         "config": args.config_path,
