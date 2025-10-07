@@ -291,9 +291,9 @@ def main():
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             # Get conditional embeddings (strings) directly for LDM
-            emb_0 = model.get_learned_conditioning(sample["reference"])
-            emb_p = model.get_learned_conditioning(sample["target"])
-            emb_n = model.get_learned_conditioning(sample["target"])
+            emb_0 = base.get_learned_conditioning(sample["reference"])
+            emb_p = base.get_learned_conditioning(sample["target"])
+            emb_n = base.get_learned_conditioning(sample["target"])
 
             optimizer.zero_grad(set_to_none=True)
 
