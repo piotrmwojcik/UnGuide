@@ -1,0 +1,101 @@
+{
+    "airplane": [
+        "the sky",
+        "roll-on roll-off",
+        "wing",
+        "monoplane",
+        "airliner",
+        "jet",
+        "delta wing",
+        "log"
+    ],
+    "automobile": [
+        "car",
+        "car",
+        "a limousine",
+        "auto",
+        "travel"
+    ],
+    "bird": [
+        "nest",
+        "chicken",
+        "animal",
+        "duck",
+        "chick",
+        "canary",
+        "flying",
+        "A finch",
+        "A robin",
+        "An ostrich",
+        "A parakeet",
+        "a feather",
+        "wings",
+        "egg",
+        "A pheasant",
+        "crow",
+        "owl"
+    ],
+    "cat": [
+        "hunt mice",
+        "feline",
+        "animal",
+        "pet",
+        "dog",
+        "kitten"
+    ],
+    "deer": [
+        "buck",
+        "Virginia deer",
+        "wapiti",
+        "scut",
+        "doe",
+        "pricket",
+        "mule deer"
+    ],
+    "dog": [
+        "bark",
+        "pet",
+        "animal",
+        "flea",
+        "canine",
+        "puppy"
+    ],
+    "frog": [
+        "toad",
+        "South American poison toad",
+        "eastern narrow-mouthed toad",
+        "tree toad",
+        "obstetrical toad"
+    ],
+    "horse": [
+        "animal",
+        "riding",
+        "pony",
+        "equine",
+        "mammal",
+        "saddle",
+        "racing",
+        "mane",
+        "big",
+        "donkey",
+        "farm",
+        "four",
+        "zebra"
+    ],
+    "ship": [
+        "captain",
+        "boat",
+        "a submarine",
+        "vessel",
+        "hulk",
+        "funnel",
+        "broken-backed",
+        "log"
+    ],
+    "truck": [
+        "tow truck",
+        "fire engine",
+        "dump truck",
+        "sound truck"
+    ]
+}

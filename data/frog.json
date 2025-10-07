@@ -1,0 +1,21 @@
+{
+    "target": "a photo of the frog",
+    "reference": "a photo of the sky",
+    "synonyms": [
+        "a photo of the amphibian",
+        "a photo of the anuran",
+        "a photo of the tadpole"
+    ],
+    "other": [
+        "a photo of the airplane",
+        "a photo of the automobile",
+        "a photo of the bird",
+        "a photo of the cat",
+        "a photo of the deer",
+        "a photo of the dog",
+        "a photo of the horse",
+        "a photo of the ship",
+        "a photo of the truck",
+        ""
+    ]
+}
