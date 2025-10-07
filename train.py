@@ -90,7 +90,7 @@ def parse_args():
 
     # Output / data
     parser.add_argument("--output_dir", type=str, default="output", help="Directory to save models")
-    parser.add_argument("--data_dir", type=str, default="data_small", help="Directory with prompt json files")
+    parser.add_argument("--data_dir", type=str, default="data10", help="Directory with prompt json files")
     parser.add_argument("--save_losses", action="store_true", help="Save training losses to file")
 
     return parser.parse_args()
