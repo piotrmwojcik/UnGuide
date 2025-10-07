@@ -267,14 +267,13 @@ def main():
     # Quick sampler
     quick_sampler = create_quick_sampler(model, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
 
-    print("same diffusion_model?",
-          model_orig.model.diffusion_model is model.model.diffusion_model)
+    sampler_orig = DDIMSampler(model_orig)
 
     # Optionally log a baseline image (main only)
     if is_main:
         imgs0 = generate_and_save_sd_images(
             model=model_orig,
-            sampler=sampler,
+            sampler=sampler_orig,
             prompt=ds[0]["target"],
             device=accelerator.device,
             steps=50,
