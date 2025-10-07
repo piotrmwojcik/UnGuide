@@ -220,9 +220,6 @@ def main():
         args.config_path, args.ckpt_path, accelerator.device
     )
 
-    if model_orig is model:
-        print('!!!!!')
-
     # Freeze original model
     for p in model_orig.model.diffusion_model.parameters():
         p.requires_grad = False
@@ -269,6 +266,9 @@ def main():
 
     # Quick sampler
     quick_sampler = create_quick_sampler(model, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
+
+    print("same diffusion_model?",
+          model_orig.model.diffusion_model is model.model.diffusion_model)
 
     # Optionally log a baseline image (main only)
     if is_main:
