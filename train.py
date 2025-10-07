@@ -194,6 +194,13 @@ def main():
         logging_dir=args.logging_dir,
     )
 
+    args.lr = (
+            args.lr
+            * args.gradient_accumulation_steps
+            * args.batch
+            * accelerator.num_processes
+    )
+
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         mixed_precision=args.mixed_precision,  # None -> use accelerate config
@@ -241,6 +248,7 @@ def main():
     )
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
+
 
     # Optimizer on trainable (LoRA) params only
     trainable_params = list(filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters()))
