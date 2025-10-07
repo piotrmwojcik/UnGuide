@@ -201,6 +201,13 @@ def main():
         logging_dir=args.logging_dir,
     )
 
+    accelerator = Accelerator(
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        mixed_precision=args.mixed_precision,  # None -> use accelerate config
+        log_with=args.report_to,
+        project_config=accelerator_project_config,
+    )
+
     args.lr = (
             args.lr
             * args.gradient_accumulation_steps
@@ -208,12 +215,6 @@ def main():
             * accelerator.num_processes
     )
 
-    accelerator = Accelerator(
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        mixed_precision=args.mixed_precision,  # None -> use accelerate config
-        log_with=args.report_to,
-        project_config=accelerator_project_config,
-    )
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
