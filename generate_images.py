@@ -246,6 +246,8 @@ if __name__ == "__main__":
                             .input_ids
                     )
 
+                print(data.get("target"), data.get("reference"))
+
                 t_prompt = (
                     encode(data.get("target")),
                     encode(data.get("reference")),
