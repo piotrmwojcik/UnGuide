@@ -6,6 +6,24 @@ from functools import partial
 import torch.nn as nn
 
 
+class TimeFourier(nn.Module):
+
+    def __init__(self, T=501, L=16):  # outputs 2L dims
+        super().__init__()
+        # freq_k = (2π/T) * 2^k  for k=0..L-1
+        k = torch.linspace(0, L - 1, L, dtype=torch.float32)
+        freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
+        # make it follow .to(device) / .half() calls automatically
+        self.register_buffer("freqs", freqs)  # shape: (L,)
+
+    def forward(self, t: torch.Tensor) -> torch.Tensor:
+        # t: (B,) int/long
+        t = t.to(dtype=torch.float32).unsqueeze(-1)  # (B,1)
+        w = self.freqs.to(dtype=t.dtype)             # (L,)
+        angles = t * w                               # (B,L)
+        return torch.cat([angles.cos(), angles.sin()], dim=-1)  # (B, 2L)
+
+
 class HyperLora(nn.Module):
 
     def __init__(
@@ -15,6 +33,7 @@ class HyperLora(nn.Module):
         rank: int = 4,
         clip_size: int = 1536,
         alpha_init: int = 16.0,
+        time_embedd: int = 32,
         use_scaling=True
     ):
         super().__init__()
@@ -27,9 +46,19 @@ class HyperLora(nn.Module):
         #    nn.Linear(clip_size, 100),
         #    nn.ReLU(),
         #)
-
-        self.left_head = nn.Linear(clip_size, in_dim * rank)
-        self.right_head = nn.Linear(clip_size, out_dim * rank)
+        std_dev = 1 / (rank ** 0.5)
+        self.register_buffer(
+            "xL_const_flat", torch.rand(1, in_dim * rank) * std_dev, persistent=False
+        )
+        self.register_buffer(
+            "xR_const_flat", torch.zeros(1, out_dim * rank), persistent=False
+        )
+        self.register_buffer(
+            "alpha_b", torch.tensor(alpha_init, dtype=torch.float32), persistent=False
+        )
+        self.left_head = nn.Linear(clip_size + time_embedd, in_dim * rank)
+        self.right_head = nn.Linear(clip_size + time_embedd, out_dim * rank)
+        self.time_feat = TimeFourier()
         self.in_dim = in_dim
         self.out_dim = out_dim
 
@@ -37,15 +66,27 @@ class HyperLora(nn.Module):
         if self.use_scaling:
             self.alpha = nn.Parameter(torch.tensor(alpha_init))
 
+    def forward_linear_L(self, emb, t):
+        return self.xL_const_flat + t / 500 * self.left_head(emb)
 
-    def forward(self, x, clip):
+    def forward_linear_R(self, emb, t):
+        return self.xR_const_flat + t / 500 * self.right_head(emb)
+
+    def forward_alpha(self, t):
+        return self.alpha_b + t / 500 * self.alpha
+
+    def forward(self, x, clip, t):
         emb = clip
         #emb = self.layers(clip)
+        B = x.shape[0]
+        t_feats = torch.full((B,), t, dtype=x.dtype)
+        t_feats = self.time_feat(t_feats)
+        emb = torch.cat([emb, t_feats], dim=-1)
         if self.use_scaling:
-            x_L = self.alpha * self.left_head(emb)
+            x_L = self.forward_alpha(t) * self.forward_linear_L(emb, t)
         else:
-            x_L = self.left_head(emb)
-        x_R = self.right_head(emb)
+            x_L = self.forward_linear_L(emb, t)
+        x_R = selfforward_linear_R(emb, t)
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
         return (x @ x_L) @ x_R
@@ -69,6 +110,7 @@ class HyperLoRALinear(nn.Module):
             clip_size,
             alpha,
         )
+        self.time_feat = TimeFourier(T=501, L=16)
         self.parent_model = None
 
     def set_parent_model(self, model):
@@ -77,6 +119,8 @@ class HyperLoRALinear(nn.Module):
     def forward(self, x):
         # use the `()` for weakref
         parent = self.parent_model()
+        assert parent.time_step is not None
+
         if parent.current_conditioning is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
@@ -91,7 +135,7 @@ class HyperLoRALinear(nn.Module):
         #if clip_embedding.dim() == 2:
         #    clip_embedding = clip_embedding.mean(dim=0)
 
-        return self.original(x) + self.hyper_lora(x, clip_embedding)
+        return self.original(x) + self.hyper_lora(x, clip_embedding, t)
 
 
 def inject_hyper_lora(
