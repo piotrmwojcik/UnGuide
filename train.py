@@ -347,27 +347,32 @@ def main():
                 (1, 4, args.image_size // 8, args.image_size // 8),
                 device=accelerator.device
             )
-            with accelerator.accumulate(model):
+            with accelerator.accumulate(model):  # pass the WRAPPED model here
                 with torch.no_grad():
-                    z  = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
+                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
+                # prediction for trainable model (needs grads)
                 e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
 
                 # targets and loss
-                e_0.requires_grad = False
-                e_p.requires_grad = False
+                e_0.requires_grad_(False)
+                e_p.requires_grad_(False)
                 target = e_0 - (args.negative_guidance * (e_p - e_0))
+                loss = criterion(e_n, target)  # per-rank scalar tensor
 
-                loss = criterion(e_n, target)
+                # ---- BACKWARD (per micro-step) ----
+                # Scale the loss for gradient accumulation so the effective grad equals the true average
+                loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                accelerator.backward(loss_for_backward)
 
-                # Backward with Accelerate
-                loss = accelerator.gather(loss.repeat(args.train_batch_size)).mean()
-                loss += loss.item() / args.gradient_accumulation_steps
-                accelerator.backward(loss)
-                optimizer.step()
-
+                # ---- OPTIMIZER STEP (only on last micro-step) ----
+                if accelerator.sync_gradients:
+                    # (optional) gradient clipping
+                    # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
+                    optimizer.zero_grad(set_to_none=True)
             # Optional image logging
             if (
                 is_main
@@ -390,7 +395,10 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-            loss_value = float(loss.detach().item())
+            with torch.no_grad():
+                loss_reduced = accelerator.gather(loss.detach()).mean()
+
+            loss_value = float(loss_reduced.item())
             losses.append(loss_value)
 
             if is_main and args.use_wandb:
