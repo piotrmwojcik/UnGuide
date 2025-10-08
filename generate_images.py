@@ -161,7 +161,7 @@ if __name__ == "__main__":
         lora_sd = torch.load(lora_filepath, map_location=args.device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
-            clip_size=768,
+            clip_size=768 * 2,
             rank=1,
             alpha=0.00001,
         )
@@ -239,8 +239,13 @@ if __name__ == "__main__":
                     return_tensors="pt",
                 ).to(args.device).input_ids
 
-                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+                t_prompt = (
+                    encode(data.get("target")),
+                    encode(data.get("reference")),
+                )
 
+                model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
+                                              clip_text_encoder(t_prompt[1]).pooler_output.detach())
                 model_unl.current_conditioning = t_prompt
 
                 img = generate_image(

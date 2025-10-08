@@ -208,12 +208,12 @@ def main():
         project_config=accelerator_project_config,
     )
 
-    args.lr = (
-            args.lr
-            * args.gradient_accumulation_steps
-            * args.batch_size
-            * accelerator.num_processes
-    )
+    # args.lr = (
+    #         args.lr
+    #         * args.gradient_accumulation_steps
+    #         * args.batch_size
+    #         * accelerator.num_processes
+    # )
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
