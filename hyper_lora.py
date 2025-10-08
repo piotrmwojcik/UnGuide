@@ -79,9 +79,11 @@ class HyperLora(nn.Module):
         return self.alpha_b + t / 500 * self.alpha
 
     def forward(self, x, clip, t):
+        B = clip.shape[0]
         if self._dbg_calls < 1:
             # optional: rank tag if you run multi-GPU
             rank = os.environ.get("RANK", "0")
+
             t_info = t if isinstance(t, int) else (tuple(t.shape) if torch.is_tensor(t) else type(t))
             print(
                 f"[RANK {rank}] {self._dbg_tag} forward() called | "
@@ -92,7 +94,6 @@ class HyperLora(nn.Module):
 
         emb = clip
         #emb = self.layers(clip)
-        B = clip.shape[0]
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
         t_feats = self.time_feat(t_feats).to(x.device)
         emb = torch.cat([emb, t_feats], dim=-1)
