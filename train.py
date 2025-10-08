@@ -369,9 +369,18 @@ def main():
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
                 if accelerator.sync_gradients:
-                    # (optional) gradient clipping
+                    # (optional) gradient clipping (uncomment if you want it)
                     # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                    optimizer.step()
+
+                    # === manual SGD update: w <- w - lr * grad ===
+                    with torch.no_grad():
+                        for group in optimizer.param_groups:
+                            lr = group.get("lr", args.lr)  # use group LR if present
+                            for p in group["params"]:
+                                if p is None or p.grad is None:
+                                    continue
+                                p.add_(p.grad, alpha=-lr)  # in-place: p = p - lr * grad
+
                     optimizer.zero_grad(set_to_none=True)
             # Optional image logging
             if (
