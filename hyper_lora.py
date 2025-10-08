@@ -23,13 +23,13 @@ class HyperLora(nn.Module):
         self.rank = rank
 
         ## it should (?) be shared
-        self.layers = nn.Sequential(
-            nn.Linear(clip_size, 100),
-            nn.ReLU(),
-        )
+        #self.layers = nn.Sequential(
+        #    nn.Linear(clip_size, 100),
+        #    nn.ReLU(),
+        #)
 
-        self.left_head = nn.Linear(100, in_dim * rank)
-        self.right_head = nn.Linear(100, out_dim * rank)
+        self.left_head = nn.Linear(clip_size, in_dim * rank)
+        self.right_head = nn.Linear(clip_size, out_dim * rank)
         self.in_dim = in_dim
         self.out_dim = out_dim
 
@@ -39,8 +39,8 @@ class HyperLora(nn.Module):
 
 
     def forward(self, x, clip):
-        #emb = clip
-        emb = self.layers(clip)
+        emb = clip
+        #emb = self.layers(clip)
         if self.use_scaling:
             x_L = self.alpha * self.left_head(emb)
         else:
