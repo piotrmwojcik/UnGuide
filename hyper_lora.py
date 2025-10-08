@@ -80,17 +80,17 @@ class HyperLora(nn.Module):
 
     def forward(self, x, clip, t):
         B = clip.shape[0]
-        if self._dbg_calls < 1:
-            # optional: rank tag if you run multi-GPU
-            rank = os.environ.get("RANK", "0")
-
-            t_info = t if isinstance(t, int) else (tuple(t.shape) if torch.is_tensor(t) else type(t))
-            print(
-                f"[RANK {rank}] {self._dbg_tag} forward() called | "
-                f"B={B}  x={tuple(x.shape)}  clip={tuple(clip.shape)}  t={t_info}",
-                flush=True
-            )
-        self._dbg_calls += 1
+        # if self._dbg_calls < 1:
+        #     # optional: rank tag if you run multi-GPU
+        #     rank = os.environ.get("RANK", "0")
+        #
+        #     t_info = t if isinstance(t, int) else (tuple(t.shape) if torch.is_tensor(t) else type(t))
+        #     print(
+        #         f"[RANK {rank}] {self._dbg_tag} forward() called | "
+        #         f"B={B}  x={tuple(x.shape)}  clip={tuple(clip.shape)}  t={t_info}",
+        #         flush=True
+        #     )
+        # self._dbg_calls += 1
 
         emb = clip
         #emb = self.layers(clip)
@@ -104,6 +104,16 @@ class HyperLora(nn.Module):
         x_R = self.forward_linear_R(emb, t)
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
+
+        if x_L.requires_grad:
+            print('retained')
+            x_L.retain_grad()
+        if x_R.requires_grad:
+            x_R.retain_grad()
+        # stash references so you can read .grad later
+        self._last_x_L = x_L
+        self._last_x_R = x_R
+
         return (x @ x_L) @ x_R
 
 
