@@ -239,6 +239,19 @@ if __name__ == "__main__":
                     return_tensors="pt",
                 ).to(args.device).input_ids
 
+                def encode(text: str):
+                    return (
+                        tokenizer(
+                            text,
+                            max_length=tokenizer.model_max_length,
+                            padding="max_length",
+                            truncation=True,
+                            return_tensors="pt",
+                        )
+                            .to(args.device)
+                            .input_ids
+                    )
+
                 t_prompt = (
                     encode(data.get("target")),
                     encode(data.get("reference")),
