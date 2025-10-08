@@ -41,7 +41,8 @@ class HyperLora(nn.Module):
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
-
+        self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
+        self._dbg_calls = 0   # to avoid spamming
         ## it should (?) be shared
         #self.layers = nn.Sequential(
         #    nn.Linear(clip_size, 100),
@@ -77,6 +78,17 @@ class HyperLora(nn.Module):
         return self.alpha_b + t / 500 * self.alpha
 
     def forward(self, x, clip, t):
+        if self._dbg_calls < 1:
+            # optional: rank tag if you run multi-GPU
+            rank = os.environ.get("RANK", "0")
+            t_info = t if isinstance(t, int) else (tuple(t.shape) if torch.is_tensor(t) else type(t))
+            print(
+                f"[RANK {rank}] {self._dbg_tag} forward() called | "
+                f"B={B}  x={tuple(x.shape)}  clip={tuple(clip.shape)}  t={t_info}",
+                flush=True
+            )
+        self._dbg_calls += 1
+
         emb = clip
         #emb = self.layers(clip)
         B = clip.shape[0]
