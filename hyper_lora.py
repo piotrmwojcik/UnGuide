@@ -81,7 +81,7 @@ class HyperLora(nn.Module):
         #emb = self.layers(clip)
         B = x.shape[0]
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
-        t_feats = self.time_feat(t_feats)
+        t_feats = self.time_feat(t_feats).to(x.device)
         emb = torch.cat([emb, t_feats], dim=-1)
         if self.use_scaling:
             x_L = self.forward_alpha(t) * self.forward_linear_L(emb, t)
