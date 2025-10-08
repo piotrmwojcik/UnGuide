@@ -79,7 +79,7 @@ class HyperLora(nn.Module):
     def forward(self, x, clip, t):
         emb = clip
         #emb = self.layers(clip)
-        B = x.shape[0]
+        B = clip.shape[0]
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
         t_feats = self.time_feat(t_feats).to(x.device)
         print('!!! ', emb.shape, t_feats.shape)
