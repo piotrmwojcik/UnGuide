@@ -231,13 +231,7 @@ if __name__ == "__main__":
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
                 start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
-                inputs = tokenizer(
-                    prompts[0],
-                    max_length=tokenizer.model_max_length,
-                    padding="max_length",
-                    truncation=True,
-                    return_tensors="pt",
-                ).to(args.device).input_ids
+
 
                 def encode(text: str):
                     return (
@@ -257,9 +251,8 @@ if __name__ == "__main__":
                     encode(data.get("reference")),
                 )
 
-                model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
+                model_unl.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
                                               clip_text_encoder(t_prompt[1]).pooler_output.detach())
-                model_unl.current_conditioning = t_prompt
 
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
