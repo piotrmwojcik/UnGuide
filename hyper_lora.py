@@ -106,7 +106,6 @@ class HyperLora(nn.Module):
         x_R = x_R.view(-1, self.rank, self.out_dim)
 
         if x_L.requires_grad:
-            print('retained')
             x_L.retain_grad()
         if x_R.requires_grad:
             x_R.retain_grad()

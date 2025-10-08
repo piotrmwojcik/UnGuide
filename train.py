@@ -178,6 +178,64 @@ def generate_and_save_sd_images(
 
         return imgs  # [B,3,H,W] in [0,1]
 
+# ---- helpers ----
+from typing import Iterator, Tuple, Dict, Any
+import torch
+import torch.nn as nn
+
+# import your classes
+from hyper_lora import HyperLora, HyperLoRALinear
+
+def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
+    """
+    Yields (qualified_name, HyperLora) for every injected layer,
+    whether wrapped in HyperLoRALinear or used directly.
+    """
+    for name, m in root.named_modules():
+        if isinstance(m, HyperLoRALinear):
+            yield name + ".hyper_lora", m.hyper_lora
+        elif isinstance(m, HyperLora):
+            yield name, m
+
+from typing import Iterator, Tuple, Dict, Any
+
+def collect_hyperlora_grads(model_wrapped: nn.Module) -> Dict[str, Dict[str, Any]]:
+    """
+    Returns a dict:
+      { layer_name: {
+          'alpha_grad': Tensor | None,
+          'x_L_grad': Tensor | None,
+          'x_R_grad': Tensor | None,
+          'left_head_w_grad': Tensor | None,
+          'right_head_w_grad': Tensor | None,
+        }, ... }
+    Works after loss.backward() / accelerator.backward(...).
+    """
+    base = accelerator.unwrap_model(model_wrapped)  # important under Accelerate/DDP
+    out: Dict[str, Dict[str, Any]] = {}
+
+    for lname, hl in _iter_hyperlora_layers(base):
+        rec: Dict[str, Any] = {}
+
+        # alpha (leaf Parameter)
+        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
+            rec["alpha_grad"] = None if hl.alpha.grad is None else hl.alpha.grad.detach().clone()
+
+        # retained non-leaf intermediates
+        xL = getattr(hl, "_last_x_L", None)
+        xR = getattr(hl, "_last_x_R", None)
+        rec["x_L_grad"] = None if (xL is None or xL.grad is None) else xL.grad.detach().clone()
+        rec["x_R_grad"] = None if (xR is None or xR.grad is None) else xR.grad.detach().clone()
+
+        # (optional) also include head param grads if you want to see them
+        rec["left_head_w_grad"]  = None if hl.left_head.weight.grad  is None else hl.left_head.weight.grad.detach().clone()
+        rec["right_head_w_grad"] = None if hl.right_head.weight.grad is None else hl.right_head.weight.grad.detach().clone()
+
+        out[lname] = rec
+
+    return out
+
+
 
 def main():
     args = parse_args()
@@ -366,6 +424,19 @@ def main():
                 # Scale the loss for gradient accumulation so the effective grad equals the true average
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
+                # now read grads before you zero them
+                grads = collect_hyperlora_grads(model)  # model is the wrapped one you pass to Accelerator
+
+                # tiny diagnostic print (norms)
+                for name, g in grads.items():
+                    a = g.get("alpha_grad")
+                    gL = g.get("x_L_grad")
+                    gR = g.get("x_R_grad")
+                    msg = [f"[{name}]"]
+                    if a is not None:  msg.append(f"||dL/dα||={a.norm().item():.4e}")
+                    if gL is not None: msg.append(f"||dL/dx_L||={gL.norm().item():.4e}")
+                    if gR is not None: msg.append(f"||dL/dx_R||={gR.norm().item():.4e}")
+                    print("  ".join(msg), flush=True)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
                 if accelerator.sync_gradients:
