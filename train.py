@@ -347,24 +347,26 @@ def main():
                 (1, 4, args.image_size // 8, args.image_size // 8),
                 device=accelerator.device
             )
+            with accelerator.accumulate(model):
+                with torch.no_grad():
+                    z  = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
+                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
 
-            with torch.no_grad():
-                z  = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # Reference
-                e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # Target
+                e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
 
-            e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
+                # targets and loss
+                e_0.requires_grad = False
+                e_p.requires_grad = False
+                target = e_0 - (args.negative_guidance * (e_p - e_0))
 
-            # targets and loss
-            e_0.requires_grad = False
-            e_p.requires_grad = False
-            target = e_0 - (args.negative_guidance * (e_p - e_0))
+                loss = criterion(e_n, target)
 
-            loss = criterion(e_n, target)
-
-            # Backward with Accelerate
-            accelerator.backward(loss)
-            optimizer.step()
+                # Backward with Accelerate
+                loss = accelerator.gather(loss.repeat(args.train_batch_size)).mean()
+                loss += loss.item() / args.gradient_accumulation_steps
+                accelerator.backward(loss)
+                optimizer.step()
 
             # Optional image logging
             if (
