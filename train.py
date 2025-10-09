@@ -292,12 +292,21 @@ def generate_and_save_sd_images(
         return imgs  # [B,3,H,W] in [0,1]
 
 
-def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, Any]]:
+def _iter_hyperlora_layers(root: nn.Module):
+    seen = set()
     for name, m in root.named_modules():
         if isinstance(m, HyperLoRALinear):
-            yield name + ".hyper_lora", m.hyper_lora
+            hl = m.hyper_lora
+            if id(hl) in seen:
+                continue
+            seen.add(id(hl))
+            yield name + ".hyper_lora", hl
         elif isinstance(m, HyperLora):
+            if id(m) in seen:
+                continue
+            seen.add(id(m))
             yield name, m
+
 
 
 from typing import Iterator, Tuple, Dict, Any
