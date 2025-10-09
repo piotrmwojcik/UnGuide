@@ -596,6 +596,7 @@ def main():
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
+                print('!! ', pack["grads_flat"].shape, tensors_flat_t_live.shape)
 
                 # Clear grads before the next forward
                 optimizer.zero_grad(set_to_none=True)
