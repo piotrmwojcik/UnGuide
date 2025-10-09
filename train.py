@@ -199,7 +199,7 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
 
 from typing import Iterator, Tuple, Dict, Any
 
-def collect_hyperlora_grads(model_wrapped: nn.Module) -> Dict[str, Dict[str, Any]]:
+def collect_hyperlora_grads(model_wrapped: nn.Module, accelerator) -> Dict[str, Dict[str, Any]]:
     """
     Returns a dict:
       { layer_name: {
@@ -425,7 +425,7 @@ def main():
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
                 # now read grads before you zero them
-                grads = collect_hyperlora_grads(model)  # model is the wrapped one you pass to Accelerator
+                grads = collect_hyperlora_grads(model, accelerator)  # model is the wrapped one you pass to Accelerator
 
                 # tiny diagnostic print (norms)
                 for name, g in grads.items():
