@@ -320,32 +320,27 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
             yield name, m
 
 def collect_hyperlora_tensors_and_grads(
-    model_wrapped: nn.Module, accelerator, verbose: bool = True
+    model_wrapped: nn.Module, accelerator, verbose: bool = True, all_ranks: bool = True
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Returns { layer_name: {
-        'alpha': Tensor|None,
-        'x_L':  Tensor|None,   # (B, in_dim, rank)
-        'x_R':  Tensor|None,   # (B, rank, out_dim)
-        'alpha_grad': Tensor|None,
-        'x_L_grad':  Tensor|None,
-        'x_R_grad':  Tensor|None,
-    }, ... }
-    Call right after loss.backward() / accelerator.backward(...).
-    Prints when any grad is None (main process only).
+    Collect only alpha, x_L, x_R and their grads.
+    Prints per-layer grad norms and warns if any is None.
     """
     base = accelerator.unwrap_model(model_wrapped)
     out: Dict[str, Dict[str, Any]] = {}
-    is_main = getattr(accelerator, "is_main_process", True)
 
-    def _warn(layer: str, what: str, reason: str):
-        if verbose and is_main:
-            print(f"[HyperLoRA:{layer}] NO GRAD for {what} ({reason})", flush=True)
+    # decide printing
+    rank = int(os.environ.get("RANK", "0"))
+    do_print = (accelerator.is_main_process or all_ranks)
+
+    def _say(msg: str):
+        if verbose and do_print:
+            print(f"[RANK {rank}] {msg}", flush=True)
 
     for lname, hl in _iter_hyperlora_layers(base):
         rec: Dict[str, Any] = {}
 
-        # values (detached copies)
+        # values (detached copies for logging/saving)
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
             rec["alpha"] = hl.alpha.detach().clone()
         else:
@@ -356,37 +351,45 @@ def collect_hyperlora_tensors_and_grads(
         rec["x_L"] = None if xL is None else xL.detach().clone()
         rec["x_R"] = None if xR is None else xR.detach().clone()
 
-        # grads (detached copies) + diagnostics
+        # grads (detached copies)
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
-            if hl.alpha.grad is None:
-                _warn(lname, "alpha", "alpha.grad is None (unused or zeroed?)")
+            a_g = hl.alpha.grad
+            if a_g is None:
+                _say(f"HyperLoRA:{lname} — NO GRAD for alpha (alpha.grad is None)")
                 rec["alpha_grad"] = None
             else:
-                rec["alpha_grad"] = hl.alpha.grad.detach().clone()
+                rec["alpha_grad"] = a_g.detach().clone()
         else:
-            if verbose and is_main:
-                print(f"[HyperLoRA:{lname}] alpha not used (use_scaling=False or missing)", flush=True)
+            _say(f"HyperLoRA:{lname} — alpha not used (use_scaling=False or missing)")
             rec["alpha_grad"] = None
 
         if xL is None:
-            _warn(lname, "x_L", "_last_x_L not set (retain_grad() not called or forward not run?)")
+            _say(f"HyperLoRA:{lname} — NO TENSOR x_L (_last_x_L not set; retain_grad()/forward?)")
             rec["x_L_grad"] = None
         else:
             if xL.grad is None:
-                _warn(lname, "x_L", "x_L.grad is None (not retained, no path to loss, or zeroed)")
+                _say(f"HyperLoRA:{lname} — NO GRAD for x_L (x_L.grad is None)")
                 rec["x_L_grad"] = None
             else:
                 rec["x_L_grad"] = xL.grad.detach().clone()
 
         if xR is None:
-            _warn(lname, "x_R", "_last_x_R not set (retain_grad() not called or forward not run?)")
+            _say(f"HyperLoRA:{lname} — NO TENSOR x_R (_last_x_R not set; retain_grad()/forward?)")
             rec["x_R_grad"] = None
         else:
             if xR.grad is None:
-                _warn(lname, "x_R", "x_R.grad is None (not retained, no path to loss, or zeroed)")
-                rec["x_R_grad"] = xR.grad.detach().clone()  # fix below
+                _say(f"HyperLoRA:{lname} — NO GRAD for x_R (x_R.grad is None)")
+                rec["x_R_grad"] = None
             else:
                 rec["x_R_grad"] = xR.grad.detach().clone()
+
+        # always print summary norms so you know the function ran
+        def _n(t):
+            return "None" if t is None else f"{t.detach().norm().item():.3e}"
+        _say(
+            f"HyperLoRA:{lname} | dα={_n(rec['alpha_grad'])} "
+            f"| ||d x_L||={_n(rec['x_L_grad'])} | ||d x_R||={_n(rec['x_R_grad'])}"
+        )
 
         out[lname] = rec
 
