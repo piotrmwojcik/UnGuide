@@ -262,7 +262,7 @@ def generate_and_save_sd_images(
         return imgs  # [B,3,H,W] in [0,1]
 
 # ---- helpers ----
-from typing import Iterator, Tuple, Dict, Any
+from typing import Iterator, Tuple, Dict, Any, List
 import torch
 import torch.nn as nn
 
@@ -563,6 +563,8 @@ def main():
                 pack = concat_grads_and_tensors(recs, device=torch.device("cpu"))
                 print("Grad vector:", pack["grads_flat"].shape, "| norm:", pack["grads_flat"].norm().item())
                 print("Tensor vector:", pack["tensors_flat"].shape, "| norm:", pack["tensors_flat"].norm().item())
+
+                grads_flat = -args.lr * pack["grads_flat"]
 
                 # def _fmt_tensor(t):
                 #     if t is None:
