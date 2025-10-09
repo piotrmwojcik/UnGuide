@@ -9,6 +9,13 @@ import matplotlib.pyplot as plt  # (unused, but kept if you uncomment stats)
 import numpy as np
 import torch
 import wandb
+# ---- helpers ----
+from typing import Iterator, Tuple, Dict, Any, List
+import torch
+import torch.nn as nn
+
+# import your classes
+from hyper_lora import HyperLora, HyperLoRALinear
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
@@ -261,13 +268,6 @@ def generate_and_save_sd_images(
 
         return imgs  # [B,3,H,W] in [0,1]
 
-# ---- helpers ----
-from typing import Iterator, Tuple, Dict, Any, List
-import torch
-import torch.nn as nn
-
-# import your classes
-from hyper_lora import HyperLora, HyperLoRALinear
 
 def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
     """
