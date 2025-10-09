@@ -473,7 +473,7 @@ def main():
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
                 # now read grads before you zero them
-                grads = collect_hyperlora_grads(model, accelerator)  # model is the wrapped one you pass to Accelerator
+                grads = collect_hyperlora_tensors_and_grads(model, accelerator)  # model is the wrapped one you pass to Accelerator
 
                 def _fmt_tensor(t):
                     if t is None:
