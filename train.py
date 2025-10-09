@@ -585,45 +585,33 @@ def main():
                 # Scale the loss for gradient accumulation so the effective grad equals the true average
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
-                # now read grads before you zero them
-                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-
-                pack = concat_grads_and_tensors(recs, device=torch.device("cpu"))
-                print("Grad vector:", pack["grads_flat"].shape, "| norm:", pack["grads_flat"].norm().item())
-                print("Tensor vector:", pack["tensors_flat"].shape, "| norm:", pack["tensors_flat"].norm().item())
-
-                grads_flat_t = -args.lr * pack["grads_flat"]
-                tensors_flat_t = pack["tensors_flat"]
+                base = accelerator.unwrap_model(model)
+                dev = next(base.parameters()).device
+                grads_flat_t = (-args.lr) * pack["grads_flat"].to(dev).detach()  # target stays constant
 
                 optimizer.zero_grad(set_to_none=True)
-                base = accelerator.unwrap_model(model)
                 for _, hl in _iter_hyperlora_layers(base):
                     xL = getattr(hl, "_last_x_L", None)
                     xR = getattr(hl, "_last_x_R", None)
-                    if xL is not None:
-                        xL.grad = None
-                    if xR is not None:
-                        xR.grad = None
+                    if xL is not None: xL.grad = None
+                    if xR is not None: xR.grad = None
 
+                # Advance time and run forward to populate new live tensors
                 base.time_step = base.time_step + 1
-                _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm,
-                                                                emb_n)  # populates _last_x_L/_last_x_R etc.
+                _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
-                # LIVE vector for t1 (keeps graph)
+                # LIVE vector at t1 (keeps graph so grads can flow)
                 tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
-                # Make the "reference" side constants (no grad paths)
-                tensors_flat_t_const = tensors_flat_t.detach()
-                grads_flat_t_const = grads_flat_t.detach()
-
-                # Your target is: (t1 - t0) ≈ grads_flat_t
+                # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                 delta_live = tensors_flat_t1_live - tensors_flat_t_const
 
-                # e.g., MSE
-                loss = criterion(delta_live, grads_flat_t_const)
+                # Loss drives delta_live toward the grad step target
+                loss = criterion(delta_live, grads_flat_t)
+
+                # Backprop through the t1 live tensors/params
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
-
                 # def _fmt_tensor(t):
                 #     if t is None:
                 #         return "None"
