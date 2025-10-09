@@ -615,6 +615,8 @@ def main():
                 # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                 delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
+                print('!!!', delta_live.shape, grads_flat_t.shape)
+
                 # e.g., MSE to the target step
                 loss = criterion(delta_live, grads_flat_t)
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
