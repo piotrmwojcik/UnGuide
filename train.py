@@ -620,7 +620,7 @@ def main():
                 delta_live = tensors_flat_t1_live - tensors_flat_t_const
 
                 # e.g., MSE
-                loss_gradient = criterion(delta_live, grads_flat_t_const)
+                loss = criterion(delta_live, grads_flat_t_const)
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
 
