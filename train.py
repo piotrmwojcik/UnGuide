@@ -199,41 +199,89 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
 
 from typing import Iterator, Tuple, Dict, Any
 
-def collect_hyperlora_grads(model_wrapped: nn.Module, accelerator) -> Dict[str, Dict[str, Any]]:
+from typing import Dict, Any, Iterator, Tuple
+import torch
+import torch.nn as nn
+
+# assumes you have these classes
+from hyper_lora import HyperLora, HyperLoRALinear
+
+def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
+    """Yield (qualified_name, HyperLora) whether wrapped or direct."""
+    for name, m in root.named_modules():
+        if isinstance(m, HyperLoRALinear):
+            yield name + ".hyper_lora", m.hyper_lora
+        elif isinstance(m, HyperLora):
+            yield name, m
+
+def collect_hyperlora_tensors_and_grads(
+    model_wrapped: nn.Module, accelerator
+) -> Dict[str, Dict[str, Any]]:
     """
-    Returns a dict:
-      { layer_name: {
-          'alpha_grad': Tensor | None,
-          'x_L_grad': Tensor | None,
-          'x_R_grad': Tensor | None,
-          'left_head_w_grad': Tensor | None,
-          'right_head_w_grad': Tensor | None,
-        }, ... }
-    Works after loss.backward() / accelerator.backward(...).
+    Returns:
+      {
+        layer_name: {
+          # values
+          'alpha': Tensor|None,
+          'x_L': Tensor|None,              # (B, in_dim, rank)
+          'x_R': Tensor|None,              # (B, rank, out_dim)
+          'left_head_w': Tensor, 'left_head_b': Tensor|None,
+          'right_head_w': Tensor, 'right_head_b': Tensor|None,
+
+          # grads
+          'alpha_grad': Tensor|None,
+          'x_L_grad': Tensor|None,
+          'x_R_grad': Tensor|None,
+          'left_head_w_grad': Tensor|None, 'left_head_b_grad': Tensor|None,
+          'right_head_w_grad': Tensor|None, 'right_head_b_grad': Tensor|None,
+        },
+        ...
+      }
+    Works immediately after loss.backward() / accelerator.backward(...).
     """
-    base = accelerator.unwrap_model(model_wrapped)  # important under Accelerate/DDP
+    base = accelerator.unwrap_model(model_wrapped)
     out: Dict[str, Dict[str, Any]] = {}
 
     for lname, hl in _iter_hyperlora_layers(base):
         rec: Dict[str, Any] = {}
 
-        # alpha (leaf Parameter)
+        # ---- values (detached copies) ----
+        # alpha (if used)
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
-            rec["alpha_grad"] = None if hl.alpha.grad is None else hl.alpha.grad.detach().clone()
+            rec["alpha"] = hl.alpha.detach().clone()
+        else:
+            rec["alpha"] = None
 
-        # retained non-leaf intermediates
+        # retained intermediates (you must retain/store them in forward)
         xL = getattr(hl, "_last_x_L", None)
         xR = getattr(hl, "_last_x_R", None)
+        rec["x_L"] = None if xL is None else xL.detach().clone()
+        rec["x_R"] = None if xR is None else xR.detach().clone()
+
+        # head params
+        rec["left_head_w"]  = hl.left_head.weight.detach().clone()
+        rec["left_head_b"]  = None if hl.left_head.bias  is None else hl.left_head.bias.detach().clone()
+        rec["right_head_w"] = hl.right_head.weight.detach().clone()
+        rec["right_head_b"] = None if hl.right_head.bias is None else hl.right_head.bias.detach().clone()
+
+        # ---- grads (detached copies) ----
+        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
+            rec["alpha_grad"] = None if hl.alpha.grad is None else hl.alpha.grad.detach().clone()
+        else:
+            rec["alpha_grad"] = None
+
         rec["x_L_grad"] = None if (xL is None or xL.grad is None) else xL.grad.detach().clone()
         rec["x_R_grad"] = None if (xR is None or xR.grad is None) else xR.grad.detach().clone()
 
-        # (optional) also include head param grads if you want to see them
         rec["left_head_w_grad"]  = None if hl.left_head.weight.grad  is None else hl.left_head.weight.grad.detach().clone()
+        rec["left_head_b_grad"]  = None if (hl.left_head.bias is None or hl.left_head.bias.grad is None) else hl.left_head.bias.grad.detach().clone()
         rec["right_head_w_grad"] = None if hl.right_head.weight.grad is None else hl.right_head.weight.grad.detach().clone()
+        rec["right_head_b_grad"] = None if (hl.right_head.bias is None or hl.right_head.bias.grad is None) else hl.right_head.bias.grad.detach().clone()
 
         out[lname] = rec
 
     return out
+
 
 
 
@@ -427,16 +475,51 @@ def main():
                 # now read grads before you zero them
                 grads = collect_hyperlora_grads(model, accelerator)  # model is the wrapped one you pass to Accelerator
 
+                def _fmt_tensor(t):
+                    if t is None:
+                        return "None"
+                    if t.numel() == 1:
+                        return f"val={t.item():.4e}"
+                    # avoid NaNs if size==1 along axes
+                    try:
+                        mean = t.mean().item()
+                        std = t.std(unbiased=False).item()
+                    except Exception:
+                        mean, std = float("nan"), float("nan")
+                    return f"shape={tuple(t.shape)} | ||·||={t.norm().item():.4e} | mean={mean:.4e} | std={std:.4e}"
+
                 # tiny diagnostic print (norms)
                 for name, g in grads.items():
-                    a = g.get("alpha_grad")
-                    gL = g.get("x_L_grad")
-                    gR = g.get("x_R_grad")
-                    msg = [f"[{name}]"]
-                    if a is not None:  msg.append(f"||dL/dα||={a.norm().item():.4e}")
-                    if gL is not None: msg.append(f"||dL/dx_L||={gL.norm().item():.4e}")
-                    if gR is not None: msg.append(f"||dL/dx_R||={gR.norm().item():.4e}")
-                    print("  ".join(msg), flush=True)
+                    a = g.get("alpha")
+                    a_g = g.get("alpha_grad")
+                    xL = g.get("x_L")
+                    xL_g = g.get("x_L_grad")
+                    xR = g.get("x_R")
+                    xR_g = g.get("x_R_grad")
+                    WL = g.get("left_head_w")
+                    WL_g = g.get("left_head_w_grad")
+                    WR = g.get("right_head_w")
+                    WR_g = g.get("right_head_w_grad")
+                    bL = g.get("left_head_b")
+                    bL_g = g.get("left_head_b_grad")
+                    bR = g.get("right_head_b")
+                    bR_g = g.get("right_head_b_grad")
+
+                    print(f"[{name}] ------------------------------", flush=True)
+                    print(f"  alpha    : {_fmt_tensor(a)}", flush=True)
+                    print(f"  d(alpha) : {_fmt_tensor(a_g)}", flush=True)
+                    print(f"  x_L      : {_fmt_tensor(xL)}", flush=True)
+                    print(f"  d(x_L)   : {_fmt_tensor(xL_g)}", flush=True)
+                    print(f"  x_R      : {_fmt_tensor(xR)}", flush=True)
+                    print(f"  d(x_R)   : {_fmt_tensor(xR_g)}", flush=True)
+                    print(f"  W_L      : {_fmt_tensor(WL)}", flush=True)
+                    print(f"  d(W_L)   : {_fmt_tensor(WL_g)}", flush=True)
+                    print(f"  b_L      : {_fmt_tensor(bL)}", flush=True)
+                    print(f"  d(b_L)   : {_fmt_tensor(bL_g)}", flush=True)
+                    print(f"  W_R      : {_fmt_tensor(WR)}", flush=True)
+                    print(f"  d(W_R)   : {_fmt_tensor(WR_g)}", flush=True)
+                    print(f"  b_R      : {_fmt_tensor(bR)}", flush=True)
+                    print(f"  d(b_R)   : {_fmt_tensor(bR_g)}", flush=True)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
                 if accelerator.sync_gradients:
