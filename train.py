@@ -320,7 +320,7 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
             yield name, m
 
 def collect_hyperlora_tensors_and_grads(
-    model_wrapped: nn.Module, accelerator
+    model_wrapped: nn.Module, accelerator, verbose: bool = True
 ) -> Dict[str, Dict[str, Any]]:
     """
     Returns { layer_name: {
@@ -332,9 +332,15 @@ def collect_hyperlora_tensors_and_grads(
         'x_R_grad':  Tensor|None,
     }, ... }
     Call right after loss.backward() / accelerator.backward(...).
+    Prints when any grad is None (main process only).
     """
     base = accelerator.unwrap_model(model_wrapped)
     out: Dict[str, Dict[str, Any]] = {}
+    is_main = getattr(accelerator, "is_main_process", True)
+
+    def _warn(layer: str, what: str, reason: str):
+        if verbose and is_main:
+            print(f"[HyperLoRA:{layer}] NO GRAD for {what} ({reason})", flush=True)
 
     for lname, hl in _iter_hyperlora_layers(base):
         rec: Dict[str, Any] = {}
@@ -350,19 +356,41 @@ def collect_hyperlora_tensors_and_grads(
         rec["x_L"] = None if xL is None else xL.detach().clone()
         rec["x_R"] = None if xR is None else xR.detach().clone()
 
-        # grads (detached copies)
+        # grads (detached copies) + diagnostics
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
-            rec["alpha_grad"] = None if hl.alpha.grad is None else hl.alpha.grad.detach().clone()
+            if hl.alpha.grad is None:
+                _warn(lname, "alpha", "alpha.grad is None (unused or zeroed?)")
+                rec["alpha_grad"] = None
+            else:
+                rec["alpha_grad"] = hl.alpha.grad.detach().clone()
         else:
+            if verbose and is_main:
+                print(f"[HyperLoRA:{lname}] alpha not used (use_scaling=False or missing)", flush=True)
             rec["alpha_grad"] = None
 
-        rec["x_L_grad"] = None if (xL is None or xL.grad is None) else xL.grad.detach().clone()
-        rec["x_R_grad"] = None if (xR is None or xR.grad is None) else xR.grad.detach().clone()
+        if xL is None:
+            _warn(lname, "x_L", "_last_x_L not set (retain_grad() not called or forward not run?)")
+            rec["x_L_grad"] = None
+        else:
+            if xL.grad is None:
+                _warn(lname, "x_L", "x_L.grad is None (not retained, no path to loss, or zeroed)")
+                rec["x_L_grad"] = None
+            else:
+                rec["x_L_grad"] = xL.grad.detach().clone()
+
+        if xR is None:
+            _warn(lname, "x_R", "_last_x_R not set (retain_grad() not called or forward not run?)")
+            rec["x_R_grad"] = None
+        else:
+            if xR.grad is None:
+                _warn(lname, "x_R", "x_R.grad is None (not retained, no path to loss, or zeroed)")
+                rec["x_R_grad"] = xR.grad.detach().clone()  # fix below
+            else:
+                rec["x_R_grad"] = xR.grad.detach().clone()
 
         out[lname] = rec
 
     return out
-
 
 
 
