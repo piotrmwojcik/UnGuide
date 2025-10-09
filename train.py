@@ -323,26 +323,15 @@ def collect_hyperlora_tensors_and_grads(
     model_wrapped: nn.Module, accelerator
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Returns:
-      {
-        layer_name: {
-          # values
-          'alpha': Tensor|None,
-          'x_L': Tensor|None,              # (B, in_dim, rank)
-          'x_R': Tensor|None,              # (B, rank, out_dim)
-          'left_head_w': Tensor, 'left_head_b': Tensor|None,
-          'right_head_w': Tensor, 'right_head_b': Tensor|None,
-
-          # grads
-          'alpha_grad': Tensor|None,
-          'x_L_grad': Tensor|None,
-          'x_R_grad': Tensor|None,
-          'left_head_w_grad': Tensor|None, 'left_head_b_grad': Tensor|None,
-          'right_head_w_grad': Tensor|None, 'right_head_b_grad': Tensor|None,
-        },
-        ...
-      }
-    Works immediately after loss.backward() / accelerator.backward(...).
+    Returns { layer_name: {
+        'alpha': Tensor|None,
+        'x_L':  Tensor|None,   # (B, in_dim, rank)
+        'x_R':  Tensor|None,   # (B, rank, out_dim)
+        'alpha_grad': Tensor|None,
+        'x_L_grad':  Tensor|None,
+        'x_R_grad':  Tensor|None,
+    }, ... }
+    Call right after loss.backward() / accelerator.backward(...).
     """
     base = accelerator.unwrap_model(model_wrapped)
     out: Dict[str, Dict[str, Any]] = {}
@@ -350,26 +339,18 @@ def collect_hyperlora_tensors_and_grads(
     for lname, hl in _iter_hyperlora_layers(base):
         rec: Dict[str, Any] = {}
 
-        # ---- values (detached copies) ----
-        # alpha (if used)
+        # values (detached copies)
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
             rec["alpha"] = hl.alpha.detach().clone()
         else:
             rec["alpha"] = None
 
-        # retained intermediates (you must retain/store them in forward)
         xL = getattr(hl, "_last_x_L", None)
         xR = getattr(hl, "_last_x_R", None)
         rec["x_L"] = None if xL is None else xL.detach().clone()
         rec["x_R"] = None if xR is None else xR.detach().clone()
 
-        # head params
-        rec["left_head_w"]  = hl.left_head.weight.detach().clone()
-        rec["left_head_b"]  = None if hl.left_head.bias  is None else hl.left_head.bias.detach().clone()
-        rec["right_head_w"] = hl.right_head.weight.detach().clone()
-        rec["right_head_b"] = None if hl.right_head.bias is None else hl.right_head.bias.detach().clone()
-
-        # ---- grads (detached copies) ----
+        # grads (detached copies)
         if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
             rec["alpha_grad"] = None if hl.alpha.grad is None else hl.alpha.grad.detach().clone()
         else:
@@ -377,11 +358,6 @@ def collect_hyperlora_tensors_and_grads(
 
         rec["x_L_grad"] = None if (xL is None or xL.grad is None) else xL.grad.detach().clone()
         rec["x_R_grad"] = None if (xR is None or xR.grad is None) else xR.grad.detach().clone()
-
-        rec["left_head_w_grad"]  = None if hl.left_head.weight.grad  is None else hl.left_head.weight.grad.detach().clone()
-        rec["left_head_b_grad"]  = None if (hl.left_head.bias is None or hl.left_head.bias.grad is None) else hl.left_head.bias.grad.detach().clone()
-        rec["right_head_w_grad"] = None if hl.right_head.weight.grad is None else hl.right_head.weight.grad.detach().clone()
-        rec["right_head_b_grad"] = None if (hl.right_head.bias is None or hl.right_head.bias.grad is None) else hl.right_head.bias.grad.detach().clone()
 
         out[lname] = rec
 
