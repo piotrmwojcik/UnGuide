@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import wandb
 # ---- helpers ----
-from typing import Iterator, Tuple, Dict, Any, List
+from typing import Iterator, Tuple, Dict, Any, List, Optional
 import torch
 import torch.nn as nn
 
