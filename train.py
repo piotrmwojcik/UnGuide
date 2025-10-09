@@ -588,14 +588,16 @@ def main():
                 base = accelerator.unwrap_model(model)
                 dev = next(base.parameters()).device
 
-                # Collect tensors+grads at current timestep t
                 recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-                pack = concat_grads_and_tensors(recs,
-                                                device=dev)  # returns dict with 'grads_flat', 'tensors_flat', etc.
+                pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
                 # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                 grads_flat_t = (-args.lr) * pack["grads_flat"].detach()
 
+                # --- LIVE anchor at t (no detach!) ---
+                tensors_flat_t_live = flatten_live_tensors(model, accelerator)
+
+                # Clear grads before the next forward
                 optimizer.zero_grad(set_to_none=True)
                 for _, hl in _iter_hyperlora_layers(base):
                     xL = getattr(hl, "_last_x_L", None)
@@ -607,16 +609,14 @@ def main():
                 base.time_step = base.time_step + 1
                 _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
-                # LIVE vector at t1 (keeps graph so grads can flow)
+                # LIVE vector at t+1 (keeps graph)
                 tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
                 # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-                delta_live = tensors_flat_t1_live - tensors_flat_t_const
+                delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
-                # Loss drives delta_live toward the grad step target
+                # e.g., MSE to the target step
                 loss = criterion(delta_live, grads_flat_t)
-
-                # Backprop through the t1 live tensors/params
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
                 # def _fmt_tensor(t):
