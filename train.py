@@ -587,7 +587,14 @@ def main():
                 accelerator.backward(loss_for_backward)
                 base = accelerator.unwrap_model(model)
                 dev = next(base.parameters()).device
-                grads_flat_t = (-args.lr) * pack["grads_flat"].to(dev).detach()  # target stays constant
+
+                # Collect tensors+grads at current timestep t
+                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
+                pack = concat_grads_and_tensors(recs,
+                                                device=dev)  # returns dict with 'grads_flat', 'tensors_flat', etc.
+
+                # Target step: Δθ ≈ -lr * g_t  (keep target detached)
+                grads_flat_t = (-args.lr) * pack["grads_flat"].detach()
 
                 optimizer.zero_grad(set_to_none=True)
                 for _, hl in _iter_hyperlora_layers(base):
