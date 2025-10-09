@@ -136,6 +136,37 @@ _KEY_PAIRS = [
     ("right_head_b_grad",  "right_head_b"),
 ]
 
+_LIVE_GETTERS = [
+    ("alpha",          lambda hl: hl.alpha if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") else None),
+    ("x_L",            lambda hl: getattr(hl, "_last_x_L", None)),
+    ("x_R",            lambda hl: getattr(hl, "_last_x_R", None)),
+    ("left_head_w",    lambda hl: hl.left_head.weight),
+    ("left_head_b",    lambda hl: hl.left_head.bias),
+    ("right_head_w",   lambda hl: hl.right_head.weight),
+    ("right_head_b",   lambda hl: hl.right_head.bias),
+]
+
+def flatten_live_tensors(model_wrapped: nn.Module, accelerator) -> torch.Tensor:
+    """
+    Concatenate CURRENT tensors from all HyperLora layers WITHOUT detaching.
+    This preserves autograd so loss can backprop through them.
+    """
+    base = accelerator.unwrap_model(model_wrapped)
+    parts: List[torch.Tensor] = []
+
+    for _, hl in _iter_hyperlora_layers(base):
+        for _, getter in _LIVE_GETTERS:
+            t = getter(hl)
+            if t is None:
+                continue
+            # ensure Tensor, keep graph
+            parts.append(t.view(-1))
+
+    if not parts:
+        return torch.tensor([], device=next(base.parameters()).device)
+
+    return torch.cat(parts, dim=0)
+
 def _concat_items(
     items: List[Tuple[str, str, torch.Tensor]],
     device: Optional[torch.device],
@@ -269,16 +300,13 @@ def generate_and_save_sd_images(
         return imgs  # [B,3,H,W] in [0,1]
 
 
-def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
-    """
-    Yields (qualified_name, HyperLora) for every injected layer,
-    whether wrapped in HyperLoRALinear or used directly.
-    """
+def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, Any]]:
     for name, m in root.named_modules():
         if isinstance(m, HyperLoRALinear):
             yield name + ".hyper_lora", m.hyper_lora
         elif isinstance(m, HyperLora):
             yield name, m
+
 
 from typing import Iterator, Tuple, Dict, Any
 
@@ -532,7 +560,7 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = (cond_target, cond_ref)
-            base.time_step = 500
+            base.time_step = int(torch.randint(0, 499, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -564,7 +592,37 @@ def main():
                 print("Grad vector:", pack["grads_flat"].shape, "| norm:", pack["grads_flat"].norm().item())
                 print("Tensor vector:", pack["tensors_flat"].shape, "| norm:", pack["tensors_flat"].norm().item())
 
-                grads_flat = -args.lr * pack["grads_flat"]
+                grads_flat_t = -args.lr * pack["grads_flat"]
+                tensors_flat_t = pack["tensors_flat"]
+
+                optimizer.zero_grad(set_to_none=True)
+                base = accelerator.unwrap_model(model)
+                for _, hl in _iter_hyperlora_layers(base):
+                    xL = getattr(hl, "_last_x_L", None)
+                    xR = getattr(hl, "_last_x_R", None)
+                    if xL is not None:
+                        xL.grad = None
+                    if xR is not None:
+                        xR.grad = None
+
+                base.time_step = base.time_step + 1
+                _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm,
+                                                                emb_n)  # populates _last_x_L/_last_x_R etc.
+
+                # LIVE vector for t1 (keeps graph)
+                tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+
+                # Make the "reference" side constants (no grad paths)
+                tensors_flat_t_const = tensors_flat_t.detach()
+                grads_flat_t_const = grads_flat_t.detach()
+
+                # Your target is: (t1 - t0) ≈ grads_flat_t
+                delta_live = tensors_flat_t1_live - tensors_flat_t_const
+
+                # e.g., MSE
+                loss_gradient = criterion(delta_live, grads_flat_t_const)
+                loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                accelerator.backward(loss_for_backward)
 
                 # def _fmt_tensor(t):
                 #     if t is None:
@@ -626,6 +684,7 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
+                base.time_step = 150
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,

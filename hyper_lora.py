@@ -70,13 +70,13 @@ class HyperLora(nn.Module):
             self.alpha = nn.Parameter(torch.tensor(alpha_init))
 
     def forward_linear_L(self, emb, t):
-        return self.xL_const_flat + t / 500 * self.left_head(emb)
+        return self.xL_const_flat + t / 150 * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
-        return self.xR_const_flat + t / 500 * self.right_head(emb)
+        return self.xR_const_flat + t / 150 * self.right_head(emb)
 
     def forward_alpha(self, t):
-        return self.alpha_b + t / 500 * self.alpha
+        return self.alpha_b + t / 150 * self.alpha
 
     def forward(self, x, clip, t):
         B = clip.shape[0]
@@ -134,7 +134,7 @@ class HyperLoRALinear(nn.Module):
             clip_size,
             alpha,
         )
-        self.time_feat = TimeFourier(T=501, L=16)
+        self.time_feat = TimeFourier(T=151, L=16)
         self.parent_model = None
 
     def set_parent_model(self, model):
