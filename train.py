@@ -119,6 +119,89 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
         verbose=False,
     )
 
+_KEY_PAIRS = [
+    ("alpha_grad",         "alpha"),
+    ("x_L_grad",           "x_L"),
+    ("x_R_grad",           "x_R"),
+    ("left_head_w_grad",   "left_head_w"),
+    ("left_head_b_grad",   "left_head_b"),
+    ("right_head_w_grad",  "right_head_w"),
+    ("right_head_b_grad",  "right_head_b"),
+]
+
+def _concat_items(
+    items: List[Tuple[str, str, torch.Tensor]],
+    device: Optional[torch.device],
+    dtype: Optional[torch.dtype],
+) -> Tuple[torch.Tensor, List[Dict[str, Any]]]:
+    parts: List[torch.Tensor] = []
+    index: List[Dict[str, Any]] = []
+    n = 0
+    for layer, key, t in items:
+        vec = t.detach()
+        if device is not None:
+            vec = vec.to(device)
+        if dtype is not None and vec.dtype != dtype:
+            vec = vec.to(dtype)
+        vec = vec.view(-1)
+        start, end = n, n + vec.numel()
+        parts.append(vec)
+        index.append({
+            "layer": layer,
+            "key": key,
+            "shape": tuple(t.shape),
+            "start": start,
+            "end": end,
+        })
+        n = end
+
+    if parts:
+        flat = torch.cat(parts, dim=0)
+    else:
+        flat = torch.empty(0, device=device or torch.device("cpu"),
+                           dtype=dtype or torch.float32)
+    return flat, index
+
+def concat_grads_and_tensors(
+    recs: Dict[str, Dict[str, Any]],
+    device: Optional[torch.device] = None,
+    dtype: Optional[torch.dtype] = torch.float32,
+) -> Dict[str, Any]:
+    """
+    recs: dict from collect_hyperlora_tensors_and_grads(...)
+    returns:
+      {
+        'grads_flat':   1D tensor,
+        'grads_index':  [{layer,key,shape,start,end}, ...],
+        'tensors_flat': 1D tensor,
+        'tensors_index':[{layer,key,shape,start,end}, ...],
+      }
+    Ordering is stable: by layer name (sorted), then by _KEY_PAIRS.
+    Only non-None entries are included.
+    """
+    grad_items: List[Tuple[str, str, torch.Tensor]] = []
+    tensor_items: List[Tuple[str, str, torch.Tensor]] = []
+
+    for layer in sorted(recs.keys()):
+        rec = recs[layer]
+        for gk, vk in _KEY_PAIRS:
+            g = rec.get(gk, None)
+            v = rec.get(vk, None)
+            if g is not None:
+                grad_items.append((layer, gk, g))
+            if v is not None:
+                tensor_items.append((layer, vk, v))
+
+    grads_flat, grads_index = _concat_items(grad_items, device, dtype)
+    tensors_flat, tensors_index = _concat_items(tensor_items, device, dtype)
+
+    return {
+        "grads_flat": grads_flat,
+        "grads_index": grads_index,
+        "tensors_flat": tensors_flat,
+        "tensors_index": tensors_index,
+    }
+
 
 def generate_and_save_sd_images(
     model,
@@ -202,9 +285,11 @@ from typing import Iterator, Tuple, Dict, Any
 from typing import Dict, Any, Iterator, Tuple
 import torch
 import torch.nn as nn
+from typing import Dict, Any, List, Tuple
 
 # assumes you have these classes
 from hyper_lora import HyperLora, HyperLoRALinear
+
 
 def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
     """Yield (qualified_name, HyperLora) whether wrapped or direct."""
@@ -473,53 +558,57 @@ def main():
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
                 # now read grads before you zero them
-                grads = collect_hyperlora_tensors_and_grads(model, accelerator)  # model is the wrapped one you pass to Accelerator
+                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
 
-                def _fmt_tensor(t):
-                    if t is None:
-                        return "None"
-                    if t.numel() == 1:
-                        return f"val={t.item():.4e}"
-                    # avoid NaNs if size==1 along axes
-                    try:
-                        mean = t.mean().item()
-                        std = t.std(unbiased=False).item()
-                    except Exception:
-                        mean, std = float("nan"), float("nan")
-                    return f"shape={tuple(t.shape)} | ||·||={t.norm().item():.4e} | mean={mean:.4e} | std={std:.4e}"
+                pack = concat_grads_and_tensors(recs, device=torch.device("cpu"))
+                print("Grad vector:", pack["grads_flat"].shape, "| norm:", pack["grads_flat"].norm().item())
+                print("Tensor vector:", pack["tensors_flat"].shape, "| norm:", pack["tensors_flat"].norm().item())
 
-                # tiny diagnostic print (norms)
-                for name, g in grads.items():
-                    a = g.get("alpha")
-                    a_g = g.get("alpha_grad")
-                    xL = g.get("x_L")
-                    xL_g = g.get("x_L_grad")
-                    xR = g.get("x_R")
-                    xR_g = g.get("x_R_grad")
-                    WL = g.get("left_head_w")
-                    WL_g = g.get("left_head_w_grad")
-                    WR = g.get("right_head_w")
-                    WR_g = g.get("right_head_w_grad")
-                    bL = g.get("left_head_b")
-                    bL_g = g.get("left_head_b_grad")
-                    bR = g.get("right_head_b")
-                    bR_g = g.get("right_head_b_grad")
-
-                    print(f"[{name}] ------------------------------", flush=True)
-                    print(f"  alpha    : {_fmt_tensor(a)}", flush=True)
-                    print(f"  d(alpha) : {_fmt_tensor(a_g)}", flush=True)
-                    print(f"  x_L      : {_fmt_tensor(xL)}", flush=True)
-                    print(f"  d(x_L)   : {_fmt_tensor(xL_g)}", flush=True)
-                    print(f"  x_R      : {_fmt_tensor(xR)}", flush=True)
-                    print(f"  d(x_R)   : {_fmt_tensor(xR_g)}", flush=True)
-                    print(f"  W_L      : {_fmt_tensor(WL)}", flush=True)
-                    print(f"  d(W_L)   : {_fmt_tensor(WL_g)}", flush=True)
-                    print(f"  b_L      : {_fmt_tensor(bL)}", flush=True)
-                    print(f"  d(b_L)   : {_fmt_tensor(bL_g)}", flush=True)
-                    print(f"  W_R      : {_fmt_tensor(WR)}", flush=True)
-                    print(f"  d(W_R)   : {_fmt_tensor(WR_g)}", flush=True)
-                    print(f"  b_R      : {_fmt_tensor(bR)}", flush=True)
-                    print(f"  d(b_R)   : {_fmt_tensor(bR_g)}", flush=True)
+                # def _fmt_tensor(t):
+                #     if t is None:
+                #         return "None"
+                #     if t.numel() == 1:
+                #         return f"val={t.item():.4e}"
+                #     # avoid NaNs if size==1 along axes
+                #     try:
+                #         mean = t.mean().item()
+                #         std = t.std(unbiased=False).item()
+                #     except Exception:
+                #         mean, std = float("nan"), float("nan")
+                #     return f"shape={tuple(t.shape)} | ||·||={t.norm().item():.4e} | mean={mean:.4e} | std={std:.4e}"
+                #
+                # # tiny diagnostic print (norms)
+                # for name, g in grads.items():
+                #     a = g.get("alpha")
+                #     a_g = g.get("alpha_grad")
+                #     xL = g.get("x_L")
+                #     xL_g = g.get("x_L_grad")
+                #     xR = g.get("x_R")
+                #     xR_g = g.get("x_R_grad")
+                #     WL = g.get("left_head_w")
+                #     WL_g = g.get("left_head_w_grad")
+                #     WR = g.get("right_head_w")
+                #     WR_g = g.get("right_head_w_grad")
+                #     bL = g.get("left_head_b")
+                #     bL_g = g.get("left_head_b_grad")
+                #     bR = g.get("right_head_b")
+                #     bR_g = g.get("right_head_b_grad")
+                #
+                #     print(f"[{name}] ------------------------------", flush=True)
+                #     print(f"  alpha    : {_fmt_tensor(a)}", flush=True)
+                #     print(f"  d(alpha) : {_fmt_tensor(a_g)}", flush=True)
+                #     print(f"  x_L      : {_fmt_tensor(xL)}", flush=True)
+                #     print(f"  d(x_L)   : {_fmt_tensor(xL_g)}", flush=True)
+                #     print(f"  x_R      : {_fmt_tensor(xR)}", flush=True)
+                #     print(f"  d(x_R)   : {_fmt_tensor(xR_g)}", flush=True)
+                #     print(f"  W_L      : {_fmt_tensor(WL)}", flush=True)
+                #     print(f"  d(W_L)   : {_fmt_tensor(WL_g)}", flush=True)
+                #     print(f"  b_L      : {_fmt_tensor(bL)}", flush=True)
+                #     print(f"  d(b_L)   : {_fmt_tensor(bL_g)}", flush=True)
+                #     print(f"  W_R      : {_fmt_tensor(WR)}", flush=True)
+                #     print(f"  d(W_R)   : {_fmt_tensor(WR_g)}", flush=True)
+                #     print(f"  b_R      : {_fmt_tensor(bR)}", flush=True)
+                #     print(f"  d(b_R)   : {_fmt_tensor(bR_g)}", flush=True)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
                 if accelerator.sync_gradients:
