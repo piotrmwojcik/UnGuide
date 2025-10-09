@@ -564,7 +564,7 @@ def main():
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                print('!! ', pack["grads_flat"].shape, tensors_flat_t_live.shape)
+                print('!! ', pack["grads_flat"].shape, pack["tensor_flat"].shape, tensors_flat_t_live.shape)
 
                 # Clear grads before the next forward
                 optimizer.zero_grad(set_to_none=True)
@@ -583,8 +583,6 @@ def main():
 
                 # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                 delta_live = tensors_flat_t1_live - tensors_flat_t_live
-
-                print('!!!', delta_live.shape, grads_flat_t.shape)
 
                 # e.g., MSE to the target step
                 loss = criterion(delta_live, grads_flat_t)
