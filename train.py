@@ -130,20 +130,12 @@ _KEY_PAIRS = [
     ("alpha_grad",         "alpha"),
     ("x_L_grad",           "x_L"),
     ("x_R_grad",           "x_R"),
-    ("left_head_w_grad",   "left_head_w"),
-    ("left_head_b_grad",   "left_head_b"),
-    ("right_head_w_grad",  "right_head_w"),
-    ("right_head_b_grad",  "right_head_b"),
 ]
 
 _LIVE_GETTERS = [
     ("alpha",          lambda hl: hl.alpha if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") else None),
     ("x_L",            lambda hl: getattr(hl, "_last_x_L", None)),
     ("x_R",            lambda hl: getattr(hl, "_last_x_R", None)),
-    ("left_head_w",    lambda hl: hl.left_head.weight),
-    ("left_head_b",    lambda hl: hl.left_head.bias),
-    ("right_head_w",   lambda hl: hl.right_head.weight),
-    ("right_head_b",   lambda hl: hl.right_head.bias),
 ]
 
 def flatten_live_tensors(model_wrapped: nn.Module, accelerator) -> torch.Tensor:
