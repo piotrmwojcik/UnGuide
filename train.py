@@ -593,16 +593,78 @@ def main():
 
                 # ---- BACKWARD (per micro-step) ----
                 # Scale the loss for gradient accumulation so the effective grad equals the true average
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward)
                 base = accelerator.unwrap_model(model)
                 dev = next(base.parameters()).device
 
-                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-                pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
+                # scale the loss like before (for correct magnitude under grad accumulation)
+                scaled_loss = loss / accelerator.gradient_accumulation_steps
 
-                # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                grads_flat_t = (-args.lr) * pack["grads_flat"].detach()
+                # gather live targets in a fixed order (same as your _KEY_PAIRS)
+                targets = []  # list[Tensor]
+                index = []  # list[{layer,key,shape,start,end}]
+                seen = 0
+
+                def _maybe_add(layer_name: str, key: str, t: torch.Tensor):
+                    global seen
+                    if t is None:
+                        return
+                    targets.append(t)
+                    numel = t.numel()
+                    index.append({
+                        "layer": layer_name,
+                        "key": key,  # "alpha_grad" | "x_L_grad" | "x_R_grad"
+                        "shape": tuple(t.shape),
+                        "start": seen,
+                        "end": seen + numel,
+                    })
+                    seen += numel
+
+                # enumerate HyperLoRA layers once (no duplicates)
+                seen_hl = set()
+                for lname, m in base.named_modules():
+                    if isinstance(m, HyperLoRALinear):
+                        hl = m.hyper_lora
+                        if id(hl) in seen_hl:
+                            continue
+                        seen_hl.add(id(hl))
+                        # live tensors
+                        a = hl.alpha if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") else None
+                        xL = getattr(hl, "_last_x_L", None)
+                        xR = getattr(hl, "_last_x_R", None)
+
+                        _maybe_add(lname + ".hyper_lora", "alpha_grad", a)
+                        _maybe_add(lname + ".hyper_lora", "x_L_grad", xL)
+                        _maybe_add(lname + ".hyper_lora", "x_R_grad", xR)
+                    elif isinstance(m, HyperLora):
+                        # (only if HyperLora can also appear directly—guard against dupes)
+                        if id(m) in seen_hl:
+                            continue
+                        seen_hl.add(id(m))
+                        a = m.alpha if getattr(m, "use_scaling", False) and hasattr(m, "alpha") else None
+                        xL = getattr(m, "_last_x_L", None)
+                        xR = getattr(m, "_last_x_R", None)
+
+                        _maybe_add(lname, "alpha_grad", a)
+                        _maybe_add(lname, "x_L_grad", xL)
+                        _maybe_add(lname, "x_R_grad", xR)
+
+                # compute grads w.r.t. those targets ONLY; do not touch param .grad buffers
+                grads_list = torch.autograd.grad(
+                    scaled_loss, targets,
+                    retain_graph=True,  # you still need the graph for the next forward(s)
+                    create_graph=False,  # first-order
+                    allow_unused=True  # in case some target is unused in this step
+                )
+
+                # pack into a single flat vector: Δθ_t = -lr * g_t   (as a CONSTANT target)
+                parts = []
+                for g in grads_list:
+                    if g is None:
+                        continue
+                    parts.append((-args.lr) * g.reshape(-1))
+
+                grads_flat_t = torch.cat(parts, dim=0) if parts else torch.empty(0, device=dev)
+                grads_flat_t = grads_flat_t.detach()  # target should be constant for the next loss
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -624,7 +686,7 @@ def main():
                 tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
                 # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-                delta_live = tensors_flat_t1_live - tensors_flat_t_live.detach()
+                delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                 # e.g., MSE to the target step
                 loss = criterion(delta_live, grads_flat_t)
