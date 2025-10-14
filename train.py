@@ -345,37 +345,60 @@ def main():
         # Backward pass and optimization
         loss.backward()
 
-        # build a unique, trainable param list from a list of modules/params
-        def gather_params_from_list(layers):
-            params = []
-            seen = set()
-            for item in layers:
-                if isinstance(item, torch.nn.Parameter):
+        def gather_params_and_names(layers):
+            """
+            layers: list of nn.Module and/or nn.Parameter
+            returns:
+              params: List[Parameter] (unique, requires_grad=True)
+              name_map: Dict[id(Parameter)] -> readable name like 'lora_layers[3].hyper_lora.left_head.weight'
+            """
+            params, name_map, seen = [], {}, set()
+            for i, item in enumerate(layers):
+                prefix = f"lora_layers[{i}]"
+                if isinstance(item, nn.Parameter):
                     if item.requires_grad and id(item) not in seen:
                         params.append(item)
+                        name_map[id(item)] = prefix
                         seen.add(id(item))
-                elif hasattr(item, "parameters"):  # e.g., nn.Module
-                    for p in item.parameters():
+                elif isinstance(item, nn.Module):
+                    for n, p in item.named_parameters(recurse=True):
                         if p.requires_grad and id(p) not in seen:
                             params.append(p)
+                            name_map[id(p)] = f"{prefix}.{n}"
                             seen.add(id(p))
-                else:
-                    # ignore unknown items
-                    pass
-            return params
+                # else: ignore unknown types
+            return params, name_map
 
-        params = gather_params_from_list(lora_layers)
+        # Build once (after you construct lora_layers)
+        params, name_map = gather_params_and_names(lora_layers)
 
-        # manual SGD step
+        # ----- manual SGD step with prints -----
+        lr = args.lr
+
+        updated_any = False
         with torch.no_grad():
             for p in params:
-                if p.grad is not None:
-                    p.add_(p.grad, alpha=-args.lr)  # θ ← θ − lr * grad
+                g = p.grad
+                if g is None:
+                    continue
+                # print BEFORE modifying/clearing grads
+                pname = name_map.get(id(p), "<unknown>")
+                try:
+                    gnorm = g.norm().item()
+                except Exception:
+                    gnorm = float('nan')
+                print(f"UPDATE {pname}: ||grad||={gnorm:.3e}", flush=True)
+
+                # θ ← θ − lr * ∇θ
+                p.add_(g, alpha=-lr)
+                updated_any = True
+
+        if not updated_any:
+            print("No params updated (all grads None).", flush=True)
 
         # clear gradients
         for p in params:
             p.grad = None
-
 
         #optimizer.step()
 
