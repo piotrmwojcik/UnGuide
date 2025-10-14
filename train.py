@@ -609,7 +609,7 @@ def main():
                 #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
 
                 # Clear grads before the next forward
-                optimizer.zero_grad(set_to_none=True)
+                #optimizer.zero_grad(set_to_none=True)
                 for _, hl in _iter_hyperlora_layers(base):
                     xL = getattr(hl, "_last_x_L", None)
                     xR = getattr(hl, "_last_x_R", None)
