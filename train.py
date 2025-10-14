@@ -493,7 +493,7 @@ def main():
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
 
-    optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
+    optimizer = torch.optim.Adam(trainable_params, lr=1e-4)
 
     # Prepare for DDP / Mixed precision
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)

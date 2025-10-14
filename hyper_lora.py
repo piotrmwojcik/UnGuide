@@ -10,7 +10,7 @@ import torch.nn as nn
 
 class TimeFourier(nn.Module):
 
-    def __init__(self, T=501, L=16):  # outputs 2L dims
+    def __init__(self, T=151, L=16):  # outputs 2L dims
         super().__init__()
         # freq_k = (2π/T) * 2^k  for k=0..L-1
         k = torch.linspace(0, L - 1, L, dtype=torch.float32)
