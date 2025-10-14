@@ -570,7 +570,7 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = (cond_target, cond_ref)
-            base.time_step = int(torch.randint(0, 499, (1,), device=accelerator.device))
+            base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -606,7 +606,7 @@ def main():
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
+                #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
 
                 # Clear grads before the next forward
                 optimizer.zero_grad(set_to_none=True)
