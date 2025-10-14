@@ -593,78 +593,16 @@ def main():
 
                 # ---- BACKWARD (per micro-step) ----
                 # Scale the loss for gradient accumulation so the effective grad equals the true average
+                loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                accelerator.backward(loss_for_backward)
                 base = accelerator.unwrap_model(model)
                 dev = next(base.parameters()).device
 
-                # scale the loss like before (for correct magnitude under grad accumulation)
-                scaled_loss = loss / accelerator.gradient_accumulation_steps
+                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
+                pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
-                # gather live targets in a fixed order (same as your _KEY_PAIRS)
-                targets = []  # list[Tensor]
-                index = []  # list[{layer,key,shape,start,end}]
-                seen = 0
-
-                def _maybe_add(layer_name: str, key: str, t: torch.Tensor):
-                    global seen
-                    if t is None:
-                        return
-                    targets.append(t)
-                    numel = t.numel()
-                    index.append({
-                        "layer": layer_name,
-                        "key": key,  # "alpha_grad" | "x_L_grad" | "x_R_grad"
-                        "shape": tuple(t.shape),
-                        "start": seen,
-                        "end": seen + numel,
-                    })
-                    seen += numel
-
-                # enumerate HyperLoRA layers once (no duplicates)
-                seen_hl = set()
-                for lname, m in base.named_modules():
-                    if isinstance(m, HyperLoRALinear):
-                        hl = m.hyper_lora
-                        if id(hl) in seen_hl:
-                            continue
-                        seen_hl.add(id(hl))
-                        # live tensors
-                        a = hl.alpha if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") else None
-                        xL = getattr(hl, "_last_x_L", None)
-                        xR = getattr(hl, "_last_x_R", None)
-
-                        _maybe_add(lname + ".hyper_lora", "alpha_grad", a)
-                        _maybe_add(lname + ".hyper_lora", "x_L_grad", xL)
-                        _maybe_add(lname + ".hyper_lora", "x_R_grad", xR)
-                    elif isinstance(m, HyperLora):
-                        # (only if HyperLora can also appear directly—guard against dupes)
-                        if id(m) in seen_hl:
-                            continue
-                        seen_hl.add(id(m))
-                        a = m.alpha if getattr(m, "use_scaling", False) and hasattr(m, "alpha") else None
-                        xL = getattr(m, "_last_x_L", None)
-                        xR = getattr(m, "_last_x_R", None)
-
-                        _maybe_add(lname, "alpha_grad", a)
-                        _maybe_add(lname, "x_L_grad", xL)
-                        _maybe_add(lname, "x_R_grad", xR)
-
-                # compute grads w.r.t. those targets ONLY; do not touch param .grad buffers
-                grads_list = torch.autograd.grad(
-                    scaled_loss, targets,
-                    retain_graph=True,  # you still need the graph for the next forward(s)
-                    create_graph=False,  # first-order
-                    allow_unused=True  # in case some target is unused in this step
-                )
-
-                # pack into a single flat vector: Δθ_t = -lr * g_t   (as a CONSTANT target)
-                parts = []
-                for g in grads_list:
-                    if g is None:
-                        continue
-                    parts.append((-args.lr) * g.reshape(-1))
-
-                grads_flat_t = torch.cat(parts, dim=0) if parts else torch.empty(0, device=dev)
-                grads_flat_t = grads_flat_t.detach()  # target should be constant for the next loss
+                # Target step: Δθ ≈ -lr * g_t  (keep target detached)
+                grads_flat_t = (-args.lr) * pack["grads_flat"].detach()
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -692,51 +630,6 @@ def main():
                 loss = criterion(delta_live, grads_flat_t)
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
-                # def _fmt_tensor(t):
-                #     if t is None:
-                #         return "None"
-                #     if t.numel() == 1:
-                #         return f"val={t.item():.4e}"
-                #     # avoid NaNs if size==1 along axes
-                #     try:
-                #         mean = t.mean().item()
-                #         std = t.std(unbiased=False).item()
-                #     except Exception:
-                #         mean, std = float("nan"), float("nan")
-                #     return f"shape={tuple(t.shape)} | ||·||={t.norm().item():.4e} | mean={mean:.4e} | std={std:.4e}"
-                #
-                # # tiny diagnostic print (norms)
-                # for name, g in grads.items():
-                #     a = g.get("alpha")
-                #     a_g = g.get("alpha_grad")
-                #     xL = g.get("x_L")
-                #     xL_g = g.get("x_L_grad")
-                #     xR = g.get("x_R")
-                #     xR_g = g.get("x_R_grad")
-                #     WL = g.get("left_head_w")
-                #     WL_g = g.get("left_head_w_grad")
-                #     WR = g.get("right_head_w")
-                #     WR_g = g.get("right_head_w_grad")
-                #     bL = g.get("left_head_b")
-                #     bL_g = g.get("left_head_b_grad")
-                #     bR = g.get("right_head_b")
-                #     bR_g = g.get("right_head_b_grad")
-                #
-                #     print(f"[{name}] ------------------------------", flush=True)
-                #     print(f"  alpha    : {_fmt_tensor(a)}", flush=True)
-                #     print(f"  d(alpha) : {_fmt_tensor(a_g)}", flush=True)
-                #     print(f"  x_L      : {_fmt_tensor(xL)}", flush=True)
-                #     print(f"  d(x_L)   : {_fmt_tensor(xL_g)}", flush=True)
-                #     print(f"  x_R      : {_fmt_tensor(xR)}", flush=True)
-                #     print(f"  d(x_R)   : {_fmt_tensor(xR_g)}", flush=True)
-                #     print(f"  W_L      : {_fmt_tensor(WL)}", flush=True)
-                #     print(f"  d(W_L)   : {_fmt_tensor(WL_g)}", flush=True)
-                #     print(f"  b_L      : {_fmt_tensor(bL)}", flush=True)
-                #     print(f"  d(b_L)   : {_fmt_tensor(bL_g)}", flush=True)
-                #     print(f"  W_R      : {_fmt_tensor(WR)}", flush=True)
-                #     print(f"  d(W_R)   : {_fmt_tensor(WR_g)}", flush=True)
-                #     print(f"  b_R      : {_fmt_tensor(bR)}", flush=True)
-                #     print(f"  d(b_R)   : {_fmt_tensor(bR_g)}", flush=True)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
                 if accelerator.sync_gradients:
