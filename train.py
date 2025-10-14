@@ -624,7 +624,7 @@ def main():
                 tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
                 # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-                delta_live = tensors_flat_t1_live - tensors_flat_t_live
+                delta_live = tensors_flat_t1_live - tensors_flat_t_live.detach()
 
                 # e.g., MSE to the target step
                 loss = criterion(delta_live, grads_flat_t)
