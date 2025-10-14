@@ -331,7 +331,7 @@ def _iter_hyperlora_layers(root: nn.Module):
 
 
 def collect_hyperlora_tensors_and_grads(
-    model_wrapped: nn.Module, accelerator, verbose: bool = True, all_ranks: bool = True
+    model_wrapped: nn.Module, accelerator, verbose: bool = False, all_ranks: bool = True
 ) -> Dict[str, Dict[str, Any]]:
     """
     Collect only alpha, x_L, x_R and their grads.
