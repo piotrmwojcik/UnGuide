@@ -565,7 +565,7 @@ def main():
             inputs = (encode(sample["target"]), encode(sample["reference"]))
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs[0]).pooler_output.detach()
-                cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
+                #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
@@ -659,6 +659,21 @@ def main():
                     caption = f"target: {sample['target'][0]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+
+                imgs = generate_and_save_sd_images(
+                    model=base,
+                    sampler=sampler,
+                    prompt=sample["other"][0],
+                    device=accelerator.device,
+                    steps=50,
+                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    prefix=f"unl_{i}_",
+                )
+                if imgs is not None:
+                    caption = f"target: {sample['other'][0]}"
+                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+
 
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
