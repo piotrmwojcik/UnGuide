@@ -344,14 +344,40 @@ def main():
 
         # Backward pass and optimization
         loss.backward()
-        lr = args.lr if hasattr(args, "lr") else 1e-3  # use whatever LR you want
+
+        # build a unique, trainable param list from a list of modules/params
+        def gather_params_from_list(layers):
+            params = []
+            seen = set()
+            for item in layers:
+                if isinstance(item, torch.nn.Parameter):
+                    if item.requires_grad and id(item) not in seen:
+                        params.append(item);
+                        seen.add(id(item))
+                elif hasattr(item, "parameters"):  # e.g., nn.Module
+                    for p in item.parameters():
+                        if p.requires_grad and id(p) not in seen:
+                            params.append(p)
+                            seen.add(id(p))
+                else:
+                    # ignore unknown items
+                    pass
+            return params
+
+        params = gather_params_from_list(lora_layers)
+
+        # manual SGD step
         with torch.no_grad():
-            for p in lora_layers.parameters():
+            for p in params:
                 if p.grad is not None:
-                    p.add_(p.grad, alpha=-lr)
+                    p.add_(p.grad, alpha=-lr)  # θ ← θ − lr * grad
 
         # clear gradients
-        for p in lora_layers.parameters():
+        for p in params:
+            p.grad = None
+
+        # clear gradients
+        for p in params:
             p.grad = None
 
         #optimizer.step()
