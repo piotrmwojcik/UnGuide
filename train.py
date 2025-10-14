@@ -569,7 +569,7 @@ def main():
 
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
-            base.current_conditioning = (cond_target, cond_ref)
+            base.current_conditioning = cond_target
             base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(
