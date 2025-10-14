@@ -370,12 +370,12 @@ def main():
                 if g is None:
                     continue
                 # print BEFORE modifying/clearing grads
-                pname = name_map.get(id(p), "<unknown>")
+                #pname = name_map.get(id(p), "<unknown>")
                 try:
                     gnorm = g.norm().item()
                 except Exception:
                     gnorm = float('nan')
-                print(f"UPDATE {pname}: ||grad||={gnorm:.3e}", flush=True)
+                #print(f"UPDATE {pname}: ||grad||={gnorm:.3e}", flush=True)
 
                 # θ ← θ − lr * ∇θ
                 p.add_(g, alpha=-lr)
