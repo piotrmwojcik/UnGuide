@@ -602,7 +602,7 @@ def main():
                 pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
                 # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                grads_flat_t = (-args.lr) * pack["grads_flat"].detach()
+                grads_flat_t = -1 * (1e-4) * pack["grads_flat"].detach()
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
