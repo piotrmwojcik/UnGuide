@@ -344,7 +344,17 @@ def main():
 
         # Backward pass and optimization
         loss.backward()
-        optimizer.step()
+        lr = args.lr if hasattr(args, "lr") else 1e-3  # use whatever LR you want
+        with torch.no_grad():
+            for p in model.parameters():
+                if p.grad is not None:
+                    p.add_(p.grad, alpha=-lr)
+
+        # clear gradients
+        for p in model.parameters():
+            p.grad = None
+
+        #optimizer.step()
 
         generate_and_save_sd_images(
             model=model,
