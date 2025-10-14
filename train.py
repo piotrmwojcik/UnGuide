@@ -378,17 +378,17 @@ def main():
                 #print(f"UPDATE {pname}: ||grad||={gnorm:.3e}", flush=True)
 
                 # θ ← θ − lr * ∇θ
-                #p.add_(g, alpha=-lr)
-                #updated_any = True
+                p.add_(g, alpha=-lr)
+                updated_any = True
 
         if not updated_any:
             print("No params updated (all grads None).", flush=True)
 
         # clear gradients
-        #for p in params:
-        #    p.grad = None
+        for p in params:
+            p.grad = None
 
-        optimizer.step()
+        #optimizer.step()
 
         generate_and_save_sd_images(
             model=model,
