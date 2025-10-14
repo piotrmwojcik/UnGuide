@@ -80,18 +80,6 @@ class HyperLora(nn.Module):
 
     def forward(self, x, clip, t):
         B = clip.shape[0]
-        # if self._dbg_calls < 1:
-        #     # optional: rank tag if you run multi-GPU
-        #     rank = os.environ.get("RANK", "0")
-        #
-        #     t_info = t if isinstance(t, int) else (tuple(t.shape) if torch.is_tensor(t) else type(t))
-        #     print(
-        #         f"[RANK {rank}] {self._dbg_tag} forward() called | "
-        #         f"B={B}  x={tuple(x.shape)}  clip={tuple(clip.shape)}  t={t_info}",
-        #         flush=True
-        #     )
-        # self._dbg_calls += 1
-
         emb = clip
         #emb = self.layers(clip)
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
@@ -121,7 +109,7 @@ class HyperLoRALinear(nn.Module):
     def __init__(
         self,
         original_linear: nn.Linear,
-        clip_size: int = 1536,
+        clip_size: int = 768,
         rank: int = 1,
         alpha: int = 16,
     ):
