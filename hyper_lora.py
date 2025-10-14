@@ -33,7 +33,7 @@ class HyperLora(nn.Module):
         in_dim: int,
         out_dim: int,
         rank: int = 4,
-        clip_size: int = 1536,
+        clip_size: int = 768,
         alpha_init: int = 16.0,
         time_embedd: int = 32,
         use_scaling=True
@@ -149,7 +149,7 @@ class HyperLoRALinear(nn.Module):
             print("WARNING: this shouldn't happen")
             return self.original(x)
         else:
-            clip_embedding = torch.cat(parent.current_conditioning, -1)
+            clip_embedding = parent.current_conditioning
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
         #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
