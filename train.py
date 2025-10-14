@@ -376,9 +376,6 @@ def main():
         for p in params:
             p.grad = None
 
-        # clear gradients
-        for p in params:
-            p.grad = None
 
         #optimizer.step()
 
