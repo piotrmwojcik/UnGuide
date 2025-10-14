@@ -202,6 +202,7 @@ def _concat_items(
                            dtype=dtype or torch.float32)
     return flat, index
 
+
 def concat_grads_and_tensors(
     recs: Dict[str, Dict[str, Any]],
     device: Optional[torch.device] = None,
@@ -302,31 +303,31 @@ def generate_and_save_sd_images(
         return imgs  # [B,3,H,W] in [0,1]
 
 
-# def _iter_hyperlora_layers(root: nn.Module):
-#     seen = set()
-#     for name, m in root.named_modules():
-#         if isinstance(m, HyperLoRALinear):
-#             hl = m.hyper_lora
-#             if id(hl) in seen:
-#                 continue
-#             seen.add(id(hl))
-#             yield name + ".hyper_lora", hl
-#         elif isinstance(m, HyperLora):
-#             if id(m) in seen:
-#                 continue
-#             seen.add(id(m))
-#             yield name, m
-
-
-def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
-    """Yield (qualified_name, HyperLora) whether wrapped or direct."""
+def _iter_hyperlora_layers(root: nn.Module):
+    seen = set()
     for name, m in root.named_modules():
         if isinstance(m, HyperLoRALinear):
-            print('--hyperloralinera---')
-            yield name + ".hyper_lora", m.hyper_lora
+            hl = m.hyper_lora
+            if id(hl) in seen:
+                continue
+            seen.add(id(hl))
+            yield name + ".hyper_lora", hl
         elif isinstance(m, HyperLora):
-            print('--hyperlinera---')
+            if id(m) in seen:
+                continue
+            seen.add(id(m))
             yield name, m
+
+
+# def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
+#     """Yield (qualified_name, HyperLora) whether wrapped or direct."""
+#     for name, m in root.named_modules():
+#         if isinstance(m, HyperLoRALinear):
+#             #print('--hyperloralinera---')
+#             yield name + ".hyper_lora", m.hyper_lora
+#         elif isinstance(m, HyperLora):
+#             #print('--hyperlinera---')
+#             yield name, m
 
 
 def collect_hyperlora_tensors_and_grads(
