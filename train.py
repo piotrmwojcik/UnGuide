@@ -346,12 +346,12 @@ def main():
         loss.backward()
         lr = args.lr if hasattr(args, "lr") else 1e-3  # use whatever LR you want
         with torch.no_grad():
-            for p in model.parameters():
+            for p in lora_layers.parameters():
                 if p.grad is not None:
                     p.add_(p.grad, alpha=-lr)
 
         # clear gradients
-        for p in model.parameters():
+        for p in lora_layers.parameters():
             p.grad = None
 
         #optimizer.step()
