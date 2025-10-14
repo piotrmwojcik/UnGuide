@@ -670,7 +670,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: {sample['other'][0]}"
+                    caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
