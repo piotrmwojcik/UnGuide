@@ -352,7 +352,7 @@ def main():
             for item in layers:
                 if isinstance(item, torch.nn.Parameter):
                     if item.requires_grad and id(item) not in seen:
-                        params.append(item);
+                        params.append(item)
                         seen.add(id(item))
                 elif hasattr(item, "parameters"):  # e.g., nn.Module
                     for p in item.parameters():
@@ -370,7 +370,7 @@ def main():
         with torch.no_grad():
             for p in params:
                 if p.grad is not None:
-                    p.add_(p.grad, alpha=-lr)  # θ ← θ − lr * grad
+                    p.add_(p.grad, alpha=-args.lr)  # θ ← θ − lr * grad
 
         # clear gradients
         for p in params:
