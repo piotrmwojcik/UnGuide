@@ -9,6 +9,17 @@ import matplotlib.pyplot as plt  # (unused, but kept if you uncomment stats)
 import numpy as np
 import torch
 import wandb
+
+from typing import Iterator, Tuple, Dict, Any
+
+from typing import Dict, Any, Iterator, Tuple
+import torch
+import torch.nn as nn
+from typing import Dict, Any, List, Tuple
+
+# assumes you have these classes
+from hyper_lora import HyperLora, HyperLoRALinear
+
 # ---- helpers ----
 from typing import Iterator, Tuple, Dict, Any, List, Optional
 import torch
@@ -291,31 +302,20 @@ def generate_and_save_sd_images(
         return imgs  # [B,3,H,W] in [0,1]
 
 
-def _iter_hyperlora_layers(root: nn.Module):
-    seen = set()
-    for name, m in root.named_modules():
-        if isinstance(m, HyperLoRALinear):
-            hl = m.hyper_lora
-            if id(hl) in seen:
-                continue
-            seen.add(id(hl))
-            yield name + ".hyper_lora", hl
-        elif isinstance(m, HyperLora):
-            if id(m) in seen:
-                continue
-            seen.add(id(m))
-            yield name, m
-
-
-from typing import Iterator, Tuple, Dict, Any
-
-from typing import Dict, Any, Iterator, Tuple
-import torch
-import torch.nn as nn
-from typing import Dict, Any, List, Tuple
-
-# assumes you have these classes
-from hyper_lora import HyperLora, HyperLoRALinear
+# def _iter_hyperlora_layers(root: nn.Module):
+#     seen = set()
+#     for name, m in root.named_modules():
+#         if isinstance(m, HyperLoRALinear):
+#             hl = m.hyper_lora
+#             if id(hl) in seen:
+#                 continue
+#             seen.add(id(hl))
+#             yield name + ".hyper_lora", hl
+#         elif isinstance(m, HyperLora):
+#             if id(m) in seen:
+#                 continue
+#             seen.add(id(m))
+#             yield name, m
 
 
 def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
@@ -327,6 +327,7 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
         elif isinstance(m, HyperLora):
             print('--hyperlinera---')
             yield name, m
+
 
 def collect_hyperlora_tensors_and_grads(
     model_wrapped: nn.Module, accelerator, verbose: bool = True, all_ranks: bool = True
