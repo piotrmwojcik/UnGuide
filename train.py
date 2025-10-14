@@ -353,9 +353,18 @@ def main():
             device=device,
             steps=50,
             out_dir="tmp_main",
-            prefix=f"orig_{i}_",
+            prefix=f"unl_{i}_",
         )
 
+        generate_and_save_sd_images(
+            model=model,
+            sampler=sampler,
+            prompt="car",
+            device=device,
+            steps=50,
+            out_dir="tmp_main",
+            prefix=f"car_unl_{i}_",
+        )
 
         # Record loss
         loss_value = loss.item()
