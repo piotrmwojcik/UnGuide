@@ -140,8 +140,7 @@ _LIVE_GETTERS = [
 
 def flatten_live_tensors(model_wrapped: nn.Module, accelerator) -> torch.Tensor:
     """
-    Concatenate CURRENT tensors from all HyperLora layers WITHOUT detaching.
-    This preserves autograd so loss can backprop through them.
+m    This preserves autograd so loss can backprop through them.
     """
     base = accelerator.unwrap_model(model_wrapped)
     parts: List[torch.Tensor] = []
@@ -308,7 +307,6 @@ def _iter_hyperlora_layers(root: nn.Module):
             yield name, m
 
 
-
 from typing import Iterator, Tuple, Dict, Any
 
 from typing import Dict, Any, Iterator, Tuple
@@ -324,8 +322,10 @@ def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
     """Yield (qualified_name, HyperLora) whether wrapped or direct."""
     for name, m in root.named_modules():
         if isinstance(m, HyperLoRALinear):
+            print('--hyperloralinera---')
             yield name + ".hyper_lora", m.hyper_lora
         elif isinstance(m, HyperLora):
+            print('--hyperlinera---')
             yield name, m
 
 def collect_hyperlora_tensors_and_grads(
