@@ -353,7 +353,7 @@ def main():
                 if p.requires_grad:
                     params.append(p)
                     name_map[id(p)] = name
-                    print(f"[TRAINABLE] {name}  shape={tuple(p.shape)}")  # <- prints names
+                    #print(f"[TRAINABLE] {name}  shape={tuple(p.shape)}")  # <- prints names
             print(f"Total trainable tensors: {len(params)}")
             return params, name_map
 
