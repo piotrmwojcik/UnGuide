@@ -6,6 +6,8 @@ from functools import partial
 
 import numpy as np
 import torch
+import torch
+import torch.nn as nn
 
 from utils import print_trainable_parameters, set_seed, get_models
 from tqdm import tqdm
