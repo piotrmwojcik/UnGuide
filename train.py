@@ -347,32 +347,18 @@ def main():
         # Backward pass and optimization
         loss.backward()
 
-        def gather_params_and_names(layers):
-            """
-            layers: list of nn.Module and/or nn.Parameter
-            returns:
-              params: List[Parameter] (unique, requires_grad=True)
-              name_map: Dict[id(Parameter)] -> readable name like 'lora_layers[3].hyper_lora.left_head.weight'
-            """
-            params, name_map, seen = [], {}, set()
-            for i, item in enumerate(layers):
-                prefix = f"lora_layers[{i}]"
-                if isinstance(item, nn.Parameter):
-                    if item.requires_grad and id(item) not in seen:
-                        params.append(item)
-                        name_map[id(item)] = prefix
-                        seen.add(id(item))
-                elif isinstance(item, nn.Module):
-                    for n, p in item.named_parameters(recurse=True):
-                        if p.requires_grad and id(p) not in seen:
-                            params.append(p)
-                            name_map[id(p)] = f"{prefix}.{n}"
-                            seen.add(id(p))
-                # else: ignore unknown types
+        def gather_trainable_params_and_names_from_model(model: nn.Module):
+            params, name_map = [], {}
+            for name, p in model.named_parameters(recurse=True):
+                if p.requires_grad:
+                    params.append(p)
+                    name_map[id(p)] = name
+                    print(f"[TRAINABLE] {name}  shape={tuple(p.shape)}")  # <- prints names
+            print(f"Total trainable tensors: {len(params)}")
             return params, name_map
 
         # Build once (after you construct lora_layers)
-        params, name_map = gather_params_and_names(lora_layers)
+        params, name_map = gather_trainable_params_and_names_from_model(model)
 
         # ----- manual SGD step with prints -----
         lr = args.lr
