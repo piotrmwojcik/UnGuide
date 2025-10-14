@@ -594,7 +594,7 @@ def main():
                 # ---- BACKWARD (per micro-step) ----
                 # Scale the loss for gradient accumulation so the effective grad equals the true average
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward)
+                accelerator.backward(loss_for_backward, retain_graph=True)
                 base = accelerator.unwrap_model(model)
                 dev = next(base.parameters()).device
 
