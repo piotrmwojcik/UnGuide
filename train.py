@@ -1,33 +1,18 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import random
 import os
+import types
 from functools import partial
 from pathlib import Path
+from typing import Iterator, Tuple, Dict, Any, List, Optional
 
 import matplotlib.pyplot as plt  # (unused, but kept if you uncomment stats)
 import numpy as np
 import torch
+import torch.nn as nn
 import wandb
 
-from typing import Iterator, Tuple, Dict, Any
-
-from typing import Dict, Any, Iterator, Tuple
-import torch
-import torch.nn as nn
-from typing import Dict, Any, List, Tuple
-
-# assumes you have these classes
-from hyper_lora import HyperLora, HyperLoRALinear
-
-# ---- helpers ----
-from typing import Iterator, Tuple, Dict, Any, List, Optional
-import torch
-import torch.nn as nn
-
-# import your classes
-from hyper_lora import HyperLora, HyperLoRALinear
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
@@ -39,10 +24,12 @@ from tqdm import tqdm
 from data_utils import TargetReferenceDataset, collate_prompts
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from ldm.util import instantiate_from_config  # (kept if your get_models uses it)
-from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
-                        inject_hyper_lora_nsfw)
+from hyper_lora import HyperLoRALinear, HyperLora, Attention, inject_hyper_lora, inject_hyper_lora_nsfw
 from sampling import sample_model
-from utils import get_models, print_trainable_parameters  # DO NOT import set_seed here to avoid clashes
+from utils import (
+    get_models,
+    print_trainable_parameters,
+)  # DO NOT import set_seed here to avoid clashes
 
 
 def parse_args():
@@ -65,32 +52,56 @@ def parse_args():
         help="Path to model checkpoint",
     )
     parser.add_argument(
-        "--device", type=str, default="cuda:0",
-        help="(Ignored when using Accelerate) Device to use for training"
+        "--device",
+        type=str,
+        default="cuda:0",
+        help="(Ignored when using Accelerate) Device to use for training",
     )
 
     # LoRA/HyperLoRA
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
-    parser.add_argument("--lora_alpha", type=float, default=8, help="LoRA alpha parameter")
+    parser.add_argument(
+        "--lora_alpha", type=float, default=8, help="LoRA alpha parameter"
+    )
     parser.add_argument(
         "--target_modules",
         nargs="+",
         default=["attn2.to_k", "attn2.to_v"],
         help="Target modules for LoRA injection",
     )
-    parser.add_argument("--clip_size", type=int, default=768, help="CLIP embedding size")
+    parser.add_argument(
+        "--clip_size", type=int, default=768, help="CLIP embedding size"
+    )
+    parser.add_argument(
+        "--num_chunks",
+        type=int,
+        default=32,
+        help="Number of chunks for Attention module",
+    )
 
     # Optim/Trainer
-    parser.add_argument("--iterations", type=int, default=200, help="Number of training iterations")
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument(
+        "--iterations", type=int, default=200, help="Number of training iterations"
+    )
+    parser.add_argument("--gradient_accumulation_step", type=int, default=1, dest="gradient_accumulation_steps")
     parser.add_argument("--lr", type=float, default=3e-5, help="Learning rate")
-    parser.add_argument("--image_size", type=int, default=512, help="Image size for training")
-    parser.add_argument("--ddim_steps", type=int, default=50, help="DDIM sampling steps")
+    parser.add_argument(
+        "--image_size", type=int, default=512, help="Image size for training"
+    )
+    parser.add_argument(
+        "--ddim_steps", type=int, default=50, help="DDIM sampling steps"
+    )
     parser.add_argument("--ddim_eta", type=float, default=0.0, help="DDIM eta")
-    parser.add_argument("--start_guidance", type=float, default=9.0, help="Starting guidance scale")
-    parser.add_argument("--negative_guidance", type=float, default=2.0, help="Negative guidance scale")
+    parser.add_argument(
+        "--start_guidance", type=float, default=9.0, help="Starting guidance scale"
+    )
+    parser.add_argument(
+        "--negative_guidance", type=float, default=2.0, help="Negative guidance scale"
+    )
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
-    parser.add_argument("--internal_lr", type=float, default=1e-4, help="Simulated lr for hypernetwork")
+    parser.add_argument(
+        "--internal_lr", type=float, default=1e-4, help="Simulated lr for hypernetwork"
+    )
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -98,32 +109,51 @@ def parse_args():
         help="Batch size (per device) for the training dataloader.",
     )
 
-
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
-    parser.add_argument("--log_from", type=int, default=0, help="Log debug images from iteration")
     parser.add_argument(
-        "--logging_dir", type=str, default="logs",
-        help="Base logging directory (used by Accelerate trackers)."
+        "--log_from", type=int, default=0, help="Log debug images from iteration"
     )
     parser.add_argument(
-        "--mixed_precision", type=str, default=None, choices=["no", "fp16", "bf16"],
-        help="Override Accelerate mixed precision (fp16/bf16)."
+        "--logging_dir",
+        type=str,
+        default="logs",
+        help="Base logging directory (used by Accelerate trackers).",
     )
     parser.add_argument(
-        "--report_to", type=str, default="wandb",
-        help='Tracking integration: "tensorboard", "wandb", "comet_ml", or "all".'
+        "--mixed_precision",
+        type=str,
+        default=None,
+        choices=["no", "fp16", "bf16"],
+        help="Override Accelerate mixed precision (fp16/bf16).",
+    )
+    parser.add_argument(
+        "--report_to",
+        type=str,
+        default="wandb",
+        help='Tracking integration: "tensorboard", "wandb", "comet_ml", or "all".',
     )
 
     # Output / data
-    parser.add_argument("--output_dir", type=str, default="output", help="Directory to save models")
-    parser.add_argument("--data_dir", type=str, default="data10", help="Directory with prompt json files")
-    parser.add_argument("--save_losses", action="store_true", help="Save training losses to file")
+    parser.add_argument(
+        "--output_dir", type=str, default="output", help="Directory to save models"
+    )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default="data10",
+        help="Directory with prompt json files",
+    )
+    parser.add_argument(
+        "--save_losses", action="store_true", help="Save training losses to file"
+    )
 
     return parser.parse_args()
 
 
-def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_eta: float):
+def create_quick_sampler(
+    model, sampler, image_size: int, ddim_steps: int, ddim_eta: float
+):
     """Create a quick sampling function with fixed parameters"""
     return lambda conditioning, scale, start_code, till_T: sample_model(
         model,
@@ -139,21 +169,30 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
         verbose=False,
     )
 
+
 _KEY_PAIRS = [
-    ("alpha_grad",         "alpha"),
-    ("x_L_grad",           "x_L"),
-    ("x_R_grad",           "x_R"),
+    ("alpha_grad", "alpha"),
+    ("x_L_grad", "x_L"),
+    ("x_R_grad", "x_R"),
 ]
 
 _LIVE_GETTERS = [
-    ("alpha",          lambda hl: hl.alpha if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") else None),
-    ("x_L",            lambda hl: getattr(hl, "_last_x_L", None)),
-    ("x_R",            lambda hl: getattr(hl, "_last_x_R", None)),
+    (
+        "alpha",
+        lambda hl: (
+            hl.alpha
+            if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha")
+            else None
+        ),
+    ),
+    ("x_L", lambda hl: getattr(hl, "_last_x_L", None)),
+    ("x_R", lambda hl: getattr(hl, "_last_x_R", None)),
 ]
+
 
 def flatten_live_tensors(model_wrapped: nn.Module, accelerator) -> torch.Tensor:
     """
-m    This preserves autograd so loss can backprop through them.
+    m    This preserves autograd so loss can backprop through them.
     """
     base = accelerator.unwrap_model(model_wrapped)
     parts: List[torch.Tensor] = []
@@ -170,6 +209,7 @@ m    This preserves autograd so loss can backprop through them.
         return torch.tensor([], device=next(base.parameters()).device)
 
     return torch.cat(parts, dim=0)
+
 
 def _concat_items(
     items: List[Tuple[str, str, torch.Tensor]],
@@ -188,20 +228,23 @@ def _concat_items(
         vec = vec.view(-1)
         start, end = n, n + vec.numel()
         parts.append(vec)
-        index.append({
-            "layer": layer,
-            "key": key,
-            "shape": tuple(t.shape),
-            "start": start,
-            "end": end,
-        })
+        index.append(
+            {
+                "layer": layer,
+                "key": key,
+                "shape": tuple(t.shape),
+                "start": start,
+                "end": end,
+            }
+        )
         n = end
 
     if parts:
         flat = torch.cat(parts, dim=0)
     else:
-        flat = torch.empty(0, device=device or torch.device("cpu"),
-                           dtype=dtype or torch.float32)
+        flat = torch.empty(
+            0, device=device or torch.device("cpu"), dtype=dtype or torch.float32
+        )
     return flat, index
 
 
@@ -256,7 +299,7 @@ def generate_and_save_sd_images(
     batch_size: int = 1,
     out_dir: str = "tmp",
     prefix: str = "unl_",
-    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] for 512x512
+    start_code: torch.Tensor = None,  # optional noise tensor [B,4,64,64] for 512x512
 ):
     """
     Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
@@ -277,8 +320,10 @@ def generate_and_save_sd_images(
         start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
 
     model.eval()
-    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+    with torch.no_grad(), torch.autocast(
+        device_type=device.type, enabled=(device.type == "cuda")
+    ):
+        cond = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
         samples_latent, _ = sampler.sample(
@@ -293,8 +338,8 @@ def generate_and_save_sd_images(
             x_T=start_code,
         )
 
-        imgs = model.decode_first_stage(samples_latent)       # [-1, 1]
-        imgs = (imgs.clamp(-1, 1) + 1) / 2.0                 # [0, 1]
+        imgs = model.decode_first_stage(samples_latent)  # [-1, 1]
+        imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0, 1]
 
         out_path = Path(out_dir)
         out_path.mkdir(exist_ok=True, parents=True)
@@ -344,7 +389,7 @@ def collect_hyperlora_tensors_and_grads(
 
     # decide printing
     rank = int(os.environ.get("RANK", "0"))
-    do_print = (accelerator.is_main_process or all_ranks)
+    do_print = accelerator.is_main_process or all_ranks
 
     def _say(msg: str):
         if verbose and do_print:
@@ -377,7 +422,9 @@ def collect_hyperlora_tensors_and_grads(
             rec["alpha_grad"] = None
 
         if xL is None:
-            _say(f"HyperLoRA:{lname} — NO TENSOR x_L (_last_x_L not set; retain_grad()/forward?)")
+            _say(
+                f"HyperLoRA:{lname} — NO TENSOR x_L (_last_x_L not set; retain_grad()/forward?)"
+            )
             rec["x_L_grad"] = None
         else:
             if xL.grad is None:
@@ -387,7 +434,9 @@ def collect_hyperlora_tensors_and_grads(
                 rec["x_L_grad"] = xL.grad.detach().clone()
 
         if xR is None:
-            _say(f"HyperLoRA:{lname} — NO TENSOR x_R (_last_x_R not set; retain_grad()/forward?)")
+            _say(
+                f"HyperLoRA:{lname} — NO TENSOR x_R (_last_x_R not set; retain_grad()/forward?)"
+            )
             rec["x_R_grad"] = None
         else:
             if xR.grad is None:
@@ -399,6 +448,7 @@ def collect_hyperlora_tensors_and_grads(
         # always print summary norms so you know the function ran
         def _n(t):
             return "None" if t is None else f"{t.detach().norm().item():.3e}"
+
         _say(
             f"HyperLoRA:{lname} | dα={_n(rec['alpha_grad'])} "
             f"| ||d x_L||={_n(rec['x_L_grad'])} | ||d x_R||={_n(rec['x_R_grad'])}"
@@ -409,7 +459,6 @@ def collect_hyperlora_tensors_and_grads(
     return out
 
 
-
 def main():
     args = parse_args()
 
@@ -418,8 +467,12 @@ def main():
     print(f"Config: {args.config_path}")
     print(f"Checkpoint: {args.ckpt_path}")
     print(f"Output dir: {args.output_dir}")
-    print(f"Iterations: {args.iterations}  |  LR: {args.lr}  |  Accum: {args.gradient_accumulation_steps}")
-    print(f"Image size: {args.image_size}  |  DDIM steps: {args.ddim_steps}  |  eta: {args.ddim_eta}")
+    print(
+        f"Iterations: {args.iterations}  |  LR: {args.lr}  |  Accum: {args.gradient_accumulation_steps}"
+    )
+    print(
+        f"Image size: {args.image_size}  |  DDIM steps: {args.ddim_steps}  |  eta: {args.ddim_eta}"
+    )
     print("=" * 48)
 
     # Seed
@@ -440,17 +493,21 @@ def main():
     )
 
     args.lr = (
-            args.lr
-            * args.gradient_accumulation_steps
-            * args.batch_size
-            * accelerator.num_processes
+        args.lr
+        * args.gradient_accumulation_steps
+        * args.batch_size
+        * accelerator.num_processes
     )
 
-    #logger = get_logger(__name__)
+    # logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
-    if is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all"):
+    if (
+        is_main
+        and args.use_wandb
+        and ("wandb" in str(args.report_to) or args.report_to == "all")
+    ):
         wandb.init(project="UnGuide", name="training", config=vars(args))
 
     # Data
@@ -471,8 +528,10 @@ def main():
         p.requires_grad = False
     model_orig.eval()
 
-    # Add attribute used downstream
+    # Add attributes used downstream
     model.current_conditioning = None
+    model.banned = None
+    model.time_step = None
 
     # Inject HyperLoRA/LoRA BEFORE prepare(), then build optimizer on trainable params
     use_hyper = True  # your script forces hypernetwork on; keep same behavior
@@ -488,12 +547,51 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
+    # Add attention module
+    model.attention = Attention(args.clip_size, args.num_chunks).to(device=model.device)
 
-    # Optimizer on trainable (LoRA) params only
-    trainable_params = list(filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters()))
+    # Store original apply_model method
+    model._original_apply_model = model.apply_model
+
+    def apply_model_with_attention(self, x, t, c):
+        """
+        Wrapper that computes attention before calling apply_model.
+        Updates current_conditioning based on attention between prompt and banned concept.
+        """
+        if self.banned is not None and c is not None:
+            if isinstance(c, dict) and "c_crossattn" in c:
+                prompt_emb = c["c_crossattn"][0]  # Shape: [batch, seq_len, 768]
+            else:
+                prompt_emb = c
+
+            if prompt_emb.dim() == 3:
+                prompt_emb_pooled = prompt_emb.mean(dim=1)  # [batch, 768]
+            else:
+                prompt_emb_pooled = prompt_emb
+
+            # Expand banned to match batch size
+            batch_size = prompt_emb_pooled.shape[0]
+            banned_expanded = self.banned.expand(batch_size, -1)
+
+            attn_output, attn_weights = self.attention(prompt_emb_pooled, banned_expanded)
+
+            self.current_conditioning = attn_output
+
+        return self._original_apply_model(x, t, c)
+
+    model.apply_model = types.MethodType(apply_model_with_attention, model)
+
+    trainable_params = list(
+        filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters())
+    )
+    trainable_params.extend(list(model.attention.parameters()))
+
     if is_main:
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
+        print(
+            f"Attention module parameters: {sum(p.numel() for p in model.attention.parameters())}"
+        )
 
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
@@ -509,10 +607,16 @@ def main():
 
     # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
+    clip_text_encoder = (
+        CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
+        .to(accelerator.device)
+        .eval()
+    )
 
     # Quick sampler
-    quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
+    quick_sampler = create_quick_sampler(
+        base, sampler, args.image_size, args.ddim_steps, args.ddim_eta
+    )
 
     sampler_orig = DDIMSampler(model_orig)
 
@@ -548,7 +652,9 @@ def main():
             t_enc = torch.randint(args.ddim_steps, (1,), device=accelerator.device)
             og_num = round((int(t_enc) / args.ddim_steps) * 1000)
             og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
+            t_enc_ddpm = torch.randint(
+                og_num, og_num_lim, (1,), device=accelerator.device
+            )
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
             def encode(text: str):
@@ -565,38 +671,40 @@ def main():
                 )
 
             inputs = encode(sample["target"])
-            #print('!!! ', sample["target"])
+            # print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_cat = encode("a photo of the cat")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_cat = clip_text_encoder(inputs_cat).pooler_output.detach()
-                #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
+                # cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
-            base.current_conditioning = cond_target
-            base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
+            base.banned = cond_target
+            base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device).item())
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
-                device=accelerator.device
+                device=accelerator.device,
             )
             with accelerator.accumulate(model):
-                if 'neutral.json' in sample['file']:
-                    alpha = random.uniform(0.0, 0.20)
-                    base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
-
-                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                if "neutral.json" in sample["file"]:
+                    # Attention will compute current_conditioning automatically in apply_model
+                    z = quick_sampler(
+                        emb_p, args.start_guidance, start_code, int(t_enc)
+                    )
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
-                    _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
+                    _ = accelerator.unwrap_model(model).apply_model(
+                        z, t_enc_ddpm, emb_cat
+                    )
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     base.time_step = base.time_step + 1
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = (delta_live ** 2).mean()
+                    loss = (delta_live**2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward)
 
@@ -608,12 +716,20 @@ def main():
                         optimizer.zero_grad(set_to_none=True)
                 else:
                     with torch.no_grad():
-                        z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                        e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
-                        e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
+                        z = quick_sampler(
+                            emb_p, args.start_guidance, start_code, int(t_enc)
+                        )
+                        e_0 = model_orig.apply_model(
+                            z, t_enc_ddpm, emb_0
+                        )  # reference (stopgrad)
+                        e_p = model_orig.apply_model(
+                            z, t_enc_ddpm, emb_p
+                        )  # target   (stopgrad)
 
                     # prediction for trainable model (needs grads)
-                    e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
+                    e_n = accelerator.unwrap_model(model).apply_model(
+                        z, t_enc_ddpm, emb_n
+                    )
 
                     # targets and loss
                     e_0.requires_grad_(False)
@@ -629,22 +745,26 @@ def main():
                     dev = next(base.parameters()).device
 
                     recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-                    pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
+                    pack = concat_grads_and_tensors(
+                        recs, device=dev
+                    )  # has 'grads_flat', 'tensors_flat', etc.
 
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                     grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
 
                     # --- LIVE anchor at t (no detach!) ---
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
+                    # print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
 
                     # Clear grads before the next forward
-                    #optimizer.zero_grad(set_to_none=True)
+                    # optimizer.zero_grad(set_to_none=True)
                     for _, hl in _iter_hyperlora_layers(base):
                         xL = getattr(hl, "_last_x_L", None)
                         xR = getattr(hl, "_last_x_R", None)
-                        if xL is not None: xL.grad = None
-                        if xR is not None: xR.grad = None
+                        if xL is not None:
+                            xL.grad = None
+                        if xR is not None:
+                            xR.grad = None
 
                     # Advance time and run forward to populate new live tensors
                     base.time_step = base.time_step + 1
@@ -689,7 +809,10 @@ def main():
                 if imgs is not None:
                     caption = f"target: cat"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log(
+                        {"sample": wandb.Image(to_pil_image(im0), caption=caption)},
+                        step=i,
+                    )
                 base.current_conditioning = cond_other
                 imgs = generate_and_save_sd_images(
                     model=base,
@@ -703,8 +826,14 @@ def main():
                 if imgs is not None:
                     caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-
+                    wandb.log(
+                        {
+                            "sample (other)": wandb.Image(
+                                to_pil_image(im0), caption=caption
+                            )
+                        },
+                        step=i,
+                    )
 
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
@@ -721,7 +850,11 @@ def main():
         # Save LoRA/HyperLoRA weights each iteration (or move outside loop if you prefer)
         accelerator.wait_for_everyone()
         if is_main:
-            save_dir = os.path.join(args.output_dir, f"rank_{args.lora_rank}_it_{args.iterations}_lr_{args.lr}_sg_{args.start_guidance}_ng_{args.negative_guidance}_ddim_{args.ddim_steps}_" + ("hyper" if use_hyper else "lora"))
+            save_dir = os.path.join(
+                args.output_dir,
+                f"rank_{args.lora_rank}_it_{args.iterations}_lr_{args.lr}_sg_{args.start_guidance}_ng_{args.negative_guidance}_ddim_{args.ddim_steps}_"
+                + ("hyper" if use_hyper else "lora"),
+            )
             os.makedirs(os.path.join(save_dir, "models"), exist_ok=True)
 
             lora_state_dict = {}
