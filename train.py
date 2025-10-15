@@ -89,6 +89,7 @@ def parse_args():
     parser.add_argument("--start_guidance", type=float, default=9.0, help="Starting guidance scale")
     parser.add_argument("--negative_guidance", type=float, default=2.0, help="Negative guidance scale")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
+    parser.add_argument("--internal_lr", type=float, default=1e-4, help="Simulated lr for hypernetwork")
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -602,7 +603,7 @@ def main():
                 pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
                 # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                grads_flat_t = -1 * (1e-4) * pack["grads_flat"].detach()
+                grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
 
                 # --- LIVE anchor at t (no detach!) ---
                 tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -659,7 +660,7 @@ def main():
                     caption = f"target: {sample['target'][0]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-
+                base.current_conditioning = "A photo of a car."
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
