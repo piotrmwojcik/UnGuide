@@ -8,6 +8,47 @@ from functools import partial
 import torch.nn as nn
 
 
+class Attention(nn.Module):
+
+    def __init__(self, clip_size: int, num_chunks: int) -> None:
+        super().__init__()
+
+        assert (
+            clip_size % num_chunks == 0
+        ), f"clip_size ({clip_size}) must be divisible by num_chunks ({num_chunks})"
+
+        self.clip_size = clip_size
+        self.num_chunks = num_chunks
+        self.chunk_dim = clip_size // num_chunks
+
+        self.q_proj = nn.Linear(self.chunk_dim, self.chunk_dim)
+        self.k_proj = nn.Linear(self.chunk_dim, self.chunk_dim)
+        self.v_proj = nn.Linear(self.chunk_dim, self.chunk_dim)
+        self.out_proj = nn.Linear(self.chunk_dim, self.chunk_dim)
+
+        self.scale = math.sqrt(self.chunk_dim)
+
+    def forward(self, prompt, banned):
+        batch_size = prompt.shape[0]
+
+        user_seq = prompt.reshape(batch_size, self.num_chunks, self.chunk_dim)
+        banned_seq = banned.reshape(batch_size, self.num_chunks, self.chunk_dim)
+
+        Q = self.q_proj(user_seq)
+        K = self.k_proj(banned_seq)
+        V = self.v_proj(banned_seq)
+
+        attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
+        attn_weights = torch.softmax(attn_scores, dim=-1)
+
+        attn_output = torch.matmul(attn_weights, V)
+        attn_output = self.out_proj(attn_output)
+
+        output = attn_output.reshape(batch_size, self.clip_size)
+
+        return output, attn_weights
+
+
 class TimeFourier(nn.Module):
 
     def __init__(self, T=151, L=16):  # outputs 2L dims
@@ -21,8 +62,8 @@ class TimeFourier(nn.Module):
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         # t: (B,) int/long
         t = t.to(dtype=torch.float32).unsqueeze(-1)  # (B,1)
-        w = self.freqs.to(dtype=t.dtype)             # (L,)
-        angles = t * w                               # (B,L)
+        w = self.freqs.to(dtype=t.dtype)  # (L,)
+        angles = t * w  # (B,L)
         return torch.cat([angles.cos(), angles.sin()], dim=-1)  # (B, 2L)
 
 
@@ -36,20 +77,20 @@ class HyperLora(nn.Module):
         clip_size: int = 768,
         alpha_init: int = 16.0,
         time_embedd: int = 32,
-        use_scaling=True
+        use_scaling=True,
     ):
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
-        self._dbg_calls = 0   # to avoid spamming
+        self._dbg_calls = 0  # to avoid spamming
         ## it should (?) be shared
-        #self.layers = nn.Sequential(
+        # self.layers = nn.Sequential(
         #    nn.Linear(clip_size, 100),
         #    nn.ReLU(),
-        #)
-        std_dev = 1 / (rank ** 0.5)
+        # )
+        std_dev = 1 / (rank**0.5)
         self.register_buffer(
             "xL_const_flat", torch.rand(1, in_dim * rank) * std_dev, persistent=False
         )
@@ -81,7 +122,7 @@ class HyperLora(nn.Module):
     def forward(self, x, clip, t):
         B = clip.shape[0]
         emb = clip
-        #emb = self.layers(clip)
+        # emb = self.layers(clip)
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
         t_feats = self.time_feat(t_feats).to(x.device)
         emb = torch.cat([emb, t_feats], dim=-1)
@@ -140,11 +181,11 @@ class HyperLoRALinear(nn.Module):
             clip_embedding = parent.current_conditioning
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
-        #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
+        # if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
         #    clip_embedding = clip_embedding[0]
 
         # Take the mean of the sequence of embeddings
-        #if clip_embedding.dim() == 2:
+        # if clip_embedding.dim() == 2:
         #    clip_embedding = clip_embedding.mean(dim=0)
 
         return self.original(x) + self.hyper_lora(x, clip_embedding, parent.time_step)
