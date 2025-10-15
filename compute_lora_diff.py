@@ -5,6 +5,7 @@ import torch
 import torch
 import math
 import numpy as np
+from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
 from functools import partial
 import time
@@ -96,9 +97,9 @@ def main():
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=768,
+        clip_size=1536,
         rank=1,
-        alpha=8,
+        alpha=0.001,
     )
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
@@ -107,6 +108,8 @@ def main():
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
 
     updated = 0
     skipped = []
@@ -182,10 +185,28 @@ def main():
                     verbose=False,
                 )
 
-                # Compute epsilon predictions for both models
-                model.current_conditioning = cond
+                def encode(text: str):
+                    return (
+                        tokenizer(
+                            text,
+                            max_length=tokenizer.model_max_length,
+                            padding="max_length",
+                            truncation=True,
+                            return_tensors="pt",
+                        )
+                            .to(args.device)
+                            .input_ids
+                    )
+
+                t_prompt = (
+                    encode(data.get("target")),
+                    encode(data.get("reference")),
+                )
+
+                model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
+                                              clip_text_encoder(t_prompt[1]).pooler_output.detach())
                 eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
-                model.current_conditioning = cond_orig
+                #model.current_conditioning = cond_orig
                 eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
 
                 # Compute norm of the difference and record it

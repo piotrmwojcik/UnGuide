@@ -3,6 +3,7 @@ import json
 import argparse
 import torch
 from functools import partial
+from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from utils import load_model_from_config, apply_lora_to_model, set_seed
 from torchvision.transforms.functional import to_pil_image
@@ -16,7 +17,7 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Auto-guided image generation with Stable Diffusion and LoRA"    )
+        description="Auto-guided image generation with Stable Diffusion and LoRA")
     parser.add_argument(
         "--config", type=str, default="./configs/stable-diffusion/v1-inference.yaml",
         help="path to model config file"
@@ -68,11 +69,13 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def decide_w(prompt, prompt_empty, w1=-1, w2=2):
     return w1 if prompt > prompt_empty else w2
 
+
 def generate_image(
-    sampler, auto_model, start_code, cond, uncond, steps
+        sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
         samples, _ = sampler.sample(
@@ -98,17 +101,20 @@ if __name__ == "__main__":
 
     args = parse_args()
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+
+
     exps = os.listdir(args.output_dir)
     print(f"Exps: {exps}", flush=True)
     for exp in exps:
         exp_filepath = os.path.join(args.output_dir, exp)
         img_root = os.path.join(args.output_dir, exp, "images")
         lora_filepath = os.path.join(exp_filepath, "models", "hyper_lora.pth")
-       
 
         diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
         train_json_path = os.path.join(exp_filepath, "train_config.json")
-        
+
         with open(diff_results_path, 'r') as f:
             results = json.load(f)
 
@@ -123,7 +129,7 @@ if __name__ == "__main__":
         prompts = prompts[:-1]
         print("Prompts: ", prompts, flush=True)
 
-         # collect all valid subfolders
+        # collect all valid subfolders
         subs = [
             d for d in os.listdir(img_root)
             if os.path.isdir(os.path.join(img_root, d))
@@ -134,14 +140,14 @@ if __name__ == "__main__":
             path = os.path.join(img_root, sub)
             imgs = [
                 f for f in os.listdir(path)
-                if f.lower().endswith(('.png','.jpg','.jpeg','.bmp','.tiff'))
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))
             ]
             counts.append(len(imgs))
 
         if len(prompts) * args.samples == sum(counts):
             print(f"Skip: {exp}", flush=True)
             continue
-            
+
         print(f"Exp: {exp}", flush=True)
         # Load models
         model_full = load_model_from_config(
@@ -155,9 +161,9 @@ if __name__ == "__main__":
         lora_sd = torch.load(lora_filepath, map_location=args.device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
-            clip_size=768,
+            clip_size=768 * 2,
             rank=1,
-            alpha=8,
+            alpha=0.00001,
         )
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
@@ -206,7 +212,7 @@ if __name__ == "__main__":
             # Conditioning
             cond = auto_model.get_learned_conditioning([prompt])
             uncond = auto_model.get_learned_conditioning([""])
-                
+
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
@@ -225,13 +231,37 @@ if __name__ == "__main__":
                 gen = torch.Generator(device=args.device).manual_seed(seed)
 
                 start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
-                model_unl.current_conditioning = cond
+
+
+                def encode(text: str):
+                    return (
+                        tokenizer(
+                            text,
+                            max_length=tokenizer.model_max_length,
+                            padding="max_length",
+                            truncation=True,
+                            return_tensors="pt",
+                        )
+                            .to(args.device)
+                            .input_ids
+                    )
+
+                print(data.get("target"), data.get("reference"))
+
+                t_prompt = (
+                    encode(data.get("target")),
+                    encode(data.get("reference")),
+                )
+
+                model_unl.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
+                                              clip_text_encoder(t_prompt[1]).pooler_output.detach())
+
                 img = generate_image(
                     sampler, auto_model, start_code, cond, uncond, args.steps
                 )
                 img_np = img[0].cpu().permute(1, 2, 0).numpy()
                 img_pil = to_pil_image((img_np * 255).astype(np.uint8))
-                
+
                 img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
                 end = time.time()
                 print(f"Generate: {end - start}", flush=True)

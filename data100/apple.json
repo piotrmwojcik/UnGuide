@@ -1,0 +1,21 @@
+{
+  "target": "an photo of the apple",
+  "reference": "a photo of the forest",
+  "synonyms": [
+    "a photo of the malus",
+    "a photo of the pippin",
+    "a photo of the granny smith"
+  ],
+  "other": [
+    "a photo of the tiger",
+    "a photo of the dolphin",
+    "a photo of the possum",
+    "a photo of the mushroom",
+    "a photo of the tank",
+    "a photo of the wardrobe",
+    "a photo of the bicycle",
+    "a photo of the road",
+    "a photo of the rabbit",
+    "a photo of the skyscraper"
+  ]
+}
