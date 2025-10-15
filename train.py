@@ -584,6 +584,9 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
+                    alpha = random.uniform(0.0, 0.20)
+                    base.current_conditioning = (1- alpha) * cond_target + alpha * inputs_cat
+
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
@@ -683,7 +686,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: {sample['target'][0]}"
+                    caption = f"target: cat"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other
