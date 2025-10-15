@@ -584,7 +584,6 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
-                    print('!!!')
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
