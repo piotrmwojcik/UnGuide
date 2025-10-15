@@ -565,10 +565,12 @@ def main():
 
             inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            inputs_other = encode("A photo of a car.")
+            inputs_other = encode("a photo of the car")
+            inputs_cat = encode("a photo of the cat")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
+                cond_cat = clip_text_encoder(inputs_cat).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
@@ -581,7 +583,8 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                if 'neutral' in sample['file']:
+                if 'neutral.json' in sample['file']:
+                    print('!!!')
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -669,10 +672,11 @@ def main():
                 and sample_ids == 0
             ):
                 base.time_step = 150
+                base.current_conditioning = cond_cat
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=sample["target"][0],
+                    prompt="a photo of the cat",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
@@ -686,7 +690,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="car",
+                    prompt="a photo of the car",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
