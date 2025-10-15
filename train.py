@@ -564,7 +564,7 @@ def main():
                 )
 
             inputs = encode(sample["target"])
-            print('!!! ', sample["target"])
+            #print('!!! ', sample["target"])
             inputs_other = encode("A photo of a car.")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
