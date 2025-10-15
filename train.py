@@ -586,7 +586,7 @@ def main():
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
                     alpha = random.uniform(0.0, 0.20)
-                    base.current_conditioning = (1- alpha) * cond_target + alpha * inputs_cat
+                    base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
