@@ -123,6 +123,20 @@ def parse_args():
     return parser.parse_args()
 
 
+CIFAR100 = [
+    'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
+    'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
+    'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
+    'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
+    'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','mountain',
+    'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pickup truck','pine tree',
+    'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
+    'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
+    'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
+    'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
+]
+
+
 def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_eta: float):
     """Create a quick sampling function with fixed parameters"""
     return lambda conditioning, scale, start_code, till_T: sample_model(
@@ -585,8 +599,12 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
-                    alpha = random.uniform(0.0, 0.20)
-                    base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
+                    cifar_100_category = random.choice(CIFAR100)
+                    cifar_100_prompt = f"A photo of the {cifar_100_category}"
+                    inputs_cifar_100 = encode(cifar_100_prompt)
+                    with torch.no_grad():
+                        base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
+                    #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
