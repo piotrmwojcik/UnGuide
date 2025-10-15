@@ -564,8 +564,10 @@ def main():
                 )
 
             inputs = (encode(sample["target"]), encode(sample["reference"]))
+            inputs_other = encode("A photo of a car.")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs[0]).pooler_output.detach()
+                cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
@@ -660,7 +662,7 @@ def main():
                     caption = f"target: {sample['target'][0]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = "A photo of a car."
+                base.current_conditioning = cond_other
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
