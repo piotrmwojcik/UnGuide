@@ -563,10 +563,11 @@ def main():
                     .input_ids
                 )
 
-            inputs = (encode(sample["target"]), encode(sample["reference"]))
+            inputs = encode(sample["target"])
+            print('!!! ', sample["target"])
             inputs_other = encode("A photo of a car.")
             with torch.no_grad():
-                cond_target = clip_text_encoder(inputs[0]).pooler_output.detach()
+                cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
