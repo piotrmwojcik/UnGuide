@@ -32,6 +32,7 @@ def collate_prompts(batch):
         "reference": [b["reference"] for b in batch],
     }
 
+
 if __name__ == "__main__":
     data_dir = "/Users/piotrwojcik/PycharmProjects/UnGuide/data"  # <-- change me
 

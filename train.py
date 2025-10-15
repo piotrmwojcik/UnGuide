@@ -536,6 +536,7 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
+
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
             emb_p = base.get_learned_conditioning(sample["target"])
@@ -580,67 +581,86 @@ def main():
                 (1, 4, args.image_size // 8, args.image_size // 8),
                 device=accelerator.device
             )
-            with accelerator.accumulate(model):  # pass the WRAPPED model here
-                with torch.no_grad():
-                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
-                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
+            with accelerator.accumulate(model):
+                if 'neutral' in sample['file']:
+                    emb_cat = base.get_learned_conditioning("A photo of the cat")
+                    _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
+                    tensors_flat_t_live = flatten_live_tensors(model, accelerator)
+                    base.time_step = base.time_step + 1
+                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
+                    tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+                    delta_live = tensors_flat_t1_live - tensors_flat_t_live
+                    loss = (delta_live ** 2).mean()
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    accelerator.backward(loss_for_backward)
 
-                # prediction for trainable model (needs grads)
-                e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
+                    # ---- OPTIMIZER STEP (only on last micro-step) ----
+                    if accelerator.sync_gradients:
+                        # (optional) gradient clipping
+                        # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                        optimizer.step()
+                        optimizer.zero_grad(set_to_none=True)
+                else:
+                    with torch.no_grad():
+                        z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                        e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
+                        e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
-                # targets and loss
-                e_0.requires_grad_(False)
-                e_p.requires_grad_(False)
-                target = e_0 - (args.negative_guidance * (e_p - e_0))
-                loss = criterion(e_n, target)  # per-rank scalar tensor
+                    # prediction for trainable model (needs grads)
+                    e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
 
-                # ---- BACKWARD (per micro-step) ----
-                # Scale the loss for gradient accumulation so the effective grad equals the true average
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward, retain_graph=True)
-                base = accelerator.unwrap_model(model)
-                dev = next(base.parameters()).device
+                    # targets and loss
+                    e_0.requires_grad_(False)
+                    e_p.requires_grad_(False)
+                    target = e_0 - (args.negative_guidance * (e_p - e_0))
+                    loss = criterion(e_n, target)  # per-rank scalar tensor
 
-                recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-                pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
+                    # ---- BACKWARD (per micro-step) ----
+                    # Scale the loss for gradient accumulation so the effective grad equals the true average
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    accelerator.backward(loss_for_backward, retain_graph=True)
+                    base = accelerator.unwrap_model(model)
+                    dev = next(base.parameters()).device
 
-                # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
+                    recs = collect_hyperlora_tensors_and_grads(model, accelerator)
+                    pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
-                # --- LIVE anchor at t (no detach!) ---
-                tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
+                    # Target step: Δθ ≈ -lr * g_t  (keep target detached)
+                    grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
 
-                # Clear grads before the next forward
-                #optimizer.zero_grad(set_to_none=True)
-                for _, hl in _iter_hyperlora_layers(base):
-                    xL = getattr(hl, "_last_x_L", None)
-                    xR = getattr(hl, "_last_x_R", None)
-                    if xL is not None: xL.grad = None
-                    if xR is not None: xR.grad = None
+                    # --- LIVE anchor at t (no detach!) ---
+                    tensors_flat_t_live = flatten_live_tensors(model, accelerator)
+                    #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
 
-                # Advance time and run forward to populate new live tensors
-                base.time_step = base.time_step + 1
-                _ = base.apply_model(z, t_enc_ddpm, emb_n)
+                    # Clear grads before the next forward
+                    #optimizer.zero_grad(set_to_none=True)
+                    for _, hl in _iter_hyperlora_layers(base):
+                        xL = getattr(hl, "_last_x_L", None)
+                        xR = getattr(hl, "_last_x_R", None)
+                        if xL is not None: xL.grad = None
+                        if xR is not None: xR.grad = None
 
-                # LIVE vector at t+1 (keeps graph)
-                tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+                    # Advance time and run forward to populate new live tensors
+                    base.time_step = base.time_step + 1
+                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
-                # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-                delta_live = tensors_flat_t1_live - tensors_flat_t_live
+                    # LIVE vector at t+1 (keeps graph)
+                    tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
-                # e.g., MSE to the target step
-                loss = criterion(delta_live, grads_flat_t)
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward)
+                    # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
+                    delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
-                # ---- OPTIMIZER STEP (only on last micro-step) ----
-                if accelerator.sync_gradients:
-                    # (optional) gradient clipping
-                    # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
+                    # e.g., MSE to the target step
+                    loss = criterion(delta_live, grads_flat_t)
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    accelerator.backward(loss_for_backward)
+
+                    # ---- OPTIMIZER STEP (only on last micro-step) ----
+                    if accelerator.sync_gradients:
+                        # (optional) gradient clipping
+                        # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                        optimizer.step()
+                        optimizer.zero_grad(set_to_none=True)
             # Optional image logging
             if (
                 is_main
