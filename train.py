@@ -536,7 +536,7 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
-
+            print('!!!!!!!', sample['file'])
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
             emb_p = base.get_learned_conditioning(sample["target"])
@@ -583,7 +583,6 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral' in sample['file']:
-                    print('!!!!!!!')
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
