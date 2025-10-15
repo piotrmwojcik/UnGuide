@@ -583,6 +583,7 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral' in sample['file']:
+                    print('!!!!!!!')
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
