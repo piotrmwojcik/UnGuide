@@ -581,10 +581,12 @@ def main():
             inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
+            inputs_other2 = encode("a photo of the castle")
             inputs_cat = encode("a photo of the cat")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
+                cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 cond_cat = clip_text_encoder(inputs_cat).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
@@ -622,7 +624,6 @@ def main():
                     if accelerator.sync_gradients:
                         # (optional) gradient clipping
                         # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                        print('step ', loss_for_backward)
                         optimizer.step()
                         optimizer.zero_grad(set_to_none=True)
                 else:
@@ -723,6 +724,20 @@ def main():
                     caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                base.current_conditioning = cond_other2
+                imgs = generate_and_save_sd_images(
+                    model=base,
+                    sampler=sampler,
+                    prompt="a photo of the car",
+                    device=accelerator.device,
+                    steps=50,
+                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    prefix=f"unl_{i}_",
+                )
+                if imgs is not None:
+                    caption = f"target: car"
+                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                    wandb.log({"sample (other) from castle": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
 
             with torch.no_grad():
