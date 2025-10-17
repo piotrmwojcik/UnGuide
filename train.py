@@ -603,6 +603,7 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
+                    base.time_step = 148
                     cifar_100_category = random.choice(CIFAR100)
                     cifar_100_prompt = f"A photo of the {cifar_100_category}"
                     inputs_cifar_100 = encode(cifar_100_prompt)
@@ -618,7 +619,7 @@ def main():
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 2.0 * (delta_live ** 2).mean()
+                    loss = (delta_live ** 2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward)
 
