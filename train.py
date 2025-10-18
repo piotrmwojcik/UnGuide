@@ -739,6 +739,7 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other2
+                base.time_step = 0
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
