@@ -73,6 +73,7 @@ class HyperLora(nn.Module):
         return self.xL_const_flat + t / 150 * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
+        print('!!! ', t)
         return self.xR_const_flat + t / 150 * self.right_head(emb)
 
     def forward_alpha(self, t):
