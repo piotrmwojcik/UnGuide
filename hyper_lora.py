@@ -73,7 +73,6 @@ class HyperLora(nn.Module):
         return self.xL_const_flat + t / 150 * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
-        print('!!! ', t)
         return self.xR_const_flat + t / 150 * self.right_head(emb)
 
     def forward_alpha(self, t):
@@ -101,6 +100,9 @@ class HyperLora(nn.Module):
         # stash references so you can read .grad later
         self._last_x_L = x_L
         self._last_x_R = x_R
+
+        if t == 0:
+            print((x @ x_L) @ x_R)
 
         return (x @ x_L) @ x_R
 
