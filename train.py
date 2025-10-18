@@ -615,12 +615,17 @@ def main():
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
+                    with torch.no_grad():
+                        l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
+                    accelerator.print(f"||tensors_flat_t_live||_2 = {l2:.6f}")
+
                     base.time_step = 150
                     _ = base.apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    print('!!!! ', loss_for_backward)
                     accelerator.backward(loss_for_backward)
 
                     # ---- OPTIMIZER STEP (only on last micro-step) ----
