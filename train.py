@@ -710,7 +710,6 @@ def main():
                             {"lr_group": lrs_after[0]},  # include your custom step metric if you use it in the UI
                             step=i
                         )
-                        wandb.log({"dupa": 1.0}, step=i)
             # Optional image logging
             if (
                 accelerator.is_local_main_process
