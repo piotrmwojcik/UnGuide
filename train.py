@@ -708,8 +708,8 @@ def main():
                         accelerator.log(
                             {**{f"lr/group{gi}": v for gi, v in enumerate(lrs_after)},
                                 "iter": i},  # include your custom step metric if you use it in the UI
-                            step=global_step
-                        )# single log call
+                            step=i
+                        )
             # Optional image logging
             if (
                 accelerator.is_local_main_process
