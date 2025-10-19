@@ -487,6 +487,9 @@ def main():
         p.requires_grad = False
     model_orig.eval()
 
+    for p in model.model.diffusion_model.parameters():
+        p.requires_grad = False
+
     # Add attribute used downstream
     model.current_conditioning = None
 
