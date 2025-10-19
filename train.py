@@ -557,6 +557,9 @@ def main():
     criterion = torch.nn.MSELoss()
     losses = []
 
+    last_lrs_before = None
+    last_lrs_after = None
+
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
@@ -755,7 +758,6 @@ def main():
                     caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) from castle": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-
 
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
