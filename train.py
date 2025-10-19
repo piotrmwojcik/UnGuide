@@ -629,7 +629,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                    print('!!!! ', loss_for_backward)
+                    #print('!!!! ', loss_for_backward)
                     accelerator.backward(loss_for_backward)
 
                     # ---- OPTIMIZER STEP (only on last micro-step) ----
