@@ -607,7 +607,7 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
-                    base.time_step = 0
+                    base.time_step = 1
                     cifar_100_category = random.choice(CIFAR100)
                     cifar_100_prompt = f"A photo of the {cifar_100_category}"
                     inputs_cifar_100 = encode(cifar_100_prompt)
@@ -627,10 +627,10 @@ def main():
                     _ = base.apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    #loss = (delta_live ** 2).mean()
-                    #loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    loss = (delta_live ** 2).mean()
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     #print('!!!! ', loss_for_backward)
-                    #accelerator.backward(loss_for_backward)
+                    accelerator.backward(loss_for_backward)
 
                     # ---- OPTIMIZER STEP (only on last micro-step) ----
                     if accelerator.sync_gradients:
@@ -690,9 +690,9 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    #loss = criterion(delta_live, grads_flat_t)
-                    #loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                    #accelerator.backward(loss_for_backward)
+                    loss = criterion(delta_live, grads_flat_t)
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    accelerator.backward(loss_for_backward)
 
                     # ---- OPTIMIZER STEP (only on last micro-step) ----
                     if accelerator.sync_gradients:
