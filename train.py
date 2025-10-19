@@ -610,7 +610,7 @@ def main():
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
-                    base.time_step = 1
+                    base.time_step = 0
                     cifar_100_category = random.choice(CIFAR100)
                     cifar_100_prompt = f"A photo of the {cifar_100_category}"
                     inputs_cifar_100 = encode(cifar_100_prompt)
