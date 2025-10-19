@@ -154,7 +154,7 @@ class HyperLoRALinear(nn.Module):
                 print("[original] Trainable parameters:")
                 for name, p in self.original.named_parameters():
                     if p.requires_grad:
-                        print(f"  - {name:50s} shape={tuple(p.shape)}  numel={p.numel():,}")
+                        print(f"  - {name} shape={tuple(p.shape)}  numel={p.numel():,}")
                         total += p.numel()
                 print(f"[original] Total trainable params: {total:,}")
                 self._printed_original_trainables = True
