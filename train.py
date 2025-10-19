@@ -706,8 +706,7 @@ def main():
                     accelerator.print(f"[iter {i}] LR after sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
                     if accelerator.is_local_main_process and args.use_wandb:
                         wandb.log(
-                            {**{f"lr/group{gi}": v for gi, v in enumerate(lrs_after)},
-                                "iter": i},  # include your custom step metric if you use it in the UI
+                            {**{f"lr/group{gi}": v[0] for gi, v in enumerate(lrs_after)}},  # include your custom step metric if you use it in the UI
                             step=i
                         )
                         wandb.log({"dupa": 1.0}, step=i)
