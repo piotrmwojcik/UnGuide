@@ -639,7 +639,7 @@ def main():
                     if accelerator.sync_gradients:
                         # (optional) gradient clipping
                         # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                        #optimizer.step()
+                        optimizer.step()
                         optimizer.zero_grad(set_to_none=True)
                         #scheduler.step()
                 else:
