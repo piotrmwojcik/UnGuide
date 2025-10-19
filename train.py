@@ -704,7 +704,10 @@ def main():
 
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after  sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
-            print('!!! ', lrs_after)
+
+                    for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
+                        wandb.log({f"lr/group{gi}_before": lr_b,
+                                   f"lr/group{gi}_after": lr_a}, step=i)
             # Optional image logging
             if (
                 is_main
@@ -766,10 +769,6 @@ def main():
             losses.append(loss_value)
 
             if is_main and args.use_wandb:
-                for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
-                    print(f'!!! lr/group{gi}_before')
-                    wandb.log({f"lr/group{gi}_before": lr_b,
-                               f"lr/group{gi}_after": lr_a}, step=i)
                 wandb.log({"loss": loss_value}, step=i)
 
             if accelerator.is_local_main_process:
