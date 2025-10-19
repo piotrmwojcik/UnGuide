@@ -740,6 +740,7 @@ def main():
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other2
                 base.time_step = 0
+                print('!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
