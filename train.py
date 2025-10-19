@@ -704,7 +704,7 @@ def main():
 
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after  sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
-                    if is_main and args.use_wandb:
+                    if accelerator.is_local_main_process and args.use_wandb:
                         log = {}
                         for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
                             log[f"lr/group{gi}_before"] = lr_b
@@ -712,7 +712,7 @@ def main():
                         wandb.log(log, step=i)  # single log call
             # Optional image logging
             if (
-                is_main
+                accelerator.is_local_main_process
                 and args.use_wandb
                 and i >= args.log_from
                 and i % 10 == 0
@@ -770,7 +770,7 @@ def main():
             loss_value = float(loss_reduced.item())
             losses.append(loss_value)
 
-            if is_main and args.use_wandb:
+            if accelerator.is_local_main_process and args.use_wandb:
                 wandb.log({"loss": loss_value}, step=i)
 
             if accelerator.is_local_main_process:
@@ -778,7 +778,7 @@ def main():
 
         # Save LoRA/HyperLoRA weights each iteration (or move outside loop if you prefer)
         accelerator.wait_for_everyone()
-        if is_main:
+        if accelerator.is_local_main_process:
             save_dir = os.path.join(args.output_dir, f"rank_{args.lora_rank}_it_{args.iterations}_lr_{args.lr}_sg_{args.start_guidance}_ng_{args.negative_guidance}_ddim_{args.ddim_steps}_" + ("hyper" if use_hyper else "lora"))
             os.makedirs(os.path.join(save_dir, "models"), exist_ok=True)
 
@@ -794,7 +794,7 @@ def main():
             accelerator.save(lora_state_dict, lora_path)
 
     # Wrap up
-    if is_main:
+    if accelerator.is_local_main_process:
         print("Training completed!")
         if losses:
             print(f"Final loss: {losses[-1]:.6f}")
@@ -823,7 +823,7 @@ def main():
         with open(os.path.join(run_dir, "train_config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
-    if is_main and args.use_wandb:
+    if accelerator.is_local_main_process and args.use_wandb:
         wandb.finish()
 
 
