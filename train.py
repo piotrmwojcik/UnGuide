@@ -517,7 +517,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=0.1
+        optimizer, milestones=[300], gamma=0.5
     )
 
     # Prepare for DDP / Mixed precision
@@ -633,15 +633,7 @@ def main():
                     loss = (delta_live ** 2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     #print('!!!! ', loss_for_backward)
-                    accelerator.backward(loss_for_backward)
 
-                    # ---- OPTIMIZER STEP (only on last micro-step) ----
-                    if accelerator.sync_gradients:
-                        # (optional) gradient clipping
-                        # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                        optimizer.step()
-                        optimizer.zero_grad(set_to_none=True)
-                        scheduler.step()
                 else:
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
@@ -695,15 +687,22 @@ def main():
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                    accelerator.backward(loss_for_backward)
+                accelerator.backward(loss_for_backward)
 
-                    # ---- OPTIMIZER STEP (only on last micro-step) ----
-                    if accelerator.sync_gradients:
-                        # (optional) gradient clipping
-                        # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                        optimizer.step()
-                        optimizer.zero_grad(set_to_none=True)
-                        scheduler.step()
+                # ---- OPTIMIZER STEP (only on last micro-step) ----
+                if accelerator.sync_gradients:
+                    lrs_before = [pg["lr"] for pg in optimizer.param_groups]
+                    accelerator.print(f"[iter {i}] LR before sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_before))
+
+                    # (optional) gradient clipping
+                    # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    scheduler.step()
+
+                    lrs_after = [pg["lr"] for pg in optimizer.param_groups]
+                    accelerator.print(f"[iter {i}] LR after  sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
+
             # Optional image logging
             if (
                 is_main
@@ -766,6 +765,10 @@ def main():
             losses.append(loss_value)
 
             if is_main and args.use_wandb:
+                for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
+                    wandb.log({f"lr/group{gi}_before": lr_b,
+                               f"lr/group{gi}_after": lr_a,
+                               "iter": i}, step=i)
                 wandb.log({"loss": loss_value, "iter": i}, step=i)
 
             if accelerator.is_local_main_process:
