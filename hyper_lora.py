@@ -101,9 +101,6 @@ class HyperLora(nn.Module):
         self._last_x_L = x_L
         self._last_x_R = x_R
 
-        if t == 0:
-            print((x @ x_L) @ x_R)
-
         return (x @ x_L) @ x_R
 
 
