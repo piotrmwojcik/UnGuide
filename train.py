@@ -633,7 +633,6 @@ def main():
                     loss = (delta_live ** 2).mean()
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     #print('!!!! ', loss_for_backward)
-
                 else:
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
@@ -767,9 +766,8 @@ def main():
             if is_main and args.use_wandb:
                 for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
                     wandb.log({f"lr/group{gi}_before": lr_b,
-                               f"lr/group{gi}_after": lr_a,
-                               "iter": i}, step=i)
-                wandb.log({"loss": loss_value, "iter": i}, step=i)
+                               f"lr/group{gi}_after": lr_a}, step=i)
+                wandb.log({"loss": loss_value}, step=i)
 
             if accelerator.is_local_main_process:
                 pbar.set_postfix({"loss": f"{loss_value:.6f}"})
