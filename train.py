@@ -705,8 +705,11 @@ def main():
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
                     if accelerator.is_local_main_process and args.use_wandb:
-                        for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
-                            wandb.log({f"lr/group{gi}": lr_a}, step=i)  # single log call
+                        accelerator.log(
+                            {**{f"lr/group{gi}": v for gi, v in enumerate(lrs_after)},
+                                "iter": i},  # include your custom step metric if you use it in the UI
+                            step=global_step
+                        )# single log call
             # Optional image logging
             if (
                 accelerator.is_local_main_process
