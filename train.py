@@ -707,10 +707,8 @@ def main():
                     if is_main and args.use_wandb:
                         log = {}
                         for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
-                            #print('!!! ', lr_b, lr_a)  # will print floats
                             log[f"lr/group{gi}_before"] = lr_b
                             log[f"lr/group{gi}_after"] = lr_a
-                        log["iter"] = i
                         wandb.log(log, step=i)  # single log call
             # Optional image logging
             if (
