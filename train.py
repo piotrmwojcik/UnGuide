@@ -712,7 +712,7 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
-                base.time_step = 0
+                base.time_step = 150
                 base.current_conditioning = cond_cat
                 imgs = generate_and_save_sd_images(
                     model=base,
@@ -742,8 +742,8 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other2
-                base.time_step = 0
-                print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
+                #base.time_step = 0
+                #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
