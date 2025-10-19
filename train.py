@@ -707,7 +707,7 @@ def main():
                     if accelerator.is_local_main_process and args.use_wandb:
                         assert len(lrs_after) == 1
                         wandb.log(
-                            {f"lr/group": lrs_after[0]},  # include your custom step metric if you use it in the UI
+                            {"lr_group": lrs_after[0]},  # include your custom step metric if you use it in the UI
                             step=i
                         )
                         wandb.log({"dupa": 1.0}, step=i)
