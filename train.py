@@ -619,8 +619,8 @@ def main():
                     emb_cat = base.get_learned_conditioning("A photo of the cat")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    with torch.no_grad():
-                        l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
+                    #with torch.no_grad():
+                    #    l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
                     #accelerator.print(f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
                     base.time_step = 150
@@ -709,7 +709,7 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
-                base.time_step = 150
+                base.time_step = 0
                 base.current_conditioning = cond_cat
                 imgs = generate_and_save_sd_images(
                     model=base,
