@@ -517,7 +517,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[100], gamma=0.1
+        optimizer, milestones=[300], gamma=0.1
     )
 
     # Prepare for DDP / Mixed precision
@@ -641,7 +641,7 @@ def main():
                         # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
                         optimizer.step()
                         optimizer.zero_grad(set_to_none=True)
-                        #scheduler.step()
+                        scheduler.step()
                 else:
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
@@ -703,7 +703,7 @@ def main():
                         # accelerator.clip_grad_norm_(model.parameters(), max_norm=1.0)
                         optimizer.step()
                         optimizer.zero_grad(set_to_none=True)
-                        #scheduler.step()
+                        scheduler.step()
             # Optional image logging
             if (
                 is_main
