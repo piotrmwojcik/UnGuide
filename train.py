@@ -767,6 +767,7 @@ def main():
 
             if is_main and args.use_wandb:
                 for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
+                    print(f'!!! lr/group{gi}_before')
                     wandb.log({f"lr/group{gi}_before": lr_b,
                                f"lr/group{gi}_after": lr_a}, step=i)
                 wandb.log({"loss": loss_value}, step=i)
