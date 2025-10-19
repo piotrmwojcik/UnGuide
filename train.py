@@ -705,6 +705,7 @@ def main():
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after  sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
                     if is_main and args.use_wandb:
+                        print(lrs_after)
                         for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
                             wandb.log({f"lr/group{gi}_before": lr_b,
                                         f"lr/group{gi}_after": lr_a}, step=i)
