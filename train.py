@@ -705,8 +705,9 @@ def main():
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
                     if accelerator.is_local_main_process and args.use_wandb:
+                        assert len(lrs_after) == 1
                         wandb.log(
-                            {**{f"lr/group{gi}": v[0] for gi, v in enumerate(lrs_after)}},  # include your custom step metric if you use it in the UI
+                            {f"lr/group": lrs_after[0]},  # include your custom step metric if you use it in the UI
                             step=i
                         )
                         wandb.log({"dupa": 1.0}, step=i)
