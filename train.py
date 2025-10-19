@@ -707,8 +707,7 @@ def main():
                     if accelerator.is_local_main_process and args.use_wandb:
                         log = {}
                         for gi, (lr_b, lr_a) in enumerate(zip(lrs_before, lrs_after)):
-                            log[f"lr/group{gi}_before"] = lr_b
-                            log[f"lr/group{gi}_after"] = lr_a
+                            log[f"lr/group{gi}"] = lr_a
                             wandb.log(log, step=i)  # single log call
             # Optional image logging
             if (
