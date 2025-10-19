@@ -38,7 +38,7 @@ def get_models(config_path: str, ckpt_path: str, device: str):
     return model_orig, sampler_orig, model, sampler
 
 
-def print_trainable_parameters(model, max_params: int = 10):
+def print_trainable_parameters(model, max_params: int = 50):
     """Print the first few trainable parameters"""
     print(f"First {max_params} layers with requires_grad == True:")
     count = 0
