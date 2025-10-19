@@ -147,7 +147,7 @@ class HyperLoRALinear(nn.Module):
         #if clip_embedding.dim() == 2:
         #    clip_embedding = clip_embedding.mean(dim=0)
         #print(self.original(x).shape, self.hyper_lora(x, clip_embedding, parent.time_step).shape)
-        if t == parent.time_step:
+        if parent.time_step == 0:
             return self.original
         return self.original(x) + self.hyper_lora(x, clip_embedding, parent.time_step)
 
