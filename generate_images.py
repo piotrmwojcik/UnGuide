@@ -3,7 +3,7 @@ import json
 import argparse
 import torch
 import torch.nn as nn
-from train import create_quick_sampler, _iter_hyperlora_layers, _LIVE_GETTERS
+from train import create_quick_sampler, _iter_hyperlora_layers
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -110,6 +110,10 @@ def flatten_live_tensors(model: nn.Module) -> torch.Tensor:
 m    This preserves autograd so loss can backprop through them.
     """
     parts: List[torch.Tensor] = []
+
+    _LIVE_GETTERS = [
+        ("x_L", lambda hl: getattr(hl, "_last_x_L", None)),
+    ]
 
     for _, hl in _iter_hyperlora_layers(model):
         for _, getter in _LIVE_GETTERS:
