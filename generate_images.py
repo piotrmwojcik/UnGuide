@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
-                device=accelerator.device
+                device=model_unl.device
             )
             z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
             inputs = tokenizer(
