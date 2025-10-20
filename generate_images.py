@@ -268,7 +268,7 @@ if __name__ == "__main__":
                     vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
                 l2 = vec.norm(p=2).item()
 
-            accelerator.print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+            print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
             #    w1=args.w1, w2=args.w2
