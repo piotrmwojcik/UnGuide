@@ -3,7 +3,7 @@ import json
 import argparse
 import torch
 import torch.nn as nn
-from train import create_quick_sampler
+from train import create_quick_sampler, _iter_hyperlora_layers
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
