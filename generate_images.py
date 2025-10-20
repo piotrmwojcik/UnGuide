@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
                 start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
                 inputs = tokenizer(
-                    prompts[0],
+                    prompt,
                     max_length=tokenizer.model_max_length,
                     padding="max_length",
                     truncation=True,
