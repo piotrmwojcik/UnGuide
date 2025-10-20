@@ -59,6 +59,8 @@ def parse_args():
         "--steps", type=int, default=50,
         help="number of sampling steps"
     )
+    parser.add_argument("--start_guidance", type=float, default=9.0,
+                        help="Starting guidance scale")
     parser.add_argument("--image_size", type=int, default=512,
                         help="Image size for training")
     parser.add_argument("--ddim_steps", type=int, default=50,
@@ -205,6 +207,40 @@ if __name__ == "__main__":
             if len(os.listdir(class_root)) == args.samples:
                 continue
 
+            # Conditioning
+            cond = model_unl.get_learned_conditioning([prompt])
+            uncond = model_unl.get_learned_conditioning([""])
+
+            sampler_unl = DDIMSampler(model=model_unl)
+            quick_sampler = create_quick_sampler(model_unl, sampler_unl,
+                                                 args.image_size, args.ddim_steps, args.ddim_eta)
+
+            t_enc = torch.randint(args.ddim_steps, (1,), device=model_unl.device)
+            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=model_unl.device)
+
+            start_code = torch.randn(
+                (1, 4, args.image_size // 8, args.image_size // 8),
+                device=accelerator.device
+            )
+            z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+            inputs = tokenizer(
+                prompt,
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(args.device).input_ids
+
+            t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+            model_unl.current_conditioning = t_prompt
+            model_unl.time_step = 150
+
+            _ = model_unl.apply_model(z, t_enc_ddpm, cond)
+            tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
             #    w1=args.w1, w2=args.w2
@@ -216,19 +252,11 @@ if __name__ == "__main__":
             ).eval()
             sampler = DDIMSampler(model=auto_model)
 
-            quick_sampler = create_quick_sampler(auto_model, sampler,
-                                                 args.image_size, args.ddim_steps, args.ddim_eta)
-
-            # Conditioning
-            cond = auto_model.get_learned_conditioning([prompt])
-            uncond = auto_model.get_learned_conditioning([""])
 
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
-            _ = model_unl.apply_model(z, t_enc_ddpm, emb_cat)
-            tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
             for idx in tqdm(range(args.samples), desc="Generating images"):
                 start = time.time()
