@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import torch
-from train import create_quick_sampler, flatten_live_tensors
+from train import create_quick_sampler
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -102,6 +102,26 @@ def generate_image(
         decoded = (decoded + 1.0) / 2.0
         decoded = torch.clamp(decoded, 0.0, 1.0)
     return decoded
+
+
+def flatten_live_tensors(model: nn.Module) -> torch.Tensor:
+    """
+m    This preserves autograd so loss can backprop through them.
+    """
+    parts: List[torch.Tensor] = []
+
+    for _, hl in _iter_hyperlora_layers(model):
+        for _, getter in _LIVE_GETTERS:
+            t = getter(hl)
+            if t is None:
+                continue
+            # ensure Tensor, keep graph
+            parts.append(t.view(-1))
+
+    if not parts:
+        return torch.tensor([], device=next(model.parameters()).device)
+
+    return torch.cat(parts, dim=0)
 
 
 if __name__ == "__main__":
