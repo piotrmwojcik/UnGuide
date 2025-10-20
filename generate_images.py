@@ -112,11 +112,11 @@ if __name__ == "__main__":
         img_root = os.path.join(args.output_dir, exp, "images")
         lora_filepath = os.path.join(exp_filepath, "models", "hyper_lora.pth")
 
-        diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
+        #diff_results_path = os.path.join(exp_filepath, "calc_diff_results.json")
         train_json_path = os.path.join(exp_filepath, "train_config.json")
 
-        with open(diff_results_path, 'r') as f:
-            results = json.load(f)
+        #with open(diff_results_path, 'r') as f:
+        #    results = json.load(f)
 
         with open(train_json_path, 'r') as f:
             settings = json.load(f)
@@ -199,10 +199,11 @@ if __name__ == "__main__":
             if len(os.listdir(class_root)) == args.samples:
                 continue
 
-            w = decide_w(
-                results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
-                w1=args.w1, w2=args.w2
-            )
+            #w = decide_w(
+            #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
+            #    w1=args.w1, w2=args.w2
+            #)
+            w = 0
             # Prepare models and sampler
             auto_model = AutoGuidedModel(
                 model_full, model_unl, w=w

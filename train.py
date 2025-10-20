@@ -599,7 +599,7 @@ def main():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
-                cond_cat = clip_text_encoder(inputs_airplane).pooler_output.detach()
+                cond_airplane = clip_text_encoder(inputs_airplane).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
@@ -719,7 +719,7 @@ def main():
                 and sample_ids == 0
             ):
                 base.time_step = 150
-                base.current_conditioning = cond_cat
+                base.current_conditioning = cond_airplane
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -730,7 +730,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: cat"
+                    caption = f"target: airplane"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other
