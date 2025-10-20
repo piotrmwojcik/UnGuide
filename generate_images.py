@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import torch
-from train import create_quick_sampler
+from train import create_quick_sampler, flatten_live_tensors
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -239,7 +239,7 @@ if __name__ == "__main__":
 
             z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
             _ = model_unl.apply_model(z, t_enc_ddpm, cond)
-            tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+            tensors_flat_t_live = flatten_live_tensors(model, accelerator)
 
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
