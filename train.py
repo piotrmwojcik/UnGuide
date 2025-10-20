@@ -557,9 +557,6 @@ def main():
     criterion = torch.nn.MSELoss()
     losses = []
 
-    last_lrs_before = None
-    last_lrs_after = None
-
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):

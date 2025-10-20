@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import torch
+from train import create_quick_sampler
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -58,6 +59,12 @@ def parse_args():
         "--steps", type=int, default=50,
         help="number of sampling steps"
     )
+    parser.add_argument("--image_size", type=int, default=512,
+                        help="Image size for training")
+    parser.add_argument("--ddim_steps", type=int, default=50,
+                        help="DDIM sampling steps")
+    parser.add_argument("--ddim_eta", type=float, default=0.0,
+                        help="DDIM eta")
     parser.add_argument(
         "--seed", type=int, default=2024,
         help="random seed for reproducibility"
@@ -209,6 +216,9 @@ if __name__ == "__main__":
             ).eval()
             sampler = DDIMSampler(model=auto_model)
 
+            quick_sampler = create_quick_sampler(auto_model, sampler,
+                                                 args.image_size, args.ddim_steps, args.ddim_eta)
+
             # Conditioning
             cond = auto_model.get_learned_conditioning([prompt])
             uncond = auto_model.get_learned_conditioning([""])
@@ -216,6 +226,9 @@ if __name__ == "__main__":
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
+
+            _ = model_unl.apply_model(z, t_enc_ddpm, emb_cat)
+            tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
 
             for idx in tqdm(range(args.samples), desc="Generating images"):
                 start = time.time()
