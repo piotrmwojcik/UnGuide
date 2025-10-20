@@ -594,12 +594,12 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_other2 = encode("a photo of the castle")
-            inputs_cat = encode("a photo of the cat")
+            inputs_airplane = encode("a photo of the airplane")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
-                cond_cat = clip_text_encoder(inputs_cat).pooler_output.detach()
+                cond_cat = clip_text_encoder(inputs_airplane).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
@@ -622,7 +622,7 @@ def main():
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    emb_cat = base.get_learned_conditioning("A photo of the cat")
+                    emb_cat = base.get_learned_conditioning("A photo of the airplane")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
@@ -723,7 +723,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the cat",
+                    prompt="a photo of the airplane",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
