@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import torch
+import torch.nn as nn
 from train import create_quick_sampler
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
