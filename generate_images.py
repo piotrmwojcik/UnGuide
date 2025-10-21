@@ -273,21 +273,14 @@ if __name__ == "__main__":
 
             z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
             _ = model_unl.apply_model(z, t_enc_ddpm, cond)
-            tensors_flat_t_live = flatten_live_tensors(model_unl)
-            with torch.no_grad():
-                if isinstance(tensors_flat_t_live, torch.Tensor):
-                    vec = tensors_flat_t_live.reshape(-1).float()
-                else:
-                    vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
-                l2 = vec.norm(p=2).item()
+            tensors_flat_t_live_t1 = flatten_live_tensors(model_unl)
 
-            print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
-
-            z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
-            model_unl.current_conditioning = empty_prompt
-            model_unl.time_step = 150
+            #z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
+            #model_unl.current_conditioning = empty_prompt
+            model_unl.time_step = 0
             _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
-            tensors_flat_t_live = flatten_live_tensors(model_unl)
+            tensors_flat_t_live_t0 = flatten_live_tensors(model_unl)
+            tensors_flat_t_live = tensors_flat_t_live_t1 - tensors_flat_t_live_t0
             with torch.no_grad():
                 if isinstance(tensors_flat_t_live, torch.Tensor):
                     vec = tensors_flat_t_live.reshape(-1).float()
@@ -295,7 +288,7 @@ if __name__ == "__main__":
                     vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
                 l2 = vec.norm(p=2).item()
 
-            print("empty: ", f"||tensors_flat_t_live||_2 = {l2:.6f}")
+            print("prompt: ", f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             if l2 < 1.5:
                 w = 0
