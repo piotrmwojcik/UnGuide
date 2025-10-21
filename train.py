@@ -702,7 +702,7 @@ def main():
 
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
-                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    loss_for_backward = 1.75 * loss / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
