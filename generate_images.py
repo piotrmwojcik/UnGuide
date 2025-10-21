@@ -107,7 +107,7 @@ def generate_image(
             verbose=False,
             unconditional_guidance_scale=7.5,
             unconditional_conditioning={"c_crossattn": [uncond]},
-            eta=eta,
+            eta=0.0,
             x_T=start_code,
         )
         decoded = auto_model.decode_first_stage(samples)
