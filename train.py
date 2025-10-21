@@ -641,7 +641,7 @@ def main():
                     loss = (delta_live ** 2).mean()
 
                     curr = base.current_conditioning.detach().float()
-                    tgt = cond_targettarget.detach().float()
+                    tgt = cond_target.detach().float()
                     cos_sim = F.cosine_similarity(curr, tgt, dim=-1, eps=1e-8)
                     cos_sim = cos_sim.clamp_min(0.0)
                     cos_dist = (1.0 - cos_sim)
