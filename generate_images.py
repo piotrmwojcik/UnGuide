@@ -319,10 +319,20 @@ if __name__ == "__main__":
                     return_tensors="pt",
                 ).to(device).input_ids
 
+                inputs_target = tokenizer(
+                    prompts[0],
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(device).input_ids
+
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
                 empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
+                inputs_target = clip_text_encoder(inputs_empty).pooler_output.detach()
 
                 model_unl.current_conditioning = t_prompt
+                model_unl.target_prompt = inputs_target
                 model_unl.time_step = 150
 
                 z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
