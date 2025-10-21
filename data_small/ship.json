@@ -1,12 +1,13 @@
 {
-    "target": "a photo of the airplane",
-    "reference": "a photo of the street",
+    "target": "a photo of the ship",
+    "reference": "a photo of the sky",
     "synonyms": [
-        "a photo of the aircraft",
-        "a photo of the plane",
-        "a photo of the jet"
+        "a photo of the vessel",
+        "a photo of the boat",
+        "a photo of the watercraft"
     ],
     "other": [
+        "a photo of the airplane",
         "a photo of the automobile",
         "a photo of the bird",
         "a photo of the cat",
@@ -14,7 +15,6 @@
         "a photo of the dog",
         "a photo of the frog",
         "a photo of the horse",
-        "a photo of the ship",
         "a photo of the truck",
         ""
     ]
