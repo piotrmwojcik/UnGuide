@@ -180,13 +180,16 @@ def generate_images(
 
 
 if __name__ == "__main__":
-    RANK = int(os.environ.get("RANK", "0"))
+    LOCAL_RANK = int(os.environ.get("LOCAL_RANK", "0"))
+    RANK       = int(os.environ.get("RANK", "0"))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
 
+    torch.cuda.set_device(LOCAL_RANK)
+    device = torch.device(f"cuda:{LOCAL_RANK}")
     args = parse_args()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
 
     exps = os.listdir(args.output_dir)
@@ -235,14 +238,14 @@ if __name__ == "__main__":
         print(f"Exp: {exp}", flush=True)
         # Load models
         model_full = load_model_from_config(
-            args.config, args.ckpt, device=args.device
+            args.config, args.ckpt, device=device
         )
         model_unl = load_model_from_config(
-            args.config, args.ckpt, device=args.device
+            args.config, args.ckpt, device=device
         )
 
         # Apply LoRA to unlearned model
-        lora_sd = torch.load(lora_filepath, map_location=args.device)
+        lora_sd = torch.load(lora_filepath, map_location=device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=768,
@@ -306,7 +309,7 @@ if __name__ == "__main__":
                     padding="max_length",
                     truncation=True,
                     return_tensors="pt",
-                ).to(args.device).input_ids
+                ).to(device).input_ids
 
                 inputs_empty = tokenizer(
                     "",
@@ -314,7 +317,7 @@ if __name__ == "__main__":
                     padding="max_length",
                     truncation=True,
                     return_tensors="pt",
-                ).to(args.device).input_ids
+                ).to(device).input_ids
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
                 empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
@@ -387,16 +390,16 @@ if __name__ == "__main__":
 
                     seed = args.seed + idx
                     set_seed(seed)
-                    gen = torch.Generator(device=args.device).manual_seed(seed)
+                    gen = torch.Generator(device=device).manual_seed(seed)
 
-                    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+                    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=device)
                     inputs = tokenizer(
                         prompt,
                         max_length=tokenizer.model_max_length,
                         padding="max_length",
                         truncation=True,
                         return_tensors="pt",
-                    ).to(args.device).input_ids
+                    ).to(device).input_ids
 
                     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
