@@ -639,7 +639,15 @@ def main():
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
-                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
+
+                    curr = base.current_conditioning.detach().float()
+                    tgt = cond_targettarget.detach().float()
+                    cos_sim = F.cosine_similarity(curr, tgt, dim=-1, eps=1e-8)
+                    cos_sim = cos_sim.clamp_min(0.0)
+                    cos_dist = (1.0 - cos_sim)
+                    amp = 1.0 + 2.0 * cos_dist
+
+                    loss_for_backward = loss * amp / accelerator.gradient_accumulation_steps
                     #print('!!!! ', loss_for_backward)
                 else:
                     with torch.no_grad():
