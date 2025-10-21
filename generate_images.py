@@ -257,7 +257,16 @@ if __name__ == "__main__":
                 return_tensors="pt",
             ).to(args.device).input_ids
 
+            inputs_empty = tokenizer(
+                "",
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(args.device).input_ids
+
             t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+            empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
 
             model_unl.current_conditioning = t_prompt
             model_unl.time_step = 150
@@ -275,6 +284,8 @@ if __name__ == "__main__":
             print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
+            model_unl.current_conditioning = empty_prompt
+            model_unl.time_step = 150
             _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
             tensors_flat_t_live = flatten_live_tensors(model_unl)
             with torch.no_grad():
