@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 from torch.utils.data import Dataset, DataLoader
 
+
 class TargetReferenceDataset(Dataset):
     def __init__(self, root):
         self.files = sorted(Path(root).glob("*.json"))

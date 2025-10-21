@@ -594,13 +594,13 @@ def main():
                     .input_ids
                 )
 
-            inputs = encode(sample["target"])
+            #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_other2 = encode("a photo of the castle")
             inputs_target = encode(f"a photo of the {args.target_object}")
             with torch.no_grad():
-                cond_target = clip_text_encoder(inputs).pooler_output.detach()
+                #cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
@@ -609,6 +609,7 @@ def main():
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
             base.current_conditioning = cond_target
+            base.target_prompt = cond_target
             base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(

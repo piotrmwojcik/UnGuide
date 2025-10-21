@@ -4,6 +4,7 @@ from typing import List
 import torch
 import math
 import os
+import torch.nn.functional as F
 from functools import partial
 import torch.nn as nn
 
@@ -78,15 +79,17 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def forward(self, x, clip, t):
+    def forward(self, x, clip, clip_target, t):
         B = clip.shape[0]
         emb = clip
         #emb = self.layers(clip)
         t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
         t_feats = self.time_feat(t_feats).to(x.device)
         emb = torch.cat([emb, t_feats], dim=-1)
+        cos_sim = F.cosine_similarity(clip, clip_target, dim=-1, eps=1e-8)
+        cos_sim = cos_sim.clamp_min(0.0)
         if self.use_scaling:
-            x_L = self.forward_alpha(t) * self.forward_linear_L(emb, t)
+            x_L = self.forward_alpha(t) * cos_sim * self.forward_linear_L(emb, t)
         else:
             x_L = self.forward_linear_L(emb, t)
         x_R = self.forward_linear_R(emb, t)
