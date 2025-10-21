@@ -498,17 +498,14 @@ def main():
                     .input_ids
                 )
 
-            inputs = encode(sample["target"])
-            #print('!!! ', sample["target"])
-            inputs_other = encode("a photo of the car")
-            inputs_other2 = encode("a photo of the castle")
-            inputs_airplane = encode("a photo of the airplane")
+            # Encode target, reference, and validation prompts for CLIP conditioning
+            inputs_target = encode(sample["target"][0])  # Current training target
+            inputs_reference = encode(sample["reference"][0])  # Reference to map target to
+            inputs_validation = encode(config.validation_prompt)
             with torch.no_grad():
-                cond_target = clip_text_encoder(inputs).pooler_output.detach()
-                cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
-                cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
-                cond_airplane = clip_text_encoder(inputs_airplane).pooler_output.detach()
-                #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
+                cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
+                cond_reference = clip_text_encoder(inputs_reference).pooler_output.detach()
+                cond_validation = clip_text_encoder(inputs_validation).pooler_output.detach()
 
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
@@ -520,7 +517,7 @@ def main():
                 device=accelerator.device,
             )
             with accelerator.accumulate(model):
-                if 'neutral.json' in sample['file']:
+                if 'neutral.json' in sample['file'][0]:
                     base.time_step = 0
                     neutral_category = random.choice(neutral_concepts)
                     neutral_prompt = f"A photo of the {neutral_category}"
@@ -530,7 +527,7 @@ def main():
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, config.start_guidance, start_code, int(t_enc))
-                    emb_cat = base.get_learned_conditioning("A photo of the airplane")
+                    emb_cat = base.get_learned_conditioning([neutral_prompt])
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
@@ -626,50 +623,56 @@ def main():
                 and sample_ids == 0
             ):
                 base.time_step = 150
-                base.current_conditioning = cond_airplane
+                
+                # Generate image for current target (being unlearned)
+                base.current_conditioning = cond_target
+                current_target_prompt = sample["target"][0]
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the airplane",
+                    prompt=current_target_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(config.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
+                    prefix=f"target_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: airplane"
+                    caption = f"target: {current_target_prompt}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample")
-                base.current_conditioning = cond_other
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample_target")
+                
+                # Generate image for reference (what target should map to)
+                base.current_conditioning = cond_reference
+                current_reference_prompt = sample["reference"][0]
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the car",
+                    prompt=current_reference_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(config.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
+                    prefix=f"reference_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: car"
+                    caption = f"reference: {current_reference_prompt}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample (other)")
-                base.current_conditioning = cond_other2
-                #base.time_step = 0
-                #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample_reference")
+                
+                # Generate validation image (unrelated concept to verify preservation)
+                base.current_conditioning = cond_validation
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the car",
+                    prompt=config.validation_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(config.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
+                    prefix=f"validation_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: car"
+                    caption = f"validation: {config.validation_prompt}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample (other) from castle")
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample_validation")
 
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()

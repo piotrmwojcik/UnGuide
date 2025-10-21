@@ -47,6 +47,9 @@ class TrainingConfig:
     data_dir: str = "data10"
     neutral_concepts_file: str = "assets/neutral_concepts.json"
     
+    # Validation prompt (for checking model preserves other concepts)
+    validation_prompt: str = "a photo of the car"
+    
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
         """
@@ -92,6 +95,9 @@ class TrainingConfig:
             output_dir=args.output_dir,
             data_dir=args.data_dir,
             neutral_concepts_file=args.neutral_concepts_file,
+            
+            # Validation
+            validation_prompt=args.validation_prompt,
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -135,6 +141,9 @@ class TrainingConfig:
             "output_dir": self.output_dir,
             "data_dir": self.data_dir,
             "neutral_concepts_file": self.neutral_concepts_file,
+            
+            # Validation
+            "validation_prompt": self.validation_prompt,
         }
     
     def validate(self) -> None:
@@ -337,6 +346,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="assets/neutral_concepts.json",
         help="Path to JSON file with neutral concept lists for regularization training",
+    )
+    
+    # Validation prompt
+    parser.add_argument(
+        "--validation_prompt",
+        type=str,
+        default="a photo of the car",
+        help="Validation prompt to verify model still generates other concepts correctly",
     )
 
     return parser.parse_args()
