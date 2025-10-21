@@ -276,83 +276,84 @@ if __name__ == "__main__":
         print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
         for prompt in prompts:
-            class_name = prompt.split(" ")[-1]
-            class_root = os.path.join(img_root, class_name)
-            os.makedirs(class_root, exist_ok=True)
-            if len(os.listdir(class_root)) == args.samples:
-                continue
-
-            # Conditioning
-            cond = model_unl.get_learned_conditioning([prompt])
-            uncond = model_unl.get_learned_conditioning([""])
-
-            sampler_unl = DDIMSampler(model=model_unl)
-            quick_sampler = create_quick_sampler(model_unl, sampler_unl,
-                                                 args.image_size, args.ddim_steps, args.ddim_eta)
-
-            t_enc = torch.randint(args.ddim_steps, (1,), device=model_unl.device)
-            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=model_unl.device)
-
-            start_code = torch.randn(
-                (1, 4, args.image_size // 8, args.image_size // 8),
-                device=model_unl.device
-            )
-            inputs = tokenizer(
-                prompt,
-                max_length=tokenizer.model_max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).to(args.device).input_ids
-
-            inputs_empty = tokenizer(
-                "",
-                max_length=tokenizer.model_max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).to(args.device).input_ids
-
-            t_prompt = clip_text_encoder(inputs).pooler_output.detach()
-            empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
-
-            model_unl.current_conditioning = t_prompt
-            model_unl.time_step = 150
-
-            z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
-            _ = model_unl.apply_model(z, t_enc_ddpm, cond)
-            tensors_flat_t_live_t1 = flatten_live_tensors(model_unl)
-
-            #z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
-            #model_unl.current_conditioning = empty_prompt
-            model_unl.time_step = 0
-            _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
-            tensors_flat_t_live_t0 = flatten_live_tensors(model_unl)
-            tensors_flat_t_live = tensors_flat_t_live_t1 - tensors_flat_t_live_t0
             with torch.no_grad():
-                if isinstance(tensors_flat_t_live, torch.Tensor):
-                    vec = tensors_flat_t_live.reshape(-1).float()
-                else:
-                    vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
-                l2 = vec.norm(p=2).item()
+                class_name = prompt.split(" ")[-1]
+                class_root = os.path.join(img_root, class_name)
+                os.makedirs(class_root, exist_ok=True)
+                if len(os.listdir(class_root)) == args.samples:
+                    continue
 
-            try:
-                # If they might require grad, detach to break graph references (optional but safe)
-                if isinstance(tensors_flat_t_live_t1, torch.Tensor):
-                    tensors_flat_t_live_t1 = tensors_flat_t_live_t1.detach()
-                if isinstance(tensors_flat_t_live_t0, torch.Tensor):
-                    tensors_flat_t_live_t0 = tensors_flat_t_live_t0.detach()
-            except NameError:
-                pass  # in case they aren't defined in this branch
+                # Conditioning
+                cond = model_unl.get_learned_conditioning([prompt])
+                uncond = model_unl.get_learned_conditioning([""])
 
-            # Explicitly delete references
-            for _name in ("tensors_flat_t_live_t1", "tensors_flat_t_live_t0"):
-                if _name in locals():
-                    del locals()[_name]
+                sampler_unl = DDIMSampler(model=model_unl)
+                quick_sampler = create_quick_sampler(model_unl, sampler_unl,
+                                                     args.image_size, args.ddim_steps, args.ddim_eta)
 
-            print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+                t_enc = torch.randint(args.ddim_steps, (1,), device=model_unl.device)
+                og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+                og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+                t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=model_unl.device)
+
+                start_code = torch.randn(
+                    (1, 4, args.image_size // 8, args.image_size // 8),
+                    device=model_unl.device
+                )
+                inputs = tokenizer(
+                    prompt,
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(args.device).input_ids
+
+                inputs_empty = tokenizer(
+                    "",
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(args.device).input_ids
+
+                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+                empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
+
+                model_unl.current_conditioning = t_prompt
+                model_unl.time_step = 150
+
+                z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
+                _ = model_unl.apply_model(z, t_enc_ddpm, cond)
+                tensors_flat_t_live_t1 = flatten_live_tensors(model_unl)
+
+                #z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
+                #model_unl.current_conditioning = empty_prompt
+                model_unl.time_step = 0
+                _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
+                tensors_flat_t_live_t0 = flatten_live_tensors(model_unl)
+                tensors_flat_t_live = tensors_flat_t_live_t1 - tensors_flat_t_live_t0
+                with torch.no_grad():
+                    if isinstance(tensors_flat_t_live, torch.Tensor):
+                        vec = tensors_flat_t_live.reshape(-1).float()
+                    else:
+                        vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
+                    l2 = vec.norm(p=2).item()
+
+                try:
+                    # If they might require grad, detach to break graph references (optional but safe)
+                    if isinstance(tensors_flat_t_live_t1, torch.Tensor):
+                        tensors_flat_t_live_t1 = tensors_flat_t_live_t1.detach()
+                    if isinstance(tensors_flat_t_live_t0, torch.Tensor):
+                        tensors_flat_t_live_t0 = tensors_flat_t_live_t0.detach()
+                except NameError:
+                    pass  # in case they aren't defined in this branch
+
+                # Explicitly delete references
+                for _name in ("tensors_flat_t_live_t1", "tensors_flat_t_live_t0"):
+                    if _name in locals():
+                        del locals()[_name]
+
+                print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             if l2 < 1.2:
                 model = model_full
