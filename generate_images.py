@@ -341,9 +341,9 @@ if __name__ == "__main__":
             print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             if l2 < 1.2:
-                model = model_unl
-            else:
                 model = model_full
+            else:
+                model = model_unl
             #w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
@@ -384,7 +384,7 @@ if __name__ == "__main__":
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                if l2 < 1.2:
+                if l2 > 1.2:
                     model.current_conditioning = t_prompt
                     model.time_step = 150
 
