@@ -88,16 +88,27 @@ def generate_image(
         sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
-        samples, _ = sampler.sample(
+        # samples, _ = sampler.sample(
+        #     S=steps,
+        #     conditioning=cond,
+        #     unconditional_conditioning=uncond,
+        #     batch_size=start_code.shape[0],
+        #     shape=start_code.shape[1:],
+        #     verbose=False,
+        #     eta=0.0,
+        #     x_T=start_code,
+        #     mode="auto",
+        # )
+        samples_latent, _ = sampler.sample(
             S=steps,
-            conditioning=cond,
-            unconditional_conditioning=uncond,
+            conditioning={"c_crossattn": [cond]},
             batch_size=start_code.shape[0],
-            shape=start_code.shape[1:],
+            shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
-            eta=0.0,
+            unconditional_guidance_scale=7.5,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=eta,
             x_T=start_code,
-            mode="auto",
         )
         decoded = auto_model.decode_first_stage(samples)
         decoded = (decoded + 1.0) / 2.0
@@ -305,7 +316,6 @@ if __name__ == "__main__":
                 model_full, model_unl, w=w
             ).eval()
             sampler = DDIMSampler(model=auto_model)
-
 
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
