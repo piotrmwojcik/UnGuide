@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # Standard library
-import argparse
 import json
 import os
 import random
@@ -28,6 +27,7 @@ from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from transformers import CLIPTextModel, CLIPTokenizer
 
 # Local modules
+from config import TrainingConfig, parse_args
 from data_utils import TargetReferenceDataset, collate_prompts
 from hyper_lora import HyperLora, HyperLoRALinear, inject_hyper_lora, inject_hyper_lora_nsfw
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -35,90 +35,6 @@ from ldm.util import instantiate_from_config
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters  # DO NOT import set_seed here to avoid clashes
 from wandb_logger import WandbLogger
-
-
-def parse_args():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(
-        description="LoRA/HyperLoRA Fine-tuning for Stable Diffusion (Accelerate)"
-    )
-
-    # Model configuration
-    parser.add_argument(
-        "--config_path",
-        type=str,
-        default="./configs/stable-diffusion/v1-inference.yaml",
-        help="Path to model configuration file",
-    )
-    parser.add_argument(
-        "--ckpt_path",
-        type=str,
-        default="./models/sd-v1-4.ckpt",
-        help="Path to model checkpoint",
-    )
-    parser.add_argument(
-        "--device", type=str, default="cuda:0",
-        help="(Ignored when using Accelerate) Device to use for training"
-    )
-
-    # LoRA/HyperLoRA
-    parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
-    parser.add_argument("--lora_alpha", type=float, default=8, help="LoRA alpha parameter")
-    parser.add_argument(
-        "--target_modules",
-        nargs="+",
-        default=["attn2.to_k", "attn2.to_v"],
-        help="Target modules for LoRA injection",
-    )
-    parser.add_argument("--clip_size", type=int, default=768, help="CLIP embedding size")
-
-    # Optim/Trainer
-    parser.add_argument("--iterations", type=int, default=200, help="Number of training iterations")
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--lr", type=float, default=3e-5, help="Learning rate")
-    parser.add_argument("--image_size", type=int, default=512, help="Image size for training")
-    parser.add_argument("--ddim_steps", type=int, default=50, help="DDIM sampling steps")
-    parser.add_argument("--ddim_eta", type=float, default=0.0, help="DDIM eta")
-    parser.add_argument("--start_guidance", type=float, default=9.0, help="Starting guidance scale")
-    parser.add_argument("--negative_guidance", type=float, default=2.0, help="Negative guidance scale")
-    parser.add_argument("--seed", type=int, default=None, help="Random seed")
-    parser.add_argument("--internal_lr", type=float, default=1e-4, help="Simulated lr for hypernetwork")
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="Batch size (per device) for the training dataloader.",
-    )
-
-
-    # Logging / tracking
-    parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
-    parser.add_argument("--log_from", type=int, default=0, help="Log debug images from iteration")
-    parser.add_argument(
-        "--logging_dir", type=str, default="logs",
-        help="Base logging directory (used by Accelerate trackers)."
-    )
-    parser.add_argument(
-        "--mixed_precision", type=str, default=None, choices=["no", "fp16", "bf16"],
-        help="Override Accelerate mixed precision (fp16/bf16)."
-    )
-    parser.add_argument(
-        "--report_to", type=str, default="wandb",
-        help='Tracking integration: "tensorboard", "wandb", "comet_ml", or "all".'
-    )
-
-    # Output / data
-    parser.add_argument("--output_dir", type=str, default="output", help="Directory to save models")
-    parser.add_argument("--data_dir", type=str, default="data10", help="Directory with prompt json files")
-    parser.add_argument("--save_losses", action="store_true", help="Save training losses to file")
-    parser.add_argument(
-        "--neutral_concepts_file",
-        type=str,
-        default="assets/neutral_concepts.json",
-        help="Path to JSON file with neutral concept lists for regularization training",
-    )
-
-    return parser.parse_args()
 
 
 def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_eta: float):
@@ -409,46 +325,51 @@ def collect_hyperlora_tensors_and_grads(
 
 
 def main():
+    # Parse arguments and create configuration
     args = parse_args()
+    config = TrainingConfig.from_args(args)
+    
+    # Validate configuration
+    config.validate()
 
     # Load neutral concepts from JSON config
-    with open(args.neutral_concepts_file, 'r') as f:
+    with open(config.neutral_concepts_file, 'r') as f:
         concepts_config = json.load(f)
         neutral_concepts = concepts_config.get("neutral_concepts", [])
 
     if not neutral_concepts:
-        print(f"Warning: No neutral concepts found in {args.neutral_concepts_file}")
+        print(f"Warning: No neutral concepts found in {config.neutral_concepts_file}")
 
     # Print basic config
     print("=== LoRA/HyperLoRA Fine-tuning (Accelerate) ===")
-    print(f"Config: {args.config_path}")
-    print(f"Checkpoint: {args.ckpt_path}")
-    print(f"Output dir: {args.output_dir}")
-    print(f"Iterations: {args.iterations}  |  LR: {args.lr}  |  Accum: {args.gradient_accumulation_steps}")
-    print(f"Image size: {args.image_size}  |  DDIM steps: {args.ddim_steps}  |  eta: {args.ddim_eta}")
+    print(f"Config: {config.config_path}")
+    print(f"Checkpoint: {config.ckpt_path}")
+    print(f"Output dir: {config.output_dir}")
+    print(f"Iterations: {config.iterations}  |  LR: {config.lr}  |  Accum: {config.gradient_accumulation_steps}")
+    print(f"Image size: {config.image_size}  |  DDIM steps: {config.ddim_steps}  |  eta: {config.ddim_eta}")
     print("=" * 48)
 
     # Seed
-    if args.seed is not None:
-        hf_set_seed(args.seed)
+    if config.seed is not None:
+        hf_set_seed(config.seed)
 
     # Accelerate project config
     accelerator_project_config = ProjectConfiguration(
-        project_dir=args.output_dir,
-        logging_dir=args.logging_dir,
+        project_dir=config.output_dir,
+        logging_dir=config.logging_dir,
     )
 
     accelerator = Accelerator(
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        mixed_precision=args.mixed_precision,  # None -> use accelerate config
-        log_with=args.report_to,
+        gradient_accumulation_steps=config.gradient_accumulation_steps,
+        mixed_precision=config.mixed_precision,  # None -> use accelerate config
+        log_with="wandb" if config.use_wandb else None,
         project_config=accelerator_project_config,
     )
 
-    args.lr = (
-            args.lr
-            * args.gradient_accumulation_steps
-            * args.batch_size
+    config.lr = (
+            config.lr
+            * config.gradient_accumulation_steps
+            * config.batch_size
             * accelerator.num_processes
     )
 
@@ -456,20 +377,20 @@ def main():
     is_main = accelerator.is_main_process
 
     # Initialize W&B logger
-    wandb_logger = WandbLogger(enabled=(is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all")))
-    wandb_logger.init_tracker(config=vars(args), project_name="UnGuide")
+    wandb_logger = WandbLogger(enabled=(is_main and config.use_wandb))
+    wandb_logger.init_tracker(config=config.to_dict(), project_name="UnGuide")
 
     # Data
-    data_dir = args.data_dir
+    data_dir = config.data_dir
     ds = TargetReferenceDataset(data_dir)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
     # Models (original + trainable clone)
     if is_main:
-        os.makedirs(os.path.join(args.output_dir, "tmp"), exist_ok=True)
+        os.makedirs(os.path.join(config.output_dir, "tmp"), exist_ok=True)
 
     model_orig, sampler_orig, model, sampler_unused = get_models(
-        args.config_path, args.ckpt_path, accelerator.device
+        config.config_path, config.ckpt_path, accelerator.device
     )
 
     # Freeze original model
@@ -487,12 +408,12 @@ def main():
     use_hyper = True  # your script forces hypernetwork on; keep same behavior
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=args.clip_size,
-        rank=args.lora_rank,
-        alpha=args.lora_alpha,
+        clip_size=config.clip_size,
+        rank=config.lora_rank,
+        alpha=config.lora_alpha,
     )
     hyper_lora_layers = inject_hyper_lora(
-        model.model.diffusion_model, args.target_modules, hyper_lora_factory
+        model.model.diffusion_model, config.target_modules, hyper_lora_factory
     )
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
@@ -504,7 +425,7 @@ def main():
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
 
-    optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
+    optimizer = torch.optim.Adam(trainable_params, lr=config.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=[300], gamma=0.5
@@ -525,7 +446,7 @@ def main():
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
     # Quick sampler
-    quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
+    quick_sampler = create_quick_sampler(base, sampler, config.image_size, config.ddim_steps, config.ddim_eta)
 
     sampler_orig = DDIMSampler(model_orig)
 
@@ -537,7 +458,7 @@ def main():
             prompt=ds[0]["target"],
             device=accelerator.device,
             steps=50,
-            out_dir=os.path.join(args.output_dir, "tmp"),
+            out_dir=os.path.join(config.output_dir, "tmp"),
             prefix="orig_",
         )
         if imgs0 is not None:
@@ -547,7 +468,7 @@ def main():
     criterion = torch.nn.MSELoss()
     losses = []
 
-    pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
+    pbar = tqdm(range(config.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             # Get conditional embeddings (strings) directly for LDM
@@ -558,9 +479,9 @@ def main():
             optimizer.zero_grad(set_to_none=True)
 
             # random timestep mapping (keep your logic)
-            t_enc = torch.randint(args.ddim_steps, (1,), device=accelerator.device)
-            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+            t_enc = torch.randint(config.ddim_steps, (1,), device=accelerator.device)
+            og_num = round((int(t_enc) / config.ddim_steps) * 1000)
+            og_num_lim = round((int(t_enc + 1) / config.ddim_steps) * 1000)
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
@@ -595,8 +516,8 @@ def main():
             base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(
-                (1, 4, args.image_size // 8, args.image_size // 8),
-                device=accelerator.device
+                (1, 4, config.image_size // 8, config.image_size // 8),
+                device=accelerator.device,
             )
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
@@ -608,7 +529,7 @@ def main():
                         base.current_conditioning = clip_text_encoder(inputs_neutral).pooler_output.detach()
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
-                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    z = quick_sampler(emb_p, config.start_guidance, start_code, int(t_enc))
                     emb_cat = base.get_learned_conditioning("A photo of the airplane")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -625,7 +546,7 @@ def main():
                     #print('!!!! ', loss_for_backward)
                 else:
                     with torch.no_grad():
-                        z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                        z = quick_sampler(emb_p, config.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
                         e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
@@ -635,7 +556,7 @@ def main():
                     # targets and loss
                     e_0.requires_grad_(False)
                     e_p.requires_grad_(False)
-                    target = e_0 - (args.negative_guidance * (e_p - e_0))
+                    target = e_0 - (config.negative_guidance * (e_p - e_0))
                     loss = criterion(e_n, target)  # per-rank scalar tensor
 
                     # ---- BACKWARD (per micro-step) ----
@@ -649,7 +570,7 @@ def main():
                     pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
 
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                    grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
+                    grads_flat_t = -1 * config.internal_lr * pack["grads_flat"].detach()
 
                     # --- LIVE anchor at t (no detach!) ---
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
@@ -700,7 +621,7 @@ def main():
             # Optional image logging
             if (
                 accelerator.is_local_main_process
-                and i >= args.log_from
+                and i >= config.log_from
                 and i % 10 == 0
                 and sample_ids == 0
             ):
@@ -712,7 +633,7 @@ def main():
                     prompt="a photo of the airplane",
                     device=accelerator.device,
                     steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    out_dir=os.path.join(config.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
@@ -726,7 +647,7 @@ def main():
                     prompt="a photo of the car",
                     device=accelerator.device,
                     steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    out_dir=os.path.join(config.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
@@ -742,7 +663,7 @@ def main():
                     prompt="a photo of the car",
                     device=accelerator.device,
                     steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    out_dir=os.path.join(config.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
@@ -765,7 +686,7 @@ def main():
         # Save LoRA/HyperLoRA weights each iteration (or move outside loop if you prefer)
         accelerator.wait_for_everyone()
         if accelerator.is_local_main_process:
-            save_dir = os.path.join(args.output_dir, f"rank_{args.lora_rank}_it_{args.iterations}_lr_{args.lr}_sg_{args.start_guidance}_ng_{args.negative_guidance}_ddim_{args.ddim_steps}_" + ("hyper" if use_hyper else "lora"))
+            save_dir = os.path.join(config.output_dir, f"rank_{config.lora_rank}_it_{config.iterations}_lr_{config.lr}_sg_{config.start_guidance}_ng_{config.negative_guidance}_ddim_{config.ddim_steps}_" + ("hyper" if use_hyper else "lora"))
             os.makedirs(os.path.join(save_dir, "models"), exist_ok=True)
 
             lora_state_dict = {}
@@ -787,27 +708,27 @@ def main():
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 
         # Dump config + basic metrics
-        run_dir = os.path.dirname(lora_path) if losses else args.output_dir
-        config = {
-            "config": args.config_path,
-            "ckpt": args.ckpt_path,
+        run_dir = os.path.dirname(lora_path) if losses else config.output_dir
+        config_dict = {
+            "config": config.config_path,
+            "ckpt": config.ckpt_path,
             "use_hypernetwork": use_hyper,
-            "clip_size": args.clip_size,
-            "lora_rank": args.lora_rank,
-            "lora_alpha": args.lora_alpha,
-            "target_modules": args.target_modules,
-            "iterations": args.iterations,
-            "lr": args.lr,
-            "image_size": args.image_size,
-            "ddim_steps": args.ddim_steps,
-            "ddim_eta": args.ddim_eta,
-            "start_guidance": args.start_guidance,
-            "negative_guidance": args.negative_guidance,
+            "clip_size": config.clip_size,
+            "lora_rank": config.lora_rank,
+            "lora_alpha": config.lora_alpha,
+            "target_modules": config.target_modules,
+            "iterations": config.iterations,
+            "lr": config.lr,
+            "image_size": config.image_size,
+            "ddim_steps": config.ddim_steps,
+            "ddim_eta": config.ddim_eta,
+            "start_guidance": config.start_guidance,
+            "negative_guidance": config.negative_guidance,
             "final_loss": losses[-1] if losses else None,
             "average_loss": (sum(losses) / len(losses)) if losses else None,
         }
         with open(os.path.join(run_dir, "train_config.json"), "w") as f:
-            json.dump(config, f, indent=2)
+            json.dump(config_dict, f, indent=2)
 
     # Cleanup W&B
     wandb_logger.finish()
