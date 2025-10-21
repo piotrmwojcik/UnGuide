@@ -626,15 +626,15 @@ def main():
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    emb_cat = base.get_learned_conditioning(f"A photo of the {target}")
-                    _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
+                    emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
+                    _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
                     #    l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
                     #accelerator.print(f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
                     base.time_step = 150
-                    _ = base.apply_model(z, t_enc_ddpm, emb_cat)
+                    _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
