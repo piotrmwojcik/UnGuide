@@ -277,7 +277,7 @@ if __name__ == "__main__":
             #    w = 0
             #else:
             #    w = -1
-            w = 0
+            w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
             #    w1=args.w1, w2=args.w2
