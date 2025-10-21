@@ -273,10 +273,23 @@ if __name__ == "__main__":
                 l2 = vec.norm(p=2).item()
 
             print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+
+            z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
+            _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
+            tensors_flat_t_live = flatten_live_tensors(model_unl)
+            with torch.no_grad():
+                if isinstance(tensors_flat_t_live, torch.Tensor):
+                    vec = tensors_flat_t_live.reshape(-1).float()
+                else:
+                    vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
+                l2 = vec.norm(p=2).item()
+
+            print(uncond, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+
             if l2 < 1.5:
                 w = 0
             else:
-                w = 1
+                w = -1
             #w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
