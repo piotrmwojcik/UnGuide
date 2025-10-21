@@ -16,6 +16,7 @@ from typing import Iterator, Tuple, Dict, Any
 from typing import Dict, Any, Iterator, Tuple
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from typing import Dict, Any, List, Tuple
 
 # assumes you have these classes
