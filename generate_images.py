@@ -99,6 +99,7 @@ def generate_image(
         #     x_T=start_code,
         #     mode="auto",
         # )
+        print('!!! ', cond, uncond)
         samples_latent, _ = sampler.sample(
             S=steps,
             conditioning={"c_crossattn": [cond]},
