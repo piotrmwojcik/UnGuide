@@ -1,48 +1,40 @@
 #!/usr/bin/env python3
+
+# Standard library
 import argparse
 import json
-import random
 import os
+import random
 from functools import partial
 from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-import matplotlib.pyplot as plt  # (unused, but kept if you uncomment stats)
+# Third-party core
 import numpy as np
 import torch
-import wandb
-
-from typing import Iterator, Tuple, Dict, Any
-
-from typing import Dict, Any, Iterator, Tuple
-import torch
 import torch.nn as nn
-from typing import Dict, Any, List, Tuple
+from tqdm import tqdm
 
-# assumes you have these classes
-from hyper_lora import HyperLora, HyperLoRALinear
+# PyTorch ecosystem
+from torch.utils.data import DataLoader
+from torchvision.transforms.functional import to_pil_image
 
-# ---- helpers ----
-from typing import Iterator, Tuple, Dict, Any, List, Optional
-import torch
-import torch.nn as nn
-
-# import your classes
-from hyper_lora import HyperLora, HyperLoRALinear
+# Accelerate
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
-from torch.utils.data import DataLoader
-from torchvision.transforms.functional import to_pil_image
-from transformers import CLIPTextModel, CLIPTokenizer
-from tqdm import tqdm
 
+# Transformers
+from transformers import CLIPTextModel, CLIPTokenizer
+
+# Local modules
 from data_utils import TargetReferenceDataset, collate_prompts
+from hyper_lora import HyperLora, HyperLoRALinear, inject_hyper_lora, inject_hyper_lora_nsfw
 from ldm.models.diffusion.ddimcopy import DDIMSampler
-from ldm.util import instantiate_from_config  # (kept if your get_models uses it)
-from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
-                        inject_hyper_lora_nsfw)
+from ldm.util import instantiate_from_config
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters  # DO NOT import set_seed here to avoid clashes
+from wandb_logger import WandbLogger
 
 
 def parse_args():
@@ -463,9 +455,9 @@ def main():
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
-    # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
-    if is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all"):
-        wandb.init(project="UnGuide", name="training", config=vars(args))
+    # Initialize W&B logger
+    wandb_logger = WandbLogger(enabled=(is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all")))
+    wandb_logger.init_tracker(config=vars(args), project_name="UnGuide")
 
     # Data
     data_dir = args.data_dir
@@ -548,9 +540,9 @@ def main():
             out_dir=os.path.join(args.output_dir, "tmp"),
             prefix="orig_",
         )
-        if args.use_wandb and imgs0 is not None:
+        if imgs0 is not None:
             im0 = (imgs0[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-            wandb.log({"baseline": wandb.Image(to_pil_image(im0))}, step=0)
+            wandb_logger.log_image(im0, caption="baseline", step=0, key="baseline")
     # Training
     criterion = torch.nn.MSELoss()
     losses = []
@@ -699,16 +691,15 @@ def main():
 
                     lrs_after = [pg["lr"] for pg in optimizer.param_groups]
                     accelerator.print(f"[iter {i}] LR after sched: " + ", ".join(f"{lr:.6e}" for lr in lrs_after))
-                    if accelerator.is_local_main_process and args.use_wandb:
+                    if accelerator.is_local_main_process:
                         assert len(lrs_after) == 1
-                        wandb.log(
-                            {"lr_group": lrs_after[0]},  # include your custom step metric if you use it in the UI
+                        wandb_logger.log_metrics(
+                            {"lr_group": lrs_after[0]},
                             step=i
                         )
             # Optional image logging
             if (
                 accelerator.is_local_main_process
-                and args.use_wandb
                 and i >= args.log_from
                 and i % 10 == 0
                 and sample_ids == 0
@@ -727,7 +718,7 @@ def main():
                 if imgs is not None:
                     caption = f"target: airplane"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample")
                 base.current_conditioning = cond_other
                 imgs = generate_and_save_sd_images(
                     model=base,
@@ -741,7 +732,7 @@ def main():
                 if imgs is not None:
                     caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample (other)")
                 base.current_conditioning = cond_other2
                 #base.time_step = 0
                 #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
@@ -757,7 +748,7 @@ def main():
                 if imgs is not None:
                     caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) from castle": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb_logger.log_image(im0, caption=caption, step=i, key="sample (other) from castle")
 
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
@@ -765,8 +756,8 @@ def main():
             loss_value = float(loss_reduced.item())
             losses.append(loss_value)
 
-            if accelerator.is_local_main_process and args.use_wandb:
-                wandb.log({"loss": loss_value}, step=i)
+            if accelerator.is_local_main_process:
+                wandb_logger.log_metrics({"loss": loss_value}, step=i)
 
             if accelerator.is_local_main_process:
                 pbar.set_postfix({"loss": f"{loss_value:.6f}"})
@@ -818,8 +809,8 @@ def main():
         with open(os.path.join(run_dir, "train_config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
-    if accelerator.is_local_main_process and args.use_wandb:
-        wandb.finish()
+    # Cleanup W&B
+    wandb_logger.finish()
 
 
 if __name__ == "__main__":
