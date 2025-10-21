@@ -119,24 +119,14 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default="output", help="Directory to save models")
     parser.add_argument("--data_dir", type=str, default="data10", help="Directory with prompt json files")
     parser.add_argument("--save_losses", action="store_true", help="Save training losses to file")
+    parser.add_argument(
+        "--neutral_concepts_file",
+        type=str,
+        default="assets/neutral_concepts.json",
+        help="Path to JSON file with neutral concept lists for regularization training",
+    )
 
     return parser.parse_args()
-
-
-CIFAR100 = [
-    'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
-    'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
-    'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
-    'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
-    'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','mountain',
-    'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pickup truck','pine tree',
-    'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
-    'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
-    'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
-    'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
-]
-
-#CIFAR100 = ['castle', 'apple']
 
 
 def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_eta: float):
@@ -429,6 +419,14 @@ def collect_hyperlora_tensors_and_grads(
 def main():
     args = parse_args()
 
+    # Load neutral concepts from JSON config
+    with open(args.neutral_concepts_file, 'r') as f:
+        concepts_config = json.load(f)
+        neutral_concepts = concepts_config.get("neutral_concepts", [])
+
+    if not neutral_concepts:
+        print(f"Warning: No neutral concepts found in {args.neutral_concepts_file}")
+
     # Print basic config
     print("=== LoRA/HyperLoRA Fine-tuning (Accelerate) ===")
     print(f"Config: {args.config_path}")
@@ -611,11 +609,11 @@ def main():
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
-                    cifar_100_category = random.choice(CIFAR100)
-                    cifar_100_prompt = f"A photo of the {cifar_100_category}"
-                    inputs_cifar_100 = encode(cifar_100_prompt)
+                    neutral_category = random.choice(neutral_concepts)
+                    neutral_prompt = f"A photo of the {neutral_category}"
+                    inputs_neutral = encode(neutral_prompt)
                     with torch.no_grad():
-                        base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
+                        base.current_conditioning = clip_text_encoder(inputs_neutral).pooler_output.detach()
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
