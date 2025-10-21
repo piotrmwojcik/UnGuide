@@ -174,7 +174,7 @@ def generate_images(
             x_T=start_code,
         )
 
-        return imgs  # [B,3,H,W] in [0,1]
+        return samples_latent  # [B,3,H,W] in [0,1]
 
 
 if __name__ == "__main__":
