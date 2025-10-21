@@ -69,6 +69,13 @@ def parse_args():
         help="(Ignored when using Accelerate) Device to use for training"
     )
 
+    parser.add_argument(
+        "--target_object",
+        type=str,
+        default="ship",
+        help="Target concept to be removed.",
+    )
+
     # LoRA/HyperLoRA
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
     parser.add_argument("--lora_alpha", type=float, default=8, help="LoRA alpha parameter")
@@ -591,12 +598,12 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_other2 = encode("a photo of the castle")
-            inputs_airplane = encode("a photo of the airplane")
+            inputs_target = encode(f"a photo of the {args.target_object}")
             with torch.no_grad():
                 cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
-                cond_airplane = clip_text_encoder(inputs_airplane).pooler_output.detach()
+                cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             # pass both to model for HyperLoRA
@@ -619,7 +626,7 @@ def main():
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    emb_cat = base.get_learned_conditioning("A photo of the airplane")
+                    emb_cat = base.get_learned_conditioning(f"A photo of the {target}")
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_cat)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
@@ -716,18 +723,18 @@ def main():
                 and sample_ids == 0
             ):
                 base.time_step = 150
-                base.current_conditioning = cond_airplane
+                base.current_conditioning = cond_target
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the airplane",
+                    prompt=f"a photo of the {args.target_object}",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: airplane"
+                    caption = f"target: {args.target_object}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other
