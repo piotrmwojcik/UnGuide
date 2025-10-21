@@ -338,7 +338,7 @@ if __name__ == "__main__":
                 model_unl.time_step = 150
 
                 img = generate_image(
-                    sampler, auto_model, start_code, cond, uncond, args.steps
+                    sampler, model, start_code, cond, uncond, args.steps
                 )
                 img_np = img[0].cpu().permute(1, 2, 0).numpy()
                 img_pil = to_pil_image((img_np * 255).astype(np.uint8))
