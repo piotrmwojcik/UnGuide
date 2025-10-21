@@ -2,6 +2,17 @@
 .vscode
 output/
 logs/
+wandb/
+
+# Model files and checkpoints
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+*.bin
+checkpoints/
+models/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +216,4 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
