@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
             print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
-            if l2 < 1.5:
+            if l2 < 1.2:
                 w = 0
             else:
                 w = -1
