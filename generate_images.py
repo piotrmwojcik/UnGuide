@@ -88,28 +88,16 @@ def generate_image(
         sampler, auto_model, start_code, cond, uncond, steps
 ):
     with torch.no_grad():
-        # samples, _ = sampler.sample(
-        #     S=steps,
-        #     conditioning=cond,
-        #     unconditional_conditioning=uncond,
-        #     batch_size=start_code.shape[0],
-        #     shape=start_code.shape[1:],
-        #     verbose=False,
-        #     eta=0.0,
-        #     x_T=start_code,
-        #     mode="auto",
-        # )
-        print('!!! ', cond, uncond)
-        samples_latent, _ = sampler.sample(
+        samples, _ = sampler.sample(
             S=steps,
-            conditioning={"c_crossattn": [cond]},
+            conditioning=cond,
+            unconditional_conditioning=uncond,
             batch_size=start_code.shape[0],
-            shape=start_code.shape[1:],  # (4, H/8, W/8)
+            shape=start_code.shape[1:],
             verbose=False,
-            unconditional_guidance_scale=7.5,
-            unconditional_conditioning={"c_crossattn": [uncond]},
             eta=0.0,
             x_T=start_code,
+            mode="auto",
         )
         decoded = auto_model.decode_first_stage(samples)
         decoded = (decoded + 1.0) / 2.0
@@ -303,9 +291,9 @@ if __name__ == "__main__":
             print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             if l2 < 1.2:
-                w = 2
+                w = 0
             else:
-                w = -1
+                w = 1
             #w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
