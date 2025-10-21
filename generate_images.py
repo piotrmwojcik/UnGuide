@@ -162,7 +162,7 @@ def generate_images(
         cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
-        samples_latent, _ = sampler.sample(
+        samples, _ = sampler.sample(
             S=steps,
             conditioning={"c_crossattn": [cond]},
             batch_size=start_code.shape[0],
