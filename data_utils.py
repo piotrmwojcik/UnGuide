@@ -8,7 +8,8 @@ class TargetReferenceDataset(Dataset):
         self.samples = []
         for fp in self.files:
             try:
-                obj = json.loads(fp.read_text(encoding="utf-8-sig"))
+                text = fp.read_text(encoding="utf-8-sig")
+                obj = json.loads(text)
                 t = (obj.get("target") or "").strip()
                 r = (obj.get("reference") or "").strip()
                 #print(fp, t, r)
