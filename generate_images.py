@@ -173,8 +173,10 @@ def generate_images(
             eta=eta,
             x_T=start_code,
         )
-
-        return samples_latent  # [B,3,H,W] in [0,1]
+        decoded = model.decode_first_stage(samples)
+        decoded = (decoded + 1.0) / 2.0
+        decoded = torch.clamp(decoded, 0.0, 1.0)
+        return decoded  # [B,3,H,W] in [0,1]
 
 
 if __name__ == "__main__":
