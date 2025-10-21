@@ -129,6 +129,54 @@ m    This preserves autograd so loss can backprop through them.
     return torch.cat(parts, dim=0)
 
 
+def generate_images(
+    sampler,
+    model,
+    prompt: str,
+    device: torch.device,
+    steps: int = 50,
+    eta: float = 0.0,
+    batch_size: int = 1,
+    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] for 512x512
+):
+    """
+    Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
+
+    - model: Stable Diffusion model (CompVis LDM style)
+    - sampler: DDIMSampler(model)
+    - prompt: text prompt
+    - device: torch.device("cuda") or torch.device("cpu")
+    - steps: DDIM steps
+    - eta: DDIM eta (0.0 => deterministic)
+    - batch_size: number of samples to generate
+    - out_dir: folder to save into
+    - prefix: file prefix, e.g., 'unl_'
+    - start_code: optional start noise shape [B, 4, H/8, W/8]; if None, sampled internally.
+                  For 512×512 set shape to [B, 4, 64, 64].
+    """
+    if start_code is None:
+        start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
+
+    model.eval()
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        uncond = model.get_learned_conditioning([""] * start_code.shape[0])
+
+        samples_latent, _ = sampler.sample(
+            S=steps,
+            conditioning={"c_crossattn": [cond]},
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],  # (4, H/8, W/8)
+            verbose=False,
+            unconditional_guidance_scale=7.5,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=eta,
+            x_T=start_code,
+        )
+
+        return imgs  # [B,3,H,W] in [0,1]
+
+
 if __name__ == "__main__":
     RANK = int(os.environ.get("RANK", "0"))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
@@ -334,11 +382,14 @@ if __name__ == "__main__":
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                model_unl.current_conditioning = t_prompt
-                model_unl.time_step = 150
+                if l2 < 1.2:
+                    model.current_conditioning = t_prompt
+                    model.time_step = 150
 
-                img = generate_image(
-                    sampler, model, start_code, cond, uncond, args.steps
+                img = generate_images(
+                    sampler=sampler, model=model,
+                    start_code=start_code, prompt=t_prompt, device=model_unl.device,
+                    steps=args.steps
                 )
                 img_np = img[0].cpu().permute(1, 2, 0).numpy()
                 img_pil = to_pil_image((img_np * 255).astype(np.uint8))
