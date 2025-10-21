@@ -135,12 +135,14 @@ class HyperLoRALinear(nn.Module):
         # use the `()` for weakref
         parent = self.parent_model()
         assert parent.time_step is not None
+        assert parent.target_prompt is not None
 
         if parent.current_conditioning is None:
             print("WARNING: this shouldn't happen")
             return self.original(x)
         else:
             clip_embedding = parent.current_conditioning
+            target_embedding = parent.target_prompt
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
         #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
@@ -163,7 +165,7 @@ class HyperLoRALinear(nn.Module):
         #         self._printed_original_trainables = True
         #
         #     return self.original(x)
-        return self.original(x) + self.hyper_lora(x, clip_embedding, parent.time_step)
+        return self.original(x) + self.hyper_lora(x, clip_embedding,target_embedding,  parent.time_step)
 
 
 def inject_hyper_lora(
