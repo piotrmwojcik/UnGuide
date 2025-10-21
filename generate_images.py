@@ -355,10 +355,10 @@ if __name__ == "__main__":
 
                 print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
-            if l2 < 1.2:
-                model = model_full
-            else:
-                model = model_unl
+                if l2 < 1.2:
+                    model = model_full
+                else:
+                    model = model_unl
             #w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
@@ -369,48 +369,49 @@ if __name__ == "__main__":
             #auto_model = AutoGuidedModel(
             #    model_full, model_unl, w=w
             #).eval()
-            sampler = DDIMSampler(model=model)
+            with torch.no_grad():
+                sampler = DDIMSampler(model=model)
 
-            print(f"cond dimensions {cond.size()}")
-            print(f"uncond dimensions {uncond.size()}")
-            # Generation loop
+                print(f"cond dimensions {cond.size()}")
+                print(f"uncond dimensions {uncond.size()}")
+                # Generation loop
 
-            for idx in tqdm(range(args.samples), desc="Generating images"):
-                start = time.time()
-                filename = f"{idx:05d}.jpg"
-                filename_path = os.path.join(img_root, class_name, filename)
-                if os.path.exists(filename_path):
-                    continue
-                if idx % WORLD_SIZE != RANK:
-                    continue
+                for idx in tqdm(range(args.samples), desc="Generating images"):
+                    start = time.time()
+                    filename = f"{idx:05d}.jpg"
+                    filename_path = os.path.join(img_root, class_name, filename)
+                    if os.path.exists(filename_path):
+                        continue
+                    if idx % WORLD_SIZE != RANK:
+                        continue
 
-                seed = args.seed + idx
-                set_seed(seed)
-                gen = torch.Generator(device=args.device).manual_seed(seed)
+                    seed = args.seed + idx
+                    set_seed(seed)
+                    gen = torch.Generator(device=args.device).manual_seed(seed)
 
-                start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
-                inputs = tokenizer(
-                    prompt,
-                    max_length=tokenizer.model_max_length,
-                    padding="max_length",
-                    truncation=True,
-                    return_tensors="pt",
-                ).to(args.device).input_ids
+                    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+                    inputs = tokenizer(
+                        prompt,
+                        max_length=tokenizer.model_max_length,
+                        padding="max_length",
+                        truncation=True,
+                        return_tensors="pt",
+                    ).to(args.device).input_ids
 
-                t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+                    t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                if l2 > 1.2:
-                    model.current_conditioning = t_prompt
-                    model.time_step = 150
+                    if l2 > 1.2:
+                        model.current_conditioning = t_prompt
+                        model.time_step = 150
 
-                img = generate_images(
-                    sampler=sampler, model=model,
-                    start_code=start_code, prompt=prompt, device=model_unl.device,
-                    steps=args.steps
-                )
-                img_np = img[0].cpu().permute(1, 2, 0).numpy()
-                img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+                    img = generate_images(
+                        sampler=sampler, model=model,
+                        start_code=start_code, prompt=prompt, device=model_unl.device,
+                        steps=args.steps
+                    )
+                    img_np = img[0].cpu().permute(1, 2, 0).numpy()
+                    img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
-                img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
-                end = time.time()
-                print(f"Generate: {end - start}", flush=True)
+                    img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+                    end = time.time()
+                    print(f"Generate: {end - start}", flush=True)
