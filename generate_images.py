@@ -291,9 +291,9 @@ if __name__ == "__main__":
             print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
 
             if l2 < 1.2:
-                w = 0
+                model = model_unl
             else:
-                w = 1
+                model = model_full
             #w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
@@ -301,10 +301,10 @@ if __name__ == "__main__":
             #)
             #w = 0
             # Prepare models and sampler
-            auto_model = AutoGuidedModel(
-                model_full, model_unl, w=w
-            ).eval()
-            sampler = DDIMSampler(model=auto_model)
+            #auto_model = AutoGuidedModel(
+            #    model_full, model_unl, w=w
+            #).eval()
+            sampler = DDIMSampler(model=model)
 
             print(f"cond dimensions {cond.size()}")
             print(f"uncond dimensions {uncond.size()}")
