@@ -611,8 +611,8 @@ def main():
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
-            emb_p = base.get_learned_conditioning(target_text)
-            emb_n = base.get_learned_conditioning(target_text)
+            emb_p = base.get_learned_conditioning(sample["target"])
+            emb_n = base.get_learned_conditioning(sample["target"])
 
             optimizer.zero_grad(set_to_none=True)
 
