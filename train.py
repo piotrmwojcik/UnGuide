@@ -607,10 +607,12 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
+            target_text = random.choice(prompt_augmentation(args.target_object))
+
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
-            emb_p = base.get_learned_conditioning(sample["target"])
-            emb_n = base.get_learned_conditioning(sample["target"])
+            emb_p = base.get_learned_conditioning(target_text)
+            emb_n = base.get_learned_conditioning(target_text)
 
             optimizer.zero_grad(set_to_none=True)
 
@@ -638,7 +640,7 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_other2 = encode("a photo of the castle")
-            inputs_target = encode(random.choice(prompt_augmentation(args.target_object)))
+            inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
