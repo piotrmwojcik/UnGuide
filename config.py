@@ -47,8 +47,10 @@ class TrainingConfig:
     data_dir: str = "data10"
     neutral_concepts_file: str = "assets/neutral_concepts.json"
     
-    # Validation prompt (for checking model preserves other concepts)
-    validation_prompt: str = "a photo of the car"
+    # Prompts for unlearning and validation
+    target_prompt: str = "a photo of the airplane"
+    validation_prompt_1: str = "a photo of the car"
+    validation_prompt_2: str = "a photo of the castle"
     
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
@@ -96,8 +98,10 @@ class TrainingConfig:
             data_dir=args.data_dir,
             neutral_concepts_file=args.neutral_concepts_file,
             
-            # Validation
-            validation_prompt=args.validation_prompt,
+            # Prompts
+            target_prompt=args.target_prompt,
+            validation_prompt_1=args.validation_prompt_1,
+            validation_prompt_2=args.validation_prompt_2,
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -142,8 +146,10 @@ class TrainingConfig:
             "data_dir": self.data_dir,
             "neutral_concepts_file": self.neutral_concepts_file,
             
-            # Validation
-            "validation_prompt": self.validation_prompt,
+            # Prompts
+            "target_prompt": self.target_prompt,
+            "validation_prompt_1": self.validation_prompt_1,
+            "validation_prompt_2": self.validation_prompt_2,
         }
     
     def validate(self) -> None:
@@ -348,12 +354,24 @@ def parse_args() -> argparse.Namespace:
         help="Path to JSON file with neutral concept lists for regularization training",
     )
     
-    # Validation prompt
+    # Prompt arguments
     parser.add_argument(
-        "--validation_prompt",
+        "--target_prompt",
+        type=str,
+        default="a photo of the airplane",
+        help="The target prompt for the concept to unlearn",
+    )
+    parser.add_argument(
+        "--validation_prompt_1",
         type=str,
         default="a photo of the car",
-        help="Validation prompt to verify model still generates other concepts correctly",
+        help="First validation prompt to verify model still generates other concepts correctly",
+    )
+    parser.add_argument(
+        "--validation_prompt_2",
+        type=str,
+        default="a photo of the castle",
+        help="Second validation prompt to verify model still generates other concepts correctly",
     )
 
     return parser.parse_args()
