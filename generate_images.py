@@ -270,11 +270,11 @@ if __name__ == "__main__":
                     vec = tensors_flat_t_live.reshape(-1).float()
                 else:
                     vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
-                l2 = vec.norm(p=2).item()
+                l1 = vec.norm(p=1).item()
 
-            print(prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+            print(prompt, f"||tensors_flat_t_live||_2 = {l1:.6f}")
             #if l2 < 1.5:
-            w = 2
+            w = 0
             #else:
             #    w = -1
             #w = decide_w(

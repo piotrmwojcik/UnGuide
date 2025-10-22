@@ -19,7 +19,8 @@ class AutoGuidedModel:
         eps_u_uncond, eps_u_cond = self.model_unlearned.apply_model(x_in, t_in, c).chunk(2)
         eps_unlearned = eps_u_uncond + self.cfg_scale * (eps_u_cond - eps_u_uncond)
 
-        return self.w * eps_full + (1 - self.w) * eps_unlearned
+        return eps_full + eps_unlearned
+        #return self.w * eps_full + (1 - self.w) * eps_unlearned
 
     def get_learned_conditioning(self, prompts):
         return self.model_full.get_learned_conditioning(prompts)
