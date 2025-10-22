@@ -144,6 +144,44 @@ CIFAR100 = [
     'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
 
+def prompt_augmentation(content, augment=True):
+    if augment:
+        prompts = [
+            # object augmentation
+            "{} in a photo".format(content),
+            "{} in a snapshot".format(content),
+            "A snapshot of {}".format(content),
+            "A photograph showcasing {}".format(content),
+            "An illustration of {}".format(content),
+            "A digital rendering of {}".format(content),
+            "A visual representation of {}".format(content),
+            "A graphic of {}".format(content),
+            "A shot of {}".format(content),
+            "A photo of {}".format(content),
+            "A black and white image of {}".format(content),
+            "A depiction in portrait form of {}".format(content),
+            "A scene depicting {} during a public gathering".format(content),
+            "{} captured in an image".format(content),
+            "A depiction created with oil paints capturing {}".format(content),
+            "An image of {}".format(content),
+            "A drawing capturing the essence of {}".format(content),
+            "An official photograph featuring {}".format(content),
+            "A detailed sketch of {}".format(content),
+            "{} during sunset/sunrise".format(content),
+            "{} in a detailed portrait".format(content),
+            "An official photo of {}".format(content),
+            "Historic photo of {}".format(content),
+            "Detailed portrait of {}".format(content),
+            "A painting of {}".format(content),
+            "HD picture of {}".format(content),
+            "Magazine cover capturing {}".format(content),
+            "Painting-like image of {}".format(content),
+            "Hand-drawn art of {}".format(content),
+            "An oil portrait of {}".format(content),
+            "{} in a sketch painting".format(content),
+        ]
+        return prompts
+
 #CIFAR100 = ['castle', 'apple']
 
 
@@ -621,7 +659,7 @@ def main():
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     cifar_100_category = random.choice(CIFAR100)
-                    cifar_100_prompt = f"A photo of the {cifar_100_category}"
+                    cifar_100_prompt = random.choice(prompt_augmentation(cifar_100_category))
                     inputs_cifar_100 = encode(cifar_100_prompt)
                     with torch.no_grad():
                         base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
