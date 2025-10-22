@@ -133,7 +133,7 @@ class HyperLoRALinear(nn.Module):
         # use the `()` for weakref
         parent = self.parent_model()
         assert parent.time_step is not None
-        assert parent.target_prompt is not None
+        #assert parent.target_prompt is not None
 
         if parent.current_conditioning is None:
             print("WARNING: this shouldn't happen")

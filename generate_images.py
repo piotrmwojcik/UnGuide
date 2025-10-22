@@ -293,7 +293,6 @@ if __name__ == "__main__":
             print(f"uncond dimensions {uncond.size()}")
             # Generation loop
 
-
             for idx in tqdm(range(args.samples), desc="Generating images"):
                 start = time.time()
                 filename = f"{idx:05d}.jpg"
