@@ -146,39 +146,51 @@ CIFAR100 = [
 
 def prompt_augmentation(content, augment=True):
     if augment:
+        # prompts = [
+        #     # object augmentation
+        #     "{} in a photo".format(content),
+        #     "{} in a snapshot".format(content),
+        #     "A snapshot of {}".format(content),
+        #     "A photograph showcasing {}".format(content),
+        #     "An illustration of {}".format(content),
+        #     "A digital rendering of {}".format(content),
+        #     "A visual representation of {}".format(content),
+        #     "A graphic of {}".format(content),
+        #     "A shot of {}".format(content),
+        #     "A photo of {}".format(content),
+        #     "A black and white image of {}".format(content),
+        #     "A depiction in portrait form of {}".format(content),
+        #     "A scene depicting {} during a public gathering".format(content),
+        #     "{} captured in an image".format(content),
+        #     "A depiction created with oil paints capturing {}".format(content),
+        #     "An image of {}".format(content),
+        #     "A drawing capturing the essence of {}".format(content),
+        #     "An official photograph featuring {}".format(content),
+        #     "A detailed sketch of {}".format(content),
+        #     "{} during sunset/sunrise".format(content),
+        #     "{} in a detailed portrait".format(content),
+        #     "An official photo of {}".format(content),
+        #     "Historic photo of {}".format(content),
+        #     "Detailed portrait of {}".format(content),
+        #     "A painting of {}".format(content),
+        #     "HD picture of {}".format(content),
+        #     "Magazine cover capturing {}".format(content),
+        #     "Painting-like image of {}".format(content),
+        #     "Hand-drawn art of {}".format(content),
+        #     "An oil portrait of {}".format(content),
+        #     "{} in a sketch painting".format(content),
+        # ]
+
         prompts = [
             # object augmentation
             "{} in a photo".format(content),
             "{} in a snapshot".format(content),
             "A snapshot of {}".format(content),
-            "A photograph showcasing {}".format(content),
-            "An illustration of {}".format(content),
-            "A digital rendering of {}".format(content),
-            "A visual representation of {}".format(content),
-            "A graphic of {}".format(content),
             "A shot of {}".format(content),
-            "A photo of {}".format(content),
+            "A photo of the {}".format(content),
             "A black and white image of {}".format(content),
-            "A depiction in portrait form of {}".format(content),
-            "A scene depicting {} during a public gathering".format(content),
             "{} captured in an image".format(content),
-            "A depiction created with oil paints capturing {}".format(content),
-            "An image of {}".format(content),
-            "A drawing capturing the essence of {}".format(content),
-            "An official photograph featuring {}".format(content),
-            "A detailed sketch of {}".format(content),
-            "{} during sunset/sunrise".format(content),
-            "{} in a detailed portrait".format(content),
-            "An official photo of {}".format(content),
-            "Historic photo of {}".format(content),
-            "Detailed portrait of {}".format(content),
-            "A painting of {}".format(content),
             "HD picture of {}".format(content),
-            "Magazine cover capturing {}".format(content),
-            "Painting-like image of {}".format(content),
-            "Hand-drawn art of {}".format(content),
-            "An oil portrait of {}".format(content),
-            "{} in a sketch painting".format(content),
         ]
         return prompts
 
@@ -213,6 +225,7 @@ _LIVE_GETTERS = [
     ("x_R",            lambda hl: getattr(hl, "_last_x_R", None)),
 ]
 
+
 def flatten_live_tensors(model_wrapped: nn.Module, accelerator) -> torch.Tensor:
     """
 m    This preserves autograd so loss can backprop through them.
@@ -232,6 +245,7 @@ m    This preserves autograd so loss can backprop through them.
         return torch.tensor([], device=next(base.parameters()).device)
 
     return torch.cat(parts, dim=0)
+
 
 def _concat_items(
     items: List[Tuple[str, str, torch.Tensor]],
@@ -638,7 +652,7 @@ def main():
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            inputs_other = encode("a photo of the car")
+            inputs_other = encode("a photo of the vessel")
             inputs_other2 = encode("a photo of the castle")
             inputs_target = encode(target_text)
             with torch.no_grad():
