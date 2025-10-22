@@ -637,7 +637,7 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the car")
             inputs_other2 = encode("a photo of the castle")
-            inputs_target = encode(f"a photo of the {args.target_object}")
+            inputs_target = encode(random.choice(prompt_augmentation(args.target_object)))
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
