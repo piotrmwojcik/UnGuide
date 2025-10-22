@@ -4,27 +4,43 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class TargetReferenceDataset(Dataset):
-    def __init__(self, root):
+    def __init__(self, root, weights: dict[str, float] | None = None):
+        """
+        weights: optional mapping {filename.json: weight}, e.g. {"special.json": 5.0}
+                 filenames not in the dict get weight 1.0
+        """
         self.files = sorted(Path(root).glob("*.json"))
         self.samples = []
         for fp in self.files:
             try:
-                obj = json.loads(fp.read_text(encoding="utf-8-sig"))
+                text = fp.read_text(encoding="utf-8-sig")
+                obj = json.loads(text)
                 t = (obj.get("target") or "").strip()
                 r = (obj.get("reference") or "").strip()
-                #print(fp, t, r)
                 self.samples.append((fp.name, t, r))
             except json.JSONDecodeError as e:
                 print(f"BAD JSON {fp}: {e}")
-                print("Head:", repr(text[:120]))  # show first chars to spot stray bytes/comments
+                print("Head:", repr(text[:120]))
                 continue
         if not self.samples:
             raise RuntimeError("No valid items found.")
 
-    def __len__(self): return len(self.samples)
+        # Build an index list with repetitions according to weights
+        weights = weights or {}
+        self._index = []
+        for i, (fname, _, _) in enumerate(self.samples):
+            w = float(weights.get(fname, 1.0))
+            if w <= 0:
+                continue  # skip if weight is 0
+            reps = max(1, int(round(w)))  # duplicate count
+            self._index.extend([i] * reps)
+
+    def __len__(self):
+        return len(self._index)
 
     def __getitem__(self, idx):
-        fname, target, reference = self.samples[idx]
+        i = self._index[idx]
+        fname, target, reference = self.samples[i]
         return {"file": fname, "target": target, "reference": reference}
 
 # simple collate that keeps strings
