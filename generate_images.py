@@ -273,10 +273,10 @@ if __name__ == "__main__":
                 l1 = vec.norm(p=1).item()
 
             print(prompt, f"||tensors_flat_t_live||_2 = {l1:.6f}")
-            #if l2 < 1.5:
-            w = 0
-            #else:
-            #    w = -1
+            if l1 < 51.338:
+                w = 2
+            else:
+                w = -1
             #w = decide_w(
             #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
             #    w1=args.w1, w2=args.w2
