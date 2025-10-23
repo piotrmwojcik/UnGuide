@@ -485,42 +485,62 @@ def collect_hyperlora_tensors_and_grads(
     return out
 
 
-def sample_cap_fast(x, n: int, tau: float, *, device=None, dtype=None, cos_sampler="uniform"):
+def sample_outside_cap(
+    x: torch.Tensor,
+    n: int,
+    tau: float,
+    *,
+    device=None,
+    dtype=None,
+    cos_sampler: Union[str, Callable[[int], torch.Tensor]] = "uniform",
+):
     """
-    x: [D] or [1,D], unit-norm base embedding
-    n: number of samples
-    tau: cosine threshold in [0,1]
-    cos_sampler: "uniform" -> c ~ Uniform[tau,1], or a callable returning [n] cosines in [tau,1]
-    returns: [n, D] samples with cos(x, y) >= tau (approximately, up to float error)
+    Sample y in R^D with ||y||=1 such that cos(x, y) <= tau.
+
+    Args:
+      x: [D] or [1,D] base vector (need not be unit; will be normalized)
+      n: number of samples
+      tau: cosine threshold in [-1, 1]
+      cos_sampler:
+        - "uniform":  c ~ Uniform[-1, tau]
+        - "threshold": c = tau  (on the boundary shell)
+        - callable:    returns [n] cosines in [-1, tau] on the right device/dtype
+
+    Returns:
+      y: [n, D], unit-norm, with cos(x, y) <= tau (up to FP error)
     """
-    x = x.detach()
+    # normalize x and set types/devices
     if x.ndim == 1:
         x = x.unsqueeze(0)
-    D = x.shape[-1]
     device = device or x.device
-    dtype = dtype or x.dtype
-    x_hat = torch.nn.functional.normalize(x, dim=-1)  # [1,D]
-    x_hat = x_hat.expand(n, -1).to(device=device, dtype=dtype)
+    dtype  = dtype  or x.dtype
 
-    # sample cosine values c in [tau,1]
-    if cos_sampler == "uniform":
-        c = torch.rand(n, device=device, dtype=dtype) * (1 - tau) + tau
-    elif callable(cos_sampler):
-        c = cos_sampler(n)  # must return tensor on device with dtype
+    tau = float(max(-1.0, min(1.0, tau)))
+    x_hat = F.normalize(x, dim=-1).to(device=device, dtype=dtype).expand(n, -1)
+    D = x_hat.shape[-1]
+
+    # sample cosines c in [-1, tau]
+    if isinstance(cos_sampler, str):
+        if cos_sampler == "uniform":
+            c = torch.rand(n, device=device, dtype=dtype) * (tau + 1.0) - 1.0
+        elif cos_sampler == "threshold":
+            c = torch.full((n,), tau, device=device, dtype=dtype)
+        else:
+            raise ValueError("cos_sampler must be 'uniform', 'threshold', or a callable")
     else:
-        raise ValueError("cos_sampler must be 'uniform' or a callable")
+        c = cos_sampler(n)  # user-provided tensor on correct device/dtype
+        c = c.to(device=device, dtype=dtype)
 
-    # random orthogonal directions v_hat
+    # random orthogonal directions to x_hat
     g = torch.randn(n, D, device=device, dtype=dtype)
     proj = (g * x_hat).sum(dim=-1, keepdim=True) * x_hat
     v = g - proj
-    v_hat = torch.nn.functional.normalize(v, dim=-1)  # [n,D]
+    v_hat = F.normalize(v, dim=-1)  # [n, D]
 
-    s = torch.sqrt(torch.clamp(1 - c**2, min=0))
-    y = (c.unsqueeze(-1) * x_hat) + (s.unsqueeze(-1) * v_hat)
-    # y is already unit-norm (up to tiny numeric error); normalize to be safe
-    y = torch.nn.functional.normalize(y, dim=-1)
-    return y
+    # combine: y = c * x_hat + s * v_hat, where s = sqrt(1 - c^2)
+    s = torch.sqrt(torch.clamp(1.0 - c**2, min=0.0))
+    y = c.unsqueeze(-1) * x_hat + s.unsqueeze(-1) * v_hat
+    return F.normalize(y, dim=-1)  # safety normalize
 
 
 def main():
@@ -559,6 +579,20 @@ def main():
             * accelerator.num_processes
     )
 
+    base = torch.randn(768)
+    base = base / base.norm()  # unit-normalize
+    tau = 0.6  # cosine threshold
+    N = 1024
+
+    print('before')
+    # Fast simple sampler
+    Y = sample_cap_fast(base, N, tau)  # [N,768]
+
+    # Check cosines
+    cos = (Y @ base)  # since both unit-norm
+    print('!!!! ', cos.min().item(), cos.mean().item())
+    sys.exit(0)
+
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
@@ -580,19 +614,7 @@ def main():
         args.config_path, args.ckpt_path, accelerator.device
     )
 
-    base = torch.randn(768)
-    base = base / base.norm()  # unit-normalize
-    tau = 0.6  # cosine threshold
-    N = 1024
 
-    print('before')
-    # Fast simple sampler
-    Y = sample_cap_fast(base, N, tau)  # [N,768]
-
-    # Check cosines
-    cos = (Y @ base)  # since both unit-norm
-    print('!!!! ', cos.min().item(), cos.mean().item())
-    sys.exit(0)
 
 
     # Freeze original model
