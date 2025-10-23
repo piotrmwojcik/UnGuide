@@ -585,6 +585,7 @@ def main():
     tau = 0.6  # cosine threshold
     N = 1024
 
+    print('before')
     # Fast simple sampler
     Y = sample_cap_fast(base, N, tau)  # [N,768]
 
