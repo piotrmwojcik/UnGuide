@@ -486,63 +486,69 @@ def collect_hyperlora_tensors_and_grads(
     return out
 
 
-def sample_outside_cap(
+import torch
+import torch.nn.functional as F
+from typing import Optional, Literal
+
+def sample_within_distance(
     x: torch.Tensor,
     n: int,
-    tau: float,
     *,
+    cosine_distance: Optional[float] = None,   # in [0, 2]
+    euclidean_distance: Optional[float] = None,# in [0, 2] for unit vectors
     device=None,
     dtype=None,
-    cos_sampler: Union[str, Callable[[int], torch.Tensor]] = "uniform",
+    cos_sampler: Literal["uniform","center","threshold"]="uniform",
 ):
     """
-    Sample y in R^D with ||y||=1 such that cos(x, y) <= tau.
+    Sample n unit vectors y with cosine(x,y) >= tau, where tau is derived
+    from either cosine_distance or euclidean_distance. x should be (D,) or (1,D) and unit-normalized.
 
-    Args:
-      x: [D] or [1,D] base vector (need not be unit; will be normalized)
-      n: number of samples
-      tau: cosine threshold in [-1, 1]
-      cos_sampler:
-        - "uniform":  c ~ Uniform[-1, tau]
-        - "threshold": c = tau  (on the boundary shell)
-        - callable:    returns [n] cosines in [-1, tau] on the right device/dtype
-
-    Returns:
-      y: [n, D], unit-norm, with cos(x, y) <= tau (up to FP error)
+    cos_sampler:
+      - "uniform": c ~ Uniform[tau, 1]  (simple, not surface-uniform)
+      - "center":  c = 1 for all (degenerate at x)
+      - "threshold": c = tau (shell at the boundary)
     """
-    # normalize x and set types/devices
-    if x.ndim == 1:
-        x = x.unsqueeze(0)
+    assert (cosine_distance is None) ^ (euclidean_distance is None), \
+        "Provide exactly one of cosine_distance or euclidean_distance."
+
+    # Map distance -> cosine threshold tau
+    if cosine_distance is not None:
+        tau = 1.0 - float(cosine_distance)
+    else:  # euclidean distance
+        d = float(euclidean_distance)
+        tau = 1.0 - 0.5 * d * d
+
+    # clamp to valid range
+    tau = float(max(-1.0, min(1.0, tau)))
+
+    # normalize x
+    if x.ndim == 1: x = x.unsqueeze(0)
     device = device or x.device
     dtype  = dtype  or x.dtype
-
-    tau = float(max(-1.0, min(1.0, tau)))
-    x_hat = F.normalize(x, dim=-1).to(device=device, dtype=dtype).expand(n, -1)
+    x_hat = F.normalize(x, dim=-1).to(device=device, dtype=dtype)
+    x_hat = x_hat.expand(n, -1)  # (n,D)
     D = x_hat.shape[-1]
 
-    # sample cosines c in [-1, tau]
-    if isinstance(cos_sampler, str):
-        if cos_sampler == "uniform":
-            c = torch.rand(n, device=device, dtype=dtype) * (tau + 1.0) - 1.0
-        elif cos_sampler == "threshold":
-            c = torch.full((n,), tau, device=device, dtype=dtype)
-        else:
-            raise ValueError("cos_sampler must be 'uniform', 'threshold', or a callable")
+    # sample cosine values c in [tau, 1]
+    if cos_sampler == "uniform":
+        c = torch.rand(n, device=device, dtype=dtype) * (1 - tau) + tau
+    elif cos_sampler == "center":
+        c = torch.ones(n, device=device, dtype=dtype)
+    elif cos_sampler == "threshold":
+        c = torch.full((n,), tau, device=device, dtype=dtype)
     else:
-        c = cos_sampler(n)  # user-provided tensor on correct device/dtype
-        c = c.to(device=device, dtype=dtype)
+        raise ValueError("cos_sampler must be one of {'uniform','center','threshold'}")
 
-    # random orthogonal directions to x_hat
+    # random orthogonal directions v_hat
     g = torch.randn(n, D, device=device, dtype=dtype)
     proj = (g * x_hat).sum(dim=-1, keepdim=True) * x_hat
     v = g - proj
-    v_hat = F.normalize(v, dim=-1)  # [n, D]
+    v_hat = F.normalize(v, dim=-1)
 
-    # combine: y = c * x_hat + s * v_hat, where s = sqrt(1 - c^2)
-    s = torch.sqrt(torch.clamp(1.0 - c**2, min=0.0))
+    s = torch.sqrt(torch.clamp(1 - c**2, min=0))
     y = c.unsqueeze(-1) * x_hat + s.unsqueeze(-1) * v_hat
     return F.normalize(y, dim=-1)  # safety normalize
-
 
 def main():
     args = parse_args()
@@ -587,7 +593,7 @@ def main():
 
     print('before')
     # Fast simple sampler
-    Y = sample_outside_cap(base, N, tau, cos_sampler="uniform")  # [N,768]
+    Y = sample_within_distance(base, N, cosine_distance=tau)
 
     # Check cosines
     cos = (Y @ base)  # since both unit-norm
