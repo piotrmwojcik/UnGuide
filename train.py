@@ -673,7 +673,8 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                if 'neutral.json' in sample['file']:
+                if False:
+                #if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     cifar_100_category = random.choice(CIFAR100)
                     cifar_100_prompt = random.choice(prompt_augmentation(cifar_100_category))
@@ -757,7 +758,7 @@ def main():
 
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
-                    loss_for_backward = 10.0 * loss / accelerator.gradient_accumulation_steps
+                    loss_for_backward = 1.75 * loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
 
