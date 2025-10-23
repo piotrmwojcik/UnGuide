@@ -690,7 +690,7 @@ def main():
                 padding="max_length",
                 truncation=True,
                 return_tensors="pt",
-            ).input_ids.to(device)
+            ).input_ids.to(accelerator.device)
 
             # Text embedding (float)
             base = clip_text_encoder(ids).pooler_output.squeeze(0)  # [D], float32
