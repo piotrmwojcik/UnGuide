@@ -485,6 +485,43 @@ def collect_hyperlora_tensors_and_grads(
     return out
 
 
+def sample_cap_fast(x, n: int, tau: float, *, device=None, dtype=None, cos_sampler="uniform"):
+    """
+    x: [D] or [1,D], unit-norm base embedding
+    n: number of samples
+    tau: cosine threshold in [0,1]
+    cos_sampler: "uniform" -> c ~ Uniform[tau,1], or a callable returning [n] cosines in [tau,1]
+    returns: [n, D] samples with cos(x, y) >= tau (approximately, up to float error)
+    """
+    x = x.detach()
+    if x.ndim == 1:
+        x = x.unsqueeze(0)
+    D = x.shape[-1]
+    device = device or x.device
+    dtype = dtype or x.dtype
+    x_hat = torch.nn.functional.normalize(x, dim=-1)  # [1,D]
+    x_hat = x_hat.expand(n, -1).to(device=device, dtype=dtype)
+
+    # sample cosine values c in [tau,1]
+    if cos_sampler == "uniform":
+        c = torch.rand(n, device=device, dtype=dtype) * (1 - tau) + tau
+    elif callable(cos_sampler):
+        c = cos_sampler(n)  # must return tensor on device with dtype
+    else:
+        raise ValueError("cos_sampler must be 'uniform' or a callable")
+
+    # random orthogonal directions v_hat
+    g = torch.randn(n, D, device=device, dtype=dtype)
+    proj = (g * x_hat).sum(dim=-1, keepdim=True) * x_hat
+    v = g - proj
+    v_hat = torch.nn.functional.normalize(v, dim=-1)  # [n,D]
+
+    s = torch.sqrt(torch.clamp(1 - c**2, min=0))
+    y = (c.unsqueeze(-1) * x_hat) + (s.unsqueeze(-1) * v_hat)
+    # y is already unit-norm (up to tiny numeric error); normalize to be safe
+    y = torch.nn.functional.normalize(y, dim=-1)
+    return y
+
 
 def main():
     args = parse_args()
@@ -542,6 +579,18 @@ def main():
     model_orig, sampler_orig, model, sampler_unused = get_models(
         args.config_path, args.ckpt_path, accelerator.device
     )
+
+    base = torch.randn(768)
+    base = base / base.norm()  # unit-normalize
+    tau = 0.6  # cosine threshold
+    N = 1024
+
+    # Fast simple sampler
+    Y = sample_cap_fast(base, N, tau)  # [N,768]
+
+    # Check cosines
+    cos = (Y @ base)  # since both unit-norm
+    print(cos.min().item(), cos.mean().item())
 
     # Freeze original model
     for p in model_orig.model.diffusion_model.parameters():
