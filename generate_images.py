@@ -107,24 +107,36 @@ def generate_image(
 
 def flatten_live_tensors(model: nn.Module) -> torch.Tensor:
     """
-m    This preserves autograd so loss can backprop through them.
+    Collects per-layer live tensors, multiplying each x_L by its corresponding alpha
+    (when available). Preserves autograd so loss can backprop through them.
     """
     parts: List[torch.Tensor] = []
-
-    _LIVE_GETTERS = [
-        ("x_L", lambda hl: getattr(hl, "_last_x_L", None)),
-    ]
+    device = next(model.parameters()).device
 
     for _, hl in _iter_hyperlora_layers(model):
-        for _, getter in _LIVE_GETTERS:
-            t = getter(hl)
-            if t is None:
-                continue
-            # ensure Tensor, keep graph
-            parts.append(t.view(-1))
+        xL = getattr(hl, "_last_x_L", None)
+        if xL is None:
+            continue
+
+        # Get alpha if the layer uses scaling; otherwise treat as 1
+        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") and (hl.alpha is not None):
+            alpha = hl.alpha
+            # allow scalar or broadcastable alpha
+            try:
+                xL_scaled = xL * alpha
+            except RuntimeError:
+                # fallback for scalar-shaped alpha
+                if isinstance(alpha, torch.Tensor) and alpha.numel() == 1:
+                    xL_scaled = xL * alpha.view(*([1] * xL.ndim))
+                else:
+                    raise
+        else:
+            xL_scaled = xL
+
+        parts.append(xL_scaled.view(-1))  # keep graph
 
     if not parts:
-        return torch.tensor([], device=next(model.parameters()).device)
+        return torch.tensor([], device=device)
 
     return torch.cat(parts, dim=0)
 
