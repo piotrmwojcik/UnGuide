@@ -674,9 +674,8 @@ def main():
 
         # Create sampler AFTER prepare so it uses the wrapped model
     sampler = DDIMSampler(base)
-
-    # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
     # Quick sampler
