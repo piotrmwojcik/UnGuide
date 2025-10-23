@@ -757,7 +757,7 @@ def main():
 
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
-                    loss_for_backward = 2.0 * loss / accelerator.gradient_accumulation_steps
+                    loss_for_backward = 10.0 * loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
 
