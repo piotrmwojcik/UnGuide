@@ -582,11 +582,11 @@ def main():
     base = torch.randn(768)
     base = base / base.norm()  # unit-normalize
     tau = 0.2  # cosine threshold
-    N = 1024
+    N = 50
 
     print('before')
     # Fast simple sampler
-    Y = sample_cap_fast(base, N, tau)  # [N,768]
+    Y = sample_outside_cap(base, N, tau, cos_sampler="uniform")  # [N,768]
 
     # Check cosines
     cos = (Y @ base)  # since both unit-norm
