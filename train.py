@@ -490,6 +490,20 @@ import torch
 import torch.nn.functional as F
 from typing import Optional, Literal
 
+
+def encode(text: str):
+    return (
+        tokenizer(
+            text,
+            max_length=tokenizer.model_max_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        )
+            .to(accelerator.device)
+            .input_ids
+    )
+
 def sample_within_distance(
     x: torch.Tensor,
     n: int,
@@ -586,19 +600,10 @@ def main():
             * accelerator.num_processes
     )
 
-    base = torch.randn(768)
-    base = base / base.norm()  # unit-normalize
-    tau = 0.2  # cosine threshold
-    N = 50
-
-    print('before')
-    # Fast simple sampler
-    Y = sample_within_distance(base, N, cosine_distance=tau)
-
     # Check cosines
-    cos = (Y @ base)  # since both unit-norm
-    print('!!!! ', cos.min().item(), cos.mean().item())
-    sys.exit(0)
+    #cos = (Y @ base)  # since both unit-norm
+    #print('!!!! ', cos.min().item(), cos.mean().item())
+    #sys.exit(0)
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
@@ -620,8 +625,6 @@ def main():
     model_orig, sampler_orig, model, sampler_unused = get_models(
         args.config_path, args.ckpt_path, accelerator.device
     )
-
-
 
 
     # Freeze original model
@@ -681,6 +684,14 @@ def main():
 
     sampler_orig = DDIMSampler(model_orig)
 
+    if is_main:
+        base = encode("a photo of the ship")
+        base = base / base.norm()  # unit-normalize
+        tau = 0.2  # cosine threshold
+        N = 50
+        Y = sample_within_distance(base, N, cosine_distance=tau)
+        print('Y shape ', Y.shape)
+
     # Optionally log a baseline image (main only)
     if is_main:
         imgs0 = generate_and_save_sd_images(
@@ -718,18 +729,6 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            def encode(text: str):
-                return (
-                    tokenizer(
-                        text,
-                        max_length=tokenizer.model_max_length,
-                        padding="max_length",
-                        truncation=True,
-                        return_tensors="pt",
-                    )
-                    .to(accelerator.device)
-                    .input_ids
-                )
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
