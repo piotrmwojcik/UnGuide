@@ -684,12 +684,22 @@ def main():
         )
 
     if is_main:
-        base = encode("a photo of the ship")
-        base = base / base.norm()  # unit-normalize
-        tau = 0.2  # cosine threshold
+        with torch.no_grad():
+            ids = tokenizer(
+                "a photo of the ship",
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).input_ids.to(device)
+
+            # Text embedding (float)
+            base = clip_text_encoder(ids).pooler_output.squeeze(0)  # [D], float32
+            base = base / base.norm()  # unit-normalize
+
+        tau = 0.2  # if this is *cosine distance*, cos >= 1 - 0.2 = 0.8
         N = 50
-        Y = sample_within_distance(base, N, cosine_distance=tau)
-        print('Y shape ', Y.shape)
+        Y = sample_within_distance(base, N, cosine_distance=tau)  # returns [N, D]
+        print("Y shape", Y.shape)
 
     # Optionally log a baseline image (main only)
     if is_main:
