@@ -704,7 +704,7 @@ def main():
                     amp = 1.0 + 2.0 * cos_dist
 
                     loss_for_backward = loss * amp / accelerator.gradient_accumulation_steps
-                    #print('!!!! ', loss_for_backward)
+                    print('!!!! ', loss_for_backward)
                 else:
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
