@@ -590,7 +590,9 @@ def main():
 
     # Check cosines
     cos = (Y @ base)  # since both unit-norm
-    print(cos.min().item(), cos.mean().item())
+    print('!!!! ', cos.min().item(), cos.mean().item())
+    sys.exit(0)
+
 
     # Freeze original model
     for p in model_orig.model.diffusion_model.parameters():
