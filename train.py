@@ -491,19 +491,6 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
-def encode(text: str):
-    return (
-        tokenizer(
-            text,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        )
-            .to(accelerator.device)
-            .input_ids
-    )
-
 def sample_within_distance(
     x: torch.Tensor,
     n: int,
@@ -682,6 +669,19 @@ def main():
     quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
 
     sampler_orig = DDIMSampler(model_orig)
+
+    def encode(text: str):
+        return (
+            tokenizer(
+                text,
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            )
+                .to(accelerator.device)
+                .input_ids
+        )
 
     if is_main:
         base = encode("a photo of the ship")
