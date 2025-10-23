@@ -673,12 +673,13 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                #if False:
+                if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     cifar_100_category = random.choice(CIFAR100)
                     cifar_100_prompt = random.choice(prompt_augmentation(cifar_100_category))
-                    inputs_cifar_100 = encode(cifar_100_prompt)
+
+                    inputs_cifar_100 = encode("")
                     with torch.no_grad():
                         base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
