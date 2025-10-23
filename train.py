@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import wandb
 
-from typing import Iterator, Tuple, Dict, Any, Union
+from typing import Iterator, Tuple, Dict, Any, Union, Callable
 
 from typing import Dict, Any, Iterator, Tuple
 import torch
