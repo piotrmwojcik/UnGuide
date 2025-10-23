@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import wandb
 
-from typing import Iterator, Tuple, Dict, Any
+from typing import Iterator, Tuple, Dict, Any, Union
 
 from typing import Dict, Any, Iterator, Tuple
 import torch
@@ -581,7 +581,7 @@ def main():
 
     base = torch.randn(768)
     base = base / base.norm()  # unit-normalize
-    tau = 0.6  # cosine threshold
+    tau = 0.2  # cosine threshold
     N = 1024
 
     print('before')
