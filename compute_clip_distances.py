@@ -202,5 +202,6 @@ def main():
     else:
         print("No summary generated (no rows).")
 
+
 if __name__ == "__main__":
     main()
