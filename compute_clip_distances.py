@@ -57,17 +57,6 @@ def main():
         synonyms = [s.strip() for s in (data.get("synonyms") or []) if s and s.strip()]
         others   = [s.strip() for s in (data.get("other") or []) if s is not None and s.strip()]
 
-        # de-duplicate while preserving order
-        def uniq(seq):
-            seen = set()
-            out = []
-            for x in seq:
-                if x not in seen:
-                    seen.add(x)
-                    out.append(x)
-            return out
-        synonyms = uniq(synonyms)
-        others   = uniq(others)
 
         # Build the batch: first is the target
         texts = [target] + synonyms + others
@@ -110,6 +99,7 @@ def main():
     # Optional: print quick aggregates per file
     agg = df.groupby(["file", "group"])["cosine_distance"].agg(["mean", "std", "min", "max"]).reset_index()
     print(agg.to_string(index=False))
+
 
 if __name__ == "__main__":
     main()
