@@ -81,6 +81,7 @@ def main():
     ap.add_argument("--input_dir", type=str, required=True, help="Folder with *.json files.")
     ap.add_argument("--output_csv", type=str, default="clip_prompt_distances_aug.csv", help="Per-prompt output CSV.")
     ap.add_argument("--summary_csv", type=str, default="clip_prompt_means_aug.csv", help="Per-file means CSV.")
+    ap.add_argument("--target_aug_csv", type=str, default="clip_target_aug_distances.csv", help="Per-augmentation distances of target vs its own augmentations.")
     ap.add_argument("--model_name", type=str, default="openai/clip-vit-large-patch14", help="Hugging Face CLIP checkpoint.")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="cpu or cuda")
     ap.add_argument("--batch_size", type=int, default=64, help="Batch size for text encoding.")
@@ -90,7 +91,9 @@ def main():
     tokenizer = CLIPTokenizerFast.from_pretrained(args.model_name)
     model = CLIPModel.from_pretrained(args.model_name).to(device).eval()
 
-    rows = []
+    rows = []          # synonyms/others vs target (as before)
+    target_aug_rows = []  # NEW: per-target augmentation distances to the original target prompt
+
     input_dir = Path(args.input_dir)
     files = sorted(input_dir.glob("*.json"))
     if not files:
@@ -111,12 +114,33 @@ def main():
         synonyms = [s.strip() for s in (data.get("synonyms") or []) if s and s.strip()]
         others   = [s.strip() for s in (data.get("other") or []) if s is not None and s.strip()]
 
-        # Build augmented embedding for TARGET (using its last word)
+        # Build augmented embedding for TARGET (using its last word) - for comparisons with synonyms/others
         tgt_content = last_word(target)
         tgt_emb = augmented_embedding(model, tokenizer, tgt_content, device, args.batch_size)
         if tgt_emb is None:
             print(f"[WARN] {fp.name}: target produced empty content; skipping.")
             continue
+
+        # --- NEW: distances from the original target prompt to each of its own augmentations ---
+        # Original target prompt embedding (canonical CLIP text feature)
+        tgt_direct_feat = clip_text_features(model, tokenizer, [target], device, batch_size=args.batch_size)[0]  # [D]
+        # All augmented prompts for the target's last word
+        tgt_aug_prompts = [tpl.format(tgt_content) for tpl in AUG_TEMPLATES]
+        tgt_aug_feats = clip_text_features(model, tokenizer, tgt_aug_prompts, device, batch_size=args.batch_size)  # [T,D]
+        # Cosine similarity/distances to the original target prompt
+        sims_aug = (tgt_aug_feats @ tgt_direct_feat)  # [T], features are L2-normalized
+        dists_aug = (1.0 - sims_aug).tolist()
+        for aug_text, sim_val, dist_val in zip(tgt_aug_prompts, sims_aug.tolist(), dists_aug):
+            target_aug_rows.append({
+                "file": fp.name,
+                "group": "target_aug",
+                "target": target,
+                "content_last_word": tgt_content,
+                "aug_prompt": aug_text,
+                "cosine_similarity": float(sim_val),
+                "cosine_distance": float(dist_val),
+            })
+        # ---------------------------------------------------------------
 
         # Per-prompt distances (synonyms, others) using their OWN last word content
         for group_name, prompt_list in (("synonym", synonyms), ("other", others)):
@@ -136,27 +160,47 @@ def main():
                     "cosine_distance": dist,
                 })
 
-    if not rows:
+    if not rows and not target_aug_rows:
         raise SystemExit("No rows produced—check your input files.")
 
-    df = pd.DataFrame(rows)
-    df = df.sort_values(["file", "group", "cosine_distance"])
-    df.to_csv(args.output_csv, index=False)
-    print(f"Wrote per-prompt distances to {args.output_csv}")
+    # --- Write per-prompt distances for synonyms/others (unchanged) ---
+    if rows:
+        df = pd.DataFrame(rows)
+        df = df.sort_values(["file", "group", "cosine_distance"])
+        df.to_csv(args.output_csv, index=False)
+        print(f"Wrote per-prompt distances to {args.output_csv}")
+    else:
+        df = pd.DataFrame(columns=["file","group","prompt","content_last_word","cosine_similarity","cosine_distance"])
 
-    # Compute per-file means for synonyms and others
-    means = (
-        df.groupby(["file", "group"])["cosine_distance"]
-          .agg(mean="mean", std="std", min="min", max="max")
-          .reset_index()
-          .pivot(index="file", columns="group")
-    )
-    # flatten columns
-    means.columns = [f"{g}_{stat}" for g, stat in means.columns]
-    means = means.reset_index()
-    means.to_csv(args.summary_csv, index=False)
-    print(f"Wrote per-file means to {args.summary_csv}")
-    print(means.to_string(index=False))
+    # --- Write per-augmentation distances for target vs its own augmentations (NEW) ---
+    if target_aug_rows:
+        df_taug = pd.DataFrame(target_aug_rows).sort_values(["file","cosine_distance"])
+        df_taug.to_csv(args.target_aug_csv, index=False)
+        print(f"Wrote target augmentation distances to {args.target_aug_csv}")
+    else:
+        df_taug = pd.DataFrame(columns=["file","group","target","content_last_word","aug_prompt","cosine_similarity","cosine_distance"])
+
+    # --- Compute per-file means for synonyms/others + target_aug (NEW in summary) ---
+    df_all = pd.concat([
+        df[["file","group","cosine_distance"]],
+        df_taug[["file","group","cosine_distance"]],
+    ], ignore_index=True)
+
+    if not df_all.empty:
+        means = (
+            df_all.groupby(["file", "group"])["cosine_distance"]
+                  .agg(mean="mean", std="std", min="min", max="max")
+                  .reset_index()
+                  .pivot(index="file", columns="group")
+        )
+        # flatten columns
+        means.columns = [f"{g}_{stat}" for g, stat in means.columns]
+        means = means.reset_index()
+        means.to_csv(args.summary_csv, index=False)
+        print(f"Wrote per-file means to {args.summary_csv}")
+        print(means.to_string(index=False))
+    else:
+        print("No summary generated (no rows).")
 
 if __name__ == "__main__":
     main()
