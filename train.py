@@ -147,52 +147,41 @@ CIFAR100 = [
 
 def prompt_augmentation(content, augment=True):
     if augment:
-        # prompts = [
-        #     # object augmentation
-        #     "{} in a photo".format(content),
-        #     "{} in a snapshot".format(content),
-        #     "A snapshot of {}".format(content),
-        #     "A photograph showcasing {}".format(content),
-        #     "An illustration of {}".format(content),
-        #     "A digital rendering of {}".format(content),
-        #     "A visual representation of {}".format(content),
-        #     "A graphic of {}".format(content),
-        #     "A shot of {}".format(content),
-        #     "A photo of {}".format(content),
-        #     "A black and white image of {}".format(content),
-        #     "A depiction in portrait form of {}".format(content),
-        #     "A scene depicting {} during a public gathering".format(content),
-        #     "{} captured in an image".format(content),
-        #     "A depiction created with oil paints capturing {}".format(content),
-        #     "An image of {}".format(content),
-        #     "A drawing capturing the essence of {}".format(content),
-        #     "An official photograph featuring {}".format(content),
-        #     "A detailed sketch of {}".format(content),
-        #     "{} during sunset/sunrise".format(content),
-        #     "{} in a detailed portrait".format(content),
-        #     "An official photo of {}".format(content),
-        #     "Historic photo of {}".format(content),
-        #     "Detailed portrait of {}".format(content),
-        #     "A painting of {}".format(content),
-        #     "HD picture of {}".format(content),
-        #     "Magazine cover capturing {}".format(content),
-        #     "Painting-like image of {}".format(content),
-        #     "Hand-drawn art of {}".format(content),
-        #     "An oil portrait of {}".format(content),
-        #     "{} in a sketch painting".format(content),
-        # ]
-
         prompts = [
             # object augmentation
             "{} in a photo".format(content),
             "{} in a snapshot".format(content),
             "A snapshot of {}".format(content),
+            "A photograph showcasing {}".format(content),
+            "An illustration of {}".format(content),
+            "A digital rendering of {}".format(content),
+            "A visual representation of {}".format(content),
+            "A graphic of {}".format(content),
             "A shot of {}".format(content),
-            "A photo of the {}".format(content),
+            "A photo of {}".format(content),
             "A black and white image of {}".format(content),
+            "A depiction in portrait form of {}".format(content),
+            "A scene depicting {} during a public gathering".format(content),
             "{} captured in an image".format(content),
+            "A depiction created with oil paints capturing {}".format(content),
+            "An image of {}".format(content),
+            "A drawing capturing the essence of {}".format(content),
+            "An official photograph featuring {}".format(content),
+            "A detailed sketch of {}".format(content),
+            "{} during sunset/sunrise".format(content),
+            "{} in a detailed portrait".format(content),
+            "An official photo of {}".format(content),
+            "Historic photo of {}".format(content),
+            "Detailed portrait of {}".format(content),
+            "A painting of {}".format(content),
             "HD picture of {}".format(content),
+            "Magazine cover capturing {}".format(content),
+            "Painting-like image of {}".format(content),
+            "Hand-drawn art of {}".format(content),
+            "An oil portrait of {}".format(content),
+            "{} in a sketch painting".format(content),
         ]
+
         return prompts
 
 #CIFAR100 = ['castle', 'apple']
@@ -693,23 +682,24 @@ def main():
             ).input_ids.to(accelerator.device)
 
             # Text embedding (float)
+            #[77, 768]
             base = clip_text_encoder(ids).pooler_output.squeeze(0)  # [D], float32
             base = base / base.norm()  # unit-normalize
 
-        tau = 0.2  # if this is *cosine distance*, cos >= 1 - 0.2 = 0.8
-        N = 50
-        Y = sample_within_distance(base, N, cosine_distance=tau)  # returns [N, D]
-        print("Y shape", Y.shape)
-        for y in Y:
-            imgs0 = generate_and_save_sd_images(
-                model=model_orig,
-                sampler=sampler_orig,
-                prompt=ds[0]["target"],
-                device=accelerator.device,
-                steps=50,
-                out_dir=os.path.join(args.output_dir, "tmp"),
-                prefix="orig_",
-            )
+        # tau = 0.2  # if this is *cosine distance*, cos >= 1 - 0.2 = 0.8
+        # N = 50
+        # Y = sample_within_distance(base, N, cosine_distance=tau)  # returns [N, D]
+        # print("Y shape", Y.shape)
+        # for y in Y:
+        #     imgs0 = generate_and_save_sd_images(
+        #         model=model_orig,
+        #         sampler=sampler_orig,
+        #         prompt=ds[0]["target"],
+        #         device=accelerator.device,
+        #         steps=50,
+        #         out_dir=os.path.join(args.output_dir, "tmp"),
+        #         prefix="orig_",
+        #     )
 
     # Optionally log a baseline image (main only)
         #if args.use_wandb and imgs0 is not None:
@@ -766,9 +756,9 @@ def main():
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     cifar_100_category = random.choice(CIFAR100)
-                    cifar_100_prompt = random.choice(prompt_augmentation(cifar_100_category))
+                    cifar_100_prompt = f"A photo of the {cifar_100_category}."
 
-                    inputs_cifar_100 = encode("")
+                    inputs_cifar_100 = encode(cifar_100_prompt)
                     with torch.no_grad():
                         base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
