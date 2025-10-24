@@ -107,48 +107,89 @@ def generate_image(
 
 def flatten_live_tensors(model: nn.Module) -> torch.Tensor:
     """
-    Collects per-layer live tensors, multiplying each x_L by its corresponding alpha
-    (when available). Preserves autograd so loss can backprop through them.
+m    This preserves autograd so loss can backprop through them.
     """
     parts: List[torch.Tensor] = []
-    device = next(model.parameters()).device
+
+    _LIVE_GETTERS = [
+        ("x_L", lambda hl: getattr(hl, "_last_x_L", None)),
+    ]
 
     for _, hl in _iter_hyperlora_layers(model):
-        xL = getattr(hl, "_last_x_L", None)
-        if xL is None:
-            continue
-
-        # Get alpha if the layer uses scaling; otherwise treat as 1
-        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha") and (hl.alpha is not None):
-            alpha = hl.alpha
-            # allow scalar or broadcastable alpha
-            try:
-                xL_scaled = xL * alpha
-            except RuntimeError:
-                # fallback for scalar-shaped alpha
-                if isinstance(alpha, torch.Tensor) and alpha.numel() == 1:
-                    xL_scaled = xL * alpha.view(*([1] * xL.ndim))
-                else:
-                    raise
-        else:
-            xL_scaled = xL
-
-        parts.append(xL_scaled.view(-1))  # keep graph
+        for _, getter in _LIVE_GETTERS:
+            t = getter(hl)
+            if t is None:
+                continue
+            # ensure Tensor, keep graph
+            parts.append(t.view(-1))
 
     if not parts:
-        return torch.tensor([], device=device)
+        return torch.tensor([], device=next(model.parameters()).device)
 
     return torch.cat(parts, dim=0)
 
 
+def generate_images(
+    sampler,
+    model,
+    prompt: str,
+    device: torch.device,
+    steps: int = 50,
+    eta: float = 0.0,
+    batch_size: int = 1,
+    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] for 512x512
+):
+    """
+    Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
+
+    - model: Stable Diffusion model (CompVis LDM style)
+    - sampler: DDIMSampler(model)
+    - prompt: text prompt
+    - device: torch.device("cuda") or torch.device("cpu")
+    - steps: DDIM steps
+    - eta: DDIM eta (0.0 => deterministic)
+    - batch_size: number of samples to generate
+    - out_dir: folder to save into
+    - prefix: file prefix, e.g., 'unl_'
+    - start_code: optional start noise shape [B, 4, H/8, W/8]; if None, sampled internally.
+                  For 512×512 set shape to [B, 4, 64, 64].
+    """
+    if start_code is None:
+        start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
+
+    model.eval()
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        uncond = model.get_learned_conditioning([""] * start_code.shape[0])
+
+        samples, _ = sampler.sample(
+            S=steps,
+            conditioning={"c_crossattn": [cond]},
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],  # (4, H/8, W/8)
+            verbose=False,
+            unconditional_guidance_scale=7.5,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=eta,
+            x_T=start_code,
+        )
+        decoded = model.decode_first_stage(samples)
+        decoded = (decoded + 1.0) / 2.0
+        decoded = torch.clamp(decoded, 0.0, 1.0)
+        return decoded  # [B,3,H,W] in [0,1]
+
+
 if __name__ == "__main__":
-    RANK = int(os.environ.get("RANK", "0"))
+    LOCAL_RANK = int(os.environ.get("LOCAL_RANK", "0"))
+    RANK       = int(os.environ.get("RANK", "0"))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
 
+    torch.cuda.set_device(LOCAL_RANK)
+    device = torch.device(f"cuda:{LOCAL_RANK}")
     args = parse_args()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
 
     exps = os.listdir(args.output_dir)
@@ -197,14 +238,14 @@ if __name__ == "__main__":
         print(f"Exp: {exp}", flush=True)
         # Load models
         model_full = load_model_from_config(
-            args.config, args.ckpt, device=args.device
+            args.config, args.ckpt, device=device
         )
         model_unl = load_model_from_config(
-            args.config, args.ckpt, device=args.device
+            args.config, args.ckpt, device=device
         )
 
         # Apply LoRA to unlearned model
-        lora_sd = torch.load(lora_filepath, map_location=args.device)
+        lora_sd = torch.load(lora_filepath, map_location=device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=768,
@@ -238,106 +279,139 @@ if __name__ == "__main__":
         print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
         for prompt in prompts:
-            class_name = prompt.split(" ")[-1]
-            class_root = os.path.join(img_root, class_name)
-            os.makedirs(class_root, exist_ok=True)
-            if len(os.listdir(class_root)) == args.samples:
-                continue
-
-            # Conditioning
-            cond = model_unl.get_learned_conditioning([prompt])
-            uncond = model_unl.get_learned_conditioning([""])
-
-            sampler_unl = DDIMSampler(model=model_unl)
-            quick_sampler = create_quick_sampler(model_unl, sampler_unl,
-                                                 args.image_size, args.ddim_steps, args.ddim_eta)
-
-            t_enc = torch.randint(args.ddim_steps, (1,), device=model_unl.device)
-            og_num = round((int(t_enc) / args.ddim_steps) * 1000)
-            og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
-            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=model_unl.device)
-
-            start_code = torch.randn(
-                (1, 4, args.image_size // 8, args.image_size // 8),
-                device=model_unl.device
-            )
-            inputs = tokenizer(
-                prompt,
-                max_length=tokenizer.model_max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).to(args.device).input_ids
-
-            t_prompt = clip_text_encoder(inputs).pooler_output.detach()
-
-            model_unl.current_conditioning = t_prompt
-            model_unl.time_step = 150
-
-            z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
-            _ = model_unl.apply_model(z, t_enc_ddpm, cond)
-            tensors_flat_t_live = flatten_live_tensors(model_unl)
             with torch.no_grad():
-                if isinstance(tensors_flat_t_live, torch.Tensor):
-                    vec = tensors_flat_t_live.reshape(-1).float()
-                else:
-                    vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
-                l1 = vec.norm(p=1).item()
-
-            print(prompt, f"||tensors_flat_t_live||_2 = {l1:.6f}")
-            if l1 < 51.338:
-                w = 2
-            else:
-                w = -1
-            #w = decide_w(
-            #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
-            #    w1=args.w1, w2=args.w2
-            #)
-            #w = 0
-            # Prepare models and sampler
-            auto_model = AutoGuidedModel(
-                model_full, model_unl, w=w
-            ).eval()
-            sampler = DDIMSampler(model=auto_model)
-
-
-            print(f"cond dimensions {cond.size()}")
-            print(f"uncond dimensions {uncond.size()}")
-            # Generation loop
-
-            for idx in tqdm(range(args.samples), desc="Generating images"):
-                start = time.time()
-                filename = f"{idx:05d}.jpg"
-                filename_path = os.path.join(img_root, class_name, filename)
-                if os.path.exists(filename_path):
-                    continue
-                if idx % WORLD_SIZE != RANK:
+                class_name = prompt.split(" ")[-1]
+                class_root = os.path.join(img_root, class_name)
+                os.makedirs(class_root, exist_ok=True)
+                if len(os.listdir(class_root)) == args.samples:
                     continue
 
-                seed = args.seed + idx
-                set_seed(seed)
-                gen = torch.Generator(device=args.device).manual_seed(seed)
+                # Conditioning
+                cond = model_unl.get_learned_conditioning([prompt])
+                uncond = model_unl.get_learned_conditioning([""])
 
-                start_code = torch.randn(1, 4, 64, 64, generator=gen, device=args.device)
+                sampler_unl = DDIMSampler(model=model_unl)
+                quick_sampler = create_quick_sampler(model_unl, sampler_unl,
+                                                     args.image_size, args.ddim_steps, args.ddim_eta)
+
+                t_enc = torch.randint(args.ddim_steps, (1,), device=model_unl.device)
+                og_num = round((int(t_enc) / args.ddim_steps) * 1000)
+                og_num_lim = round((int(t_enc + 1) / args.ddim_steps) * 1000)
+                t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=model_unl.device)
+
+                start_code = torch.randn(
+                    (1, 4, args.image_size // 8, args.image_size // 8),
+                    device=model_unl.device
+                )
                 inputs = tokenizer(
                     prompt,
                     max_length=tokenizer.model_max_length,
                     padding="max_length",
                     truncation=True,
                     return_tensors="pt",
-                ).to(args.device).input_ids
+                ).to(device).input_ids
+
+                inputs_empty = tokenizer(
+                    "",
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(device).input_ids
+
+                inputs_target = tokenizer(
+                    prompts[0],
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(device).input_ids
 
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+                empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
+                inputs_target = clip_text_encoder(inputs_empty).pooler_output.detach()
 
                 model_unl.current_conditioning = t_prompt
+                model_unl.target_prompt = inputs_target
                 model_unl.time_step = 150
 
-                img = generate_image(
-                    sampler, auto_model, start_code, cond, uncond, args.steps
-                )
-                img_np = img[0].cpu().permute(1, 2, 0).numpy()
-                img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+                z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
+                _ = model_unl.apply_model(z, t_enc_ddpm, cond)
+                tensors_flat_t_live_t1 = flatten_live_tensors(model_unl)
 
-                img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
-                end = time.time()
-                print(f"Generate: {end - start}", flush=True)
+                #z = quick_sampler(uncond, args.start_guidance, start_code, int(t_enc))
+                #model_unl.current_conditioning = empty_prompt
+                model_unl.time_step = 0
+                _ = model_unl.apply_model(z, t_enc_ddpm, uncond)
+                tensors_flat_t_live_t0 = flatten_live_tensors(model_unl)
+                tensors_flat_t_live = tensors_flat_t_live_t1 - tensors_flat_t_live_t0
+                with torch.no_grad():
+                    if isinstance(tensors_flat_t_live, torch.Tensor):
+                        vec = tensors_flat_t_live.reshape(-1).float()
+                    else:
+                        vec = torch.cat([t.reshape(-1).float() for t in tensors_flat_t_live], dim=0)
+                    l2 = vec.norm(p=2).item()
+
+                print("prompt: ", prompt, f"||tensors_flat_t_live||_2 = {l2:.6f}")
+
+                #if l2 < 1.2:
+                #    model = model_full
+                #else:
+                #    model = model_unl
+                model = model_unl
+            #w = -1
+            #w = decide_w(
+            #    results["prompt_avgs"].get(prompt), results["prompt_avgs"].get(""),
+            #    w1=args.w1, w2=args.w2
+            #)
+            #w = 0
+            # Prepare models and sampler
+            #auto_model = AutoGuidedModel(
+            #    model_full, model_unl, w=w
+            #).eval()
+            with torch.no_grad():
+                sampler = DDIMSampler(model=model)
+
+                print(f"cond dimensions {cond.size()}")
+                print(f"uncond dimensions {uncond.size()}")
+                # Generation loop
+
+                for idx in tqdm(range(args.samples), desc="Generating images"):
+                    start = time.time()
+                    filename = f"{idx:05d}.jpg"
+                    filename_path = os.path.join(img_root, class_name, filename)
+                    if os.path.exists(filename_path):
+                        continue
+                    if idx % WORLD_SIZE != RANK:
+                        continue
+
+                    seed = args.seed + idx
+                    set_seed(seed)
+                    gen = torch.Generator(device=device).manual_seed(seed)
+
+                    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=device)
+                    inputs = tokenizer(
+                        prompt,
+                        max_length=tokenizer.model_max_length,
+                        padding="max_length",
+                        truncation=True,
+                        return_tensors="pt",
+                    ).to(device).input_ids
+
+                    t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+                    #if l2 > 1.2:
+                    model.current_conditioning = t_prompt
+                    model.time_step = 150
+
+                    img = generate_images(
+                        sampler=sampler, model=model,
+                        start_code=start_code, prompt=prompt, device=model_unl.device,
+                        steps=args.steps
+                    )
+                    img_np = img[0].cpu().permute(1, 2, 0).numpy()
+                    img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+
+                    img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
+                    end = time.time()
+                    print(f"Generate: {end - start}", flush=True)
