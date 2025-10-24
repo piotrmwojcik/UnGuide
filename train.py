@@ -700,21 +700,21 @@ def main():
         N = 50
         Y = sample_within_distance(base, N, cosine_distance=tau)  # returns [N, D]
         print("Y shape", Y.shape)
+        for y in Y:
+            imgs0 = generate_and_save_sd_images(
+                model=model_orig,
+                sampler=sampler_orig,
+                prompt=ds[0]["target"],
+                device=accelerator.device,
+                steps=50,
+                out_dir=os.path.join(args.output_dir, "tmp"),
+                prefix="orig_",
+            )
 
     # Optionally log a baseline image (main only)
-    if is_main:
-        imgs0 = generate_and_save_sd_images(
-            model=model_orig,
-            sampler=sampler_orig,
-            prompt=ds[0]["target"],
-            device=accelerator.device,
-            steps=50,
-            out_dir=os.path.join(args.output_dir, "tmp"),
-            prefix="orig_",
-        )
-        if args.use_wandb and imgs0 is not None:
-            im0 = (imgs0[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-            wandb.log({"baseline": wandb.Image(to_pil_image(im0))}, step=0)
+        #if args.use_wandb and imgs0 is not None:
+        #    im0 = (imgs0[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+        #    wandb.log({"baseline": wandb.Image(to_pil_image(im0))}, step=0)
     # Training
     criterion = torch.nn.MSELoss()
     losses = []
