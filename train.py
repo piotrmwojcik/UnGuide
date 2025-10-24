@@ -602,7 +602,6 @@ def main():
         args.config_path, args.ckpt_path, accelerator.device
     )
 
-
     # Freeze original model
     for p in model_orig.model.diffusion_model.parameters():
         p.requires_grad = False
@@ -627,7 +626,6 @@ def main():
     )
     for layer in hyper_lora_layers:
         layer.set_parent_model(model)
-
 
     # Optimizer on trainable (LoRA) params only
     trainable_params = list(filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters()))
@@ -657,8 +655,6 @@ def main():
     # Quick sampler
     quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
 
-    sampler_orig = DDIMSampler(model_orig)
-
     def encode(text: str):
         return (
             tokenizer(
@@ -683,8 +679,8 @@ def main():
 
             # Text embedding (float)
             #[77, 768]
-            base = clip_text_encoder(ids).pooler_output.squeeze(0)  # [D], float32
-            base = base / base.norm()  # unit-normalize
+            #base = clip_text_encoder(ids).pooler_output.squeeze(0)  # [D], float32
+            #base = base / base.norm()  # unit-normalize
 
         # tau = 0.2  # if this is *cosine distance*, cos >= 1 - 0.2 = 0.8
         # N = 50
@@ -715,9 +711,9 @@ def main():
             target_text = random.choice(prompt_augmentation(args.target_object))
 
             # Get conditional embeddings (strings) directly for LDM
-            emb_0 = base.get_learned_conditioning(sample["reference"])
-            emb_p = base.get_learned_conditioning(sample["target"])
-            emb_n = base.get_learned_conditioning(sample["target"])
+            emb_0 = model.get_learned_conditioning(sample["reference"])
+            emb_p = model.get_learned_conditioning(sample["target"])
+            emb_n = model.get_learned_conditioning(sample["target"])
 
             optimizer.zero_grad(set_to_none=True)
 
