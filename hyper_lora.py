@@ -68,7 +68,7 @@ class HyperLora(nn.Module):
         self.right_head = nn.Sequential(
             nn.Linear(clip_size + time_embedd, 100),
             nn.ReLU(inplace=True),
-            nn.Linear(100, in_dim * rank),
+            nn.Linear(100, out_dim * rank),
         )
         self.time_feat = TimeFourier()
         self.in_dim = in_dim
