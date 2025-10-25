@@ -729,11 +729,13 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the airplane")
             inputs_other2 = encode("a photo of the truck")
+            inputs_other3 = encode("a photo of the vessel")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
+                cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
@@ -910,7 +912,20 @@ def main():
                     caption = f"target: truck"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) from castle": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-
+                base.current_conditioning = cond_other3
+                imgs = generate_and_save_sd_images(
+                    model=base,
+                    sampler=sampler,
+                    prompt="a photo of the vessel",
+                    device=accelerator.device,
+                    steps=50,
+                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    prefix=f"unl_{i}_",
+                )
+                if imgs is not None:
+                    caption = f"target: vessel"
+                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
 
