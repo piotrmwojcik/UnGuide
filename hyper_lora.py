@@ -60,8 +60,14 @@ class HyperLora(nn.Module):
         self.register_buffer(
             "alpha_b", torch.tensor(alpha_init, dtype=torch.float32), persistent=False
         )
-        self.left_head = nn.Linear(clip_size + time_embedd, in_dim * rank)
-        self.right_head = nn.Linear(clip_size + time_embedd, out_dim * rank)
+        self.left_head = nn.Sequential(
+            nn.Linear(clip_size + time_embedd, in_dim * rank),
+            nn.Sigmoid(),
+        )
+        self.right_head = nn.Sequential(
+            nn.Linear(clip_size + time_embedd, out_dim * rank),
+            nn.Sigmoid(),
+        )
         self.time_feat = TimeFourier()
         self.in_dim = in_dim
         self.out_dim = out_dim
