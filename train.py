@@ -590,7 +590,7 @@ def main():
 
     # Data
     data_dir = args.data_dir
-    overs = {"ship.json": 8.0, "neutral.json": 4.0}
+    overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
     ds = TargetReferenceDataset(data_dir, weights=overs)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
@@ -668,14 +668,14 @@ def main():
                 .input_ids
         )
 
-    if is_main:
-        with torch.no_grad():
-            ids = tokenizer(
-                "a photo of the ship",
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).input_ids.to(accelerator.device)
+    #if is_main:
+        #with torch.no_grad():
+            # ids = tokenizer(
+            #     "a photo of the ship",
+            #     padding="max_length",
+            #     truncation=True,
+            #     return_tensors="pt",
+            # ).input_ids.to(accelerator.device)
 
             # Text embedding (float)
             #[77, 768]
@@ -727,9 +727,9 @@ def main():
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            inputs_other = encode("a photo of the airplane")
+            inputs_other = encode("a photo of the horse")
             inputs_other2 = encode("a photo of the truck")
-            inputs_other3 = encode("a photo of the vessel")
+            inputs_other3 = encode("a photo of the doe")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
