@@ -886,16 +886,16 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the airplane",
+                    prompt="a photo of the horse",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: airplane"
+                    caption = f"target: horse"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log({"sample (other) horse": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other2
                 #base.time_step = 0
                 #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
@@ -911,19 +911,19 @@ def main():
                 if imgs is not None:
                     caption = f"target: truck"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) from castle": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other3
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the vessel",
+                    prompt="a photo of the doe",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: vessel"
+                    caption = f"target: doe"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
