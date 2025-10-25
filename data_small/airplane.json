@@ -1,16 +1,16 @@
 {
-    "target": "a photo of the deer",
-    "reference": "a photo of the sea",
+    "target": "a photo of the airplane",
+    "reference": "a photo of the street",
     "synonyms": [
-        "a photo of the hart",
-        "a photo of the stag",
-        "a photo of the doe"
+        "a photo of the aircraft",
+        "a photo of the plane",
+        "a photo of the jet"
     ],
     "other": [
-        "a photo of the airplane",
         "a photo of the automobile",
         "a photo of the bird",
         "a photo of the cat",
+        "a photo of the deer",
         "a photo of the dog",
         "a photo of the frog",
         "a photo of the horse",

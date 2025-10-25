@@ -727,9 +727,9 @@ def main():
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            inputs_other = encode("a photo of the horse")
-            inputs_other2 = encode("a photo of the truck")
-            inputs_other3 = encode("a photo of the doe")
+            inputs_other = encode("a photo of the bird")
+            inputs_other2 = encode("a photo of the plane")
+            inputs_other3 = encode("a photo of the jet")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
@@ -886,44 +886,44 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the horse",
+                    prompt="a photo of the plane",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: horse"
+                    caption = f"target: plane"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) horse": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other2
                 #base.time_step = 0
                 #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the truck",
+                    prompt="a photo of the bird",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: truck"
+                    caption = f"target: bird"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 base.current_conditioning = cond_other3
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the doe",
+                    prompt="a photo of the jet",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: doe"
+                    caption = f"target: jet"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
