@@ -590,7 +590,7 @@ def main():
 
     # Data
     data_dir = args.data_dir
-    overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
+    overs = {f"{args.target_object}.json": 5.0, "neutral.json": 5.0}
     ds = TargetReferenceDataset(data_dir, weights=overs)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
