@@ -75,11 +75,14 @@ def extract_folder_features(model, tfm, folder: Path, batch: int, device, cap: i
 
 @torch.no_grad()
 def prototype_mean(feats: torch.Tensor) -> torch.Tensor:
-    """Plain mean on the sphere: average then renormalize."""
+    # feats: [N, D], unit-norm rows
+    if feats.ndim != 2:
+        # flatten to [N, D] if needed
+        feats = feats.view(feats.shape[0], -1)
     if feats.numel() == 0:
-        return feats.new_zeros(feats.shape[-1])
-    mu = feats.mean(dim=0, keepdim=True)
-    return F.normalize(mu, dim=-1).squeeze(0)
+        return torch.zeros(feats.shape[-1], device=feats.device)
+    mu = feats.mean(dim=0)                       # [D]
+    return F.normalize(mu, dim=0)                # [D]
 
 
 def main():
