@@ -590,7 +590,7 @@ def main():
 
     # Data
     data_dir = args.data_dir
-    overs = {f"{args.target_object}.json": 5.0, "neutral.json": 5.0}
+    overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
     ds = TargetReferenceDataset(data_dir, weights=overs)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
@@ -773,7 +773,7 @@ def main():
                     _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = (delta_live ** 2).mean()
+                    loss = 2 * (delta_live ** 2).mean()
 
                     curr = base.current_conditioning.detach().float()
                     tgt = cond_target.detach().float()
