@@ -5,8 +5,8 @@ from pathlib import Path
 import torch
 from torchvision.transforms.functional import to_pil_image
 
-# from your codebase
 from ldm.models.diffusion.ddimcopy import DDIMSampler
+from ldm.util import instantiate_from_config
 from utils import load_model_from_config  # this should load the SD model from config+ckpt
 
 
