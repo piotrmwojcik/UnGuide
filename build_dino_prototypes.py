@@ -117,6 +117,7 @@ def main():
                 model, tfm, cdir, batch=args.batch, device=device,
                 cap=args.max_images_per_class
             )
+            print('!!! ', feats.shape)
             N = feats.shape[0]
             if N == 0:
                 proto = torch.zeros(model.num_features, device="cpu")
