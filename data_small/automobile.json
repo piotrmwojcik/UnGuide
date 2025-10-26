@@ -1,15 +1,15 @@
 {
-    "target": "a photo of the cat",
-    "reference": "a photo of the forest",
+    "target": "a photo of the automobile",
+    "reference": "a photo of the sea",
     "synonyms": [
-        "a photo of the feline",
-        "a photo of the kitty",
-        "a photo of the housecat"
+        "a photo of the car",
+        "a photo of the vehicle",
+        "a photo of the motorcar"
     ],
     "other": [
         "a photo of the airplane",
-        "a photo of the automobile",
         "a photo of the bird",
+        "a photo of the cat",
         "a photo of the deer",
         "a photo of the dog",
         "a photo of the frog",
