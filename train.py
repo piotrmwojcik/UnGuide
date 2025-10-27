@@ -694,13 +694,13 @@ def main():
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            #inputs_other = encode("a photo of the bird")
+            inputs_other = encode("An image capturing Angelina Jolie at a public event")
             #inputs_other2 = encode("a photo of the dog")
             #inputs_other3 = encode("a photo of the feline")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
-                #cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
+                cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 #cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 #cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
@@ -835,7 +835,7 @@ def main():
                 and sample_ids == 0
             ):
                 base.time_step = 150
-                base.current_conditioning = cond_target
+                base.current_conditioning = cond_other
 
                 imgs = generate_and_save_sd_images(
                     model=base,
