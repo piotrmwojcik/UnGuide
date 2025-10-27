@@ -585,7 +585,7 @@ def main():
     # Data
     data_dir = args.data_dir
     #overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
-    ds = TargetReferenceDataset(data_dir, weights=overs)
+    ds = TargetReferenceDataset(data_dir)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
     # Models (original + trainable clone)
