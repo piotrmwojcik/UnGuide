@@ -4,10 +4,10 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class TargetReferenceDataset(Dataset):
-    def __init__(self, root, weights: dict[str, float] | None = None):
+    def __init__(self, root, *, neutral_name: str = "neutral.json", neutral_mult: float = 8.0):
         """
-        weights: optional mapping {filename.json: weight}, e.g. {"special.json": 5.0}
-                 filenames not in the dict get weight 1.0
+        Oversample a single file (neutral_name) by neutral_mult.
+        All other files have weight 1.0 (uniform among themselves).
         """
         self.files = sorted(Path(root).glob("*.json"))
         self.samples = []
@@ -25,14 +25,13 @@ class TargetReferenceDataset(Dataset):
         if not self.samples:
             raise RuntimeError("No valid items found.")
 
-        # Build an index list with repetitions according to weights
-        weights = weights or {}
+        # Build an index list with repetitions:
+        #   neutral_name -> weight = neutral_mult
+        #   others       -> weight = 1.0
         self._index = []
         for i, (fname, _, _) in enumerate(self.samples):
-            w = float(weights.get(fname, 1.0))
-            if w <= 0:
-                continue  # skip if weight is 0
-            reps = max(1, int(round(w)))  # duplicate count
+            w = neutral_mult if fname == neutral_name else 1.0
+            reps = max(1, int(round(w)))
             self._index.extend([i] * reps)
 
     def __len__(self):
@@ -43,6 +42,7 @@ class TargetReferenceDataset(Dataset):
         fname, target, reference = self.samples[i]
         return {"file": fname, "target": target, "reference": reference}
 
+
 # simple collate that keeps strings
 def collate_prompts(batch):
     return {
@@ -50,6 +50,12 @@ def collate_prompts(batch):
         "target": [b["target"] for b in batch],
         "reference": [b["reference"] for b in batch],
     }
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

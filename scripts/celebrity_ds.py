@@ -19,7 +19,15 @@ erase_names = [
     "Ronald Reagan", "Ryan Gosling", "Ryan Reynolds", "Shia Labeouf", "Shirley Temple", "Spike Lee", "Stan Lee",
     "Theresa May", "Tom Cruise", "Tom Hanks", "Tom Hardy", "Tom Hiddleston", "Whoopi Goldberg", "Zac Efron",
     "Zayn Malik"
-]  # your list
+]
+
+erase_names10 = ['Adam Driver', 'Adriana Lima', 'Amber Heard', 'Amy Adams', 'Andrew Garfield', 'Angelina Jolie',
+    'Anjelica Huston', 'Anna Faris', 'Anna Kendrick', 'Anne Hathaway']
+
+retain_name10 = ["George Bush", "Queen Elizabeth", "David Bowie", "Keanu Reeves", "Jimmy Carter",
+               "Robert De Niro", "Pierce Brosnan", "Kim Jong Un", "Lana Del Rey", "Jim Morrison"]
+
+# your list
 retain_name = [
     "Aaron Paul", "Alec Baldwin", "Amanda Seyfried", "Amy Poehler", "Amy Schumer", "Amy Winehouse",
     "Andy Samberg", "Aretha Franklin", "Avril Lavigne", "Aziz Ansari", "Barry Manilow", "Ben Affleck",
@@ -48,27 +56,16 @@ TEMPLATES = [
     "{} in an official photo",
 ]
 
-TEMPLATES = [
-    "A portrait of {}",
-    "An image capturing {} at a public event",
-    "An oil painting of {}",
-    "A sketch of {}",
-    "{} in an official photo",
-]
-
 
 def slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
 
 # Align lengths (deterministic, no randomness)
-pairs = min(len(erase_names), len(retain_name))
-erase_names = erase_names[:pairs]
-retain_name = retain_name[:pairs]
 
-out_dir = Path("aug_pairs_json_all")
+out_dir = Path("celebrities10")
 out_dir.mkdir(parents=True, exist_ok=True)
 
-for e, r in zip(erase_names, retain_name):
+for e, r in zip(erase_names10, retain_name10):
     e_slug, r_slug = slug(e), slug(r)
     for ti, tmpl in enumerate(TEMPLATES):
         payload = {

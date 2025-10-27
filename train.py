@@ -126,7 +126,7 @@ def parse_args():
     return parser.parse_args()
 
 
-CIFAR100 = [
+RETAIN = [
     'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
     'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
     'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
@@ -142,38 +142,11 @@ CIFAR100 = [
 def prompt_augmentation(content, augment=True):
     if augment:
         prompts = [
-            # object augmentation
-            "{} in a photo".format(content),
-            "{} in a snapshot".format(content),
-            "A snapshot of {}".format(content),
-            "A photograph showcasing {}".format(content),
-            "An illustration of {}".format(content),
-            "A digital rendering of {}".format(content),
-            "A visual representation of {}".format(content),
-            "A graphic of {}".format(content),
-            "A shot of {}".format(content),
-            "A photo of {}".format(content),
-            "A black and white image of {}".format(content),
-            "A depiction in portrait form of {}".format(content),
-            "A scene depicting {} during a public gathering".format(content),
-            "{} captured in an image".format(content),
-            "A depiction created with oil paints capturing {}".format(content),
-            "An image of {}".format(content),
-            "A drawing capturing the essence of {}".format(content),
-            "An official photograph featuring {}".format(content),
-            "A detailed sketch of {}".format(content),
-            "{} during sunset/sunrise".format(content),
-            "{} in a detailed portrait".format(content),
-            "An official photo of {}".format(content),
-            "Historic photo of {}".format(content),
-            "Detailed portrait of {}".format(content),
-            "A painting of {}".format(content),
-            "HD picture of {}".format(content),
-            "Magazine cover capturing {}".format(content),
-            "Painting-like image of {}".format(content),
-            "Hand-drawn art of {}".format(content),
-            "An oil portrait of {}".format(content),
-            "{} in a sketch painting".format(content),
+            "A portrait of {}",
+            "An image capturing {} at a public event",
+            "An oil painting of {}",
+            "A sketch of {}",
+            "{} in an official photo",
         ]
 
         return prompts
@@ -585,7 +558,7 @@ def main():
     # Data
     data_dir = args.data_dir
     #overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
-    ds = TargetReferenceDataset(data_dir)
+    ds  = TargetReferenceDataset(data_dir, neutral_name="neutral.json", neutral_mult=8.0)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
     # Models (original + trainable clone)
@@ -747,10 +720,10 @@ def main():
                 #if False:
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
-                    cifar_100_category = random.choice(CIFAR100)
-                    cifar_100_prompt = f"A photo of the {cifar_100_category}."
+                    retain_celebrity_category = random.choice(RETAIN)
+                    retain_celebrity_prompt = f"A photo of {retain_celebrity_category}."
 
-                    inputs_cifar_100 = encode(cifar_100_prompt)
+                    inputs_cifar_100 = encode(retain_celebrity_prompt)
                     with torch.no_grad():
                         base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
@@ -767,16 +740,16 @@ def main():
                     _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 2 * (delta_live ** 2).mean()
+                    loss = (delta_live ** 2).mean()
 
-                    curr = base.current_conditioning.detach().float()
-                    tgt = cond_target.detach().float()
-                    cos_sim = F.cosine_similarity(curr, tgt, dim=-1, eps=1e-8)
-                    cos_sim = cos_sim.clamp_min(0.0)
-                    cos_dist = (1.0 - cos_sim)
-                    amp = 1.0 + 2.0 * cos_dist
+                    #curr = base.current_conditioning.detach().float()
+                    #tgt = cond_target.detach().float()
+                    #cos_sim = F.cosine_similarity(curr, tgt, dim=-1, eps=1e-8)
+                    #cos_sim = cos_sim.clamp_min(0.0)
+                    #cos_dist = (1.0 - cos_sim)
+                    #amp = 1.0 + 2.0 * cos_dist
 
-                    loss_for_backward = loss * amp / accelerator.gradient_accumulation_steps
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
                 else:
                     with torch.no_grad():
@@ -863,7 +836,6 @@ def main():
             ):
                 base.time_step = 150
                 base.current_conditioning = cond_target
-                print('!!!! ', target_text)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
