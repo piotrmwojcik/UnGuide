@@ -642,13 +642,12 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
-            target_text = sample["target"]
-            print('!!! ', sample["reference"][0], sample["target"][0])
+            target_text = sample["target"][0]
 
             # Get conditional embeddings (strings) directly for LDM
-            emb_0 = base.get_learned_conditioning(sample["reference"])
-            emb_p = base.get_learned_conditioning(sample["target"])
-            emb_n = base.get_learned_conditioning(sample["target"])
+            emb_0 = base.get_learned_conditioning(sample["reference"][0])
+            emb_p = base.get_learned_conditioning(sample["target"][0])
+            emb_n = base.get_learned_conditioning(sample["target"][0])
 
             optimizer.zero_grad(set_to_none=True)
 
