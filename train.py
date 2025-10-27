@@ -71,12 +71,6 @@ def parse_args():
         help="(Ignored when using Accelerate) Device to use for training"
     )
 
-    parser.add_argument(
-        "--target_object",
-        type=str,
-        default="ship",
-        help="Target concept to be removed.",
-    )
 
     # LoRA/HyperLoRA
     parser.add_argument("--lora_rank", type=int, default=1, help="LoRA rank parameter")
@@ -590,7 +584,7 @@ def main():
 
     # Data
     data_dir = args.data_dir
-    overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
+    #overs = {f"{args.target_object}.json": 8.0, "neutral.json": 4.0}
     ds = TargetReferenceDataset(data_dir, weights=overs)
     ds_loader = DataLoader(ds, batch_size=1, shuffle=True, collate_fn=collate_prompts)
 
@@ -636,7 +630,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=0.5
+        optimizer, milestones=[600], gamma=0.5
     )
 
     # Prepare for DDP / Mixed precision
@@ -708,7 +702,7 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
-            target_text = random.choice(prompt_augmentation(args.target_object))
+            target_text = sample["target"]
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
@@ -727,15 +721,15 @@ def main():
 
             #inputs = encode(sample["target"])
             #print('!!! ', sample["target"])
-            inputs_other = encode("a photo of the bird")
-            inputs_other2 = encode("a photo of the dog")
-            inputs_other3 = encode("a photo of the feline")
+            #inputs_other = encode("a photo of the bird")
+            #inputs_other2 = encode("a photo of the dog")
+            #inputs_other3 = encode("a photo of the feline")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 #cond_target = clip_text_encoder(inputs).pooler_output.detach()
-                cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
-                cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
-                cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
+                #cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
+                #cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
+                #cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
@@ -762,7 +756,7 @@ def main():
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
+                    emb_target = base.get_learned_conditioning(target_text)
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
@@ -872,60 +866,60 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=f"a photo of the {args.target_object}",
+                    prompt=target_text,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: {args.target_object}"
+                    caption = f"target: {target_text}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt="a photo of the bird",
-                    device=accelerator.device,
-                    steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
-                )
-                if imgs is not None:
-                    caption = f"target: bird"
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other2
-                #base.time_step = 0
-                #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt="a photo of the dog",
-                    device=accelerator.device,
-                    steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
-                )
-                if imgs is not None:
-                    caption = f"target: dog"
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other3
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt="a photo of the feline",
-                    device=accelerator.device,
-                    steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
-                )
-                if imgs is not None:
-                    caption = f"target: feline"
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                # base.current_conditioning = cond_other
+                # imgs = generate_and_save_sd_images(
+                #     model=base,
+                #     sampler=sampler,
+                #     prompt="a photo of the bird",
+                #     device=accelerator.device,
+                #     steps=50,
+                #     out_dir=os.path.join(args.output_dir, "tmp"),
+                #     prefix=f"unl_{i}_",
+                # )
+                # if imgs is not None:
+                #     caption = f"target: bird"
+                #     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                #     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                # base.current_conditioning = cond_other2
+                # #base.time_step = 0
+                # #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
+                # imgs = generate_and_save_sd_images(
+                #     model=base,
+                #     sampler=sampler,
+                #     prompt="a photo of the dog",
+                #     device=accelerator.device,
+                #     steps=50,
+                #     out_dir=os.path.join(args.output_dir, "tmp"),
+                #     prefix=f"unl_{i}_",
+                # )
+                # if imgs is not None:
+                #     caption = f"target: dog"
+                #     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                #     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                # base.current_conditioning = cond_other3
+                # imgs = generate_and_save_sd_images(
+                #     model=base,
+                #     sampler=sampler,
+                #     prompt="a photo of the feline",
+                #     device=accelerator.device,
+                #     steps=50,
+                #     out_dir=os.path.join(args.output_dir, "tmp"),
+                #     prefix=f"unl_{i}_",
+                # )
+                # if imgs is not None:
+                #     caption = f"target: feline"
+                #     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                #     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
 
