@@ -863,6 +863,7 @@ def main():
             ):
                 base.time_step = 150
                 base.current_conditioning = cond_target
+                print('!!!! ', target_text)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
