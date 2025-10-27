@@ -836,10 +836,11 @@ def main():
             ):
                 base.time_step = 150
                 base.current_conditioning = cond_target
+
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=target_text,
+                    prompt=target_text[0],
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
