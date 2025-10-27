@@ -831,24 +831,23 @@ def main():
                 accelerator.is_local_main_process
                 and args.use_wandb
                 and i >= args.log_from
-                and i % 10 == 0
+                and i % 5 == 0
                 and sample_ids == 0
             ):
                 base.time_step = 150
                 base.current_conditioning = cond_target
 
-                print('!!! ', target_text)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=target_text[0],
+                    prompt="An image capturing Angelina Jolie at a public event",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: {target_text}"
+                    caption = f"Angelina Jolie"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
                 # base.current_conditioning = cond_other
