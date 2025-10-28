@@ -744,7 +744,6 @@ def main():
                     #cifar_100_category = random.choice(CIFAR100)
                     #cifar_100_prompt = f"A photo of the {cifar_100_category}."
 
-                    inputs_cifar_100 = encode(cifar_100_prompt)
                     with torch.no_grad():
                         base.current_conditioning = retain_prompt
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
