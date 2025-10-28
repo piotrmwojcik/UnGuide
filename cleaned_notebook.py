@@ -381,6 +381,11 @@ if __name__ == "__main__":
     from pathlib import Path
     import torch
     from torchvision.transforms.functional import to_pil_image
+    import torch.nn.functional as F
+    from transformers import CLIPModel, CLIPTokenizerFast, CLIPProcessor
+    from PIL import Image
+
+
 
     # --- config you can tweak ---
     prompt = "a photo of the truck"
@@ -415,6 +420,17 @@ if __name__ == "__main__":
         to_pil_image(im_u8).save(path)
 
 
+    clip_name = "openai/clip-vit-large-patch14"
+    clip_model = CLIPModel.from_pretrained(clip_name).to(device).eval()
+    clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
+    clip_proc = CLIPProcessor.from_pretrained(clip_name)
+
+    with torch.no_grad():
+        txt_inputs = clip_tok([prompt], return_tensors="pt", padding=True, truncation=True)
+        txt_inputs = {k: v.to(device) for k, v in txt_inputs.items()}
+        text_feat = clip_model.get_text_features(**txt_inputs)  # [1, D]
+        text_feat = F.normalize(text_feat, dim=-1)  # [1, D]
+
     # main loop
     for i in range(num_images):
         seed_i = base_seed + i
@@ -443,7 +459,7 @@ if __name__ == "__main__":
         g = torch.Generator(device=device).manual_seed(seed_i)
         start_code = torch.randn(1, 4, H // 8, W // 8, generator=g, device=device)
 
-        # --- generate (disable autocast to avoid fp16/float bias mismatch) ---
+        # --- generate (disable autocast to avoid fp16/float mismatch) ---
         with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
             latents = generate_and_save_sd_images(
                 model=model,
@@ -453,34 +469,41 @@ if __name__ == "__main__":
                 steps=steps,
                 eta=eta,
                 batch_size=1,
-                out_dir=str(out_dir),  # we’ll save ourselves below (to control filenames)
+                out_dir=str(out_dir),  # we ignore internal saving (if any); we Save below
                 start_code=start_code,
-                prefix="__tmp_",  # temporary; we will ignore these (or set to a non-saving path)
+                prefix="__tmp_",
             )
 
-        # `generate_and_save_sd_images` in your version returns decoded [B,3,H,W] in [0,1]
-        # If your function returns latents, decode here instead:
-        if latents.min() < 0.0 - 1e-3 or latents.max() > 1.0 + 1e-3 or latents.shape[1] == 4:
-            # looks like it's latents or [-1,1] — decode/scale to [0,1]
+        # Decode/scale if needed → imgs in [0,1]
+        if latents.min() < -1.001 or latents.max() > 1.001 or (latents.ndim == 4 and latents.shape[1] == 4):
             imgs = model.decode_first_stage(latents)  # [-1,1]
             imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
         else:
             imgs = latents
 
-        # save with cosine similarity in the filename
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}.png"
-        img_path = out_dir / img_name
-        _save_img_tensor(imgs[0], img_path)
+        # ---- compute CLIP similarity(prompt, image) BEFORE saving ----
+        # make a PIL image from imgs[0] in [0,1]
+        im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+        im_pil = to_pil_image(im_u8)
 
-        # append log row
+        with torch.no_grad():
+            im_inputs = clip_proc(images=im_pil, return_tensors="pt")
+            im_inputs = {k: v.to(device) for k, v in im_inputs.items()}
+            image_feat = clip_model.get_image_features(**im_inputs)  # [1, D]
+            image_feat = F.normalize(image_feat, dim=-1)  # [1, D]
+            clip_sim = float((text_feat @ image_feat.T).squeeze().item())
+
+        # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{clip_sim:.3f}.png"
+        img_path = out_dir / img_name
+        im_pil.save(img_path)
+
+        # ---- append log row (also add CLIP score) ----
         with open(log_path, "a", newline="") as f:
             w = csv.writer(f)
             w.writerow([
-                i, seed_i, f"{cos_ok:.6f}", f"{delta_l2:.6f}",
-                i0, L, json.dumps(indices),
-                str(img_path.resolve()),
+                "idx", "seed", "cosine_similarity_achieved", "delta_L2",
+                "src_start", "src_len", "replaced_token_indices",
+                "clip_text_image_similarity",
+                "img_path"
             ])
-
-    print(f"Done. Saved {num_images} images and log to: {out_dir}")
-
-    pass
