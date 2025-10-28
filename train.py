@@ -553,7 +553,7 @@ def main():
                 print(f"[missing] {p}")
         return tensors, ok_paths
 
-    root = Path(f"random_replacements_{args.target_object}_emb")  # folder with the .pt files
+    EMB_ROOT = Path(f"random_replacements_{args.target_object}_emb")  # folder with the .pt files
     def rows_to_paths(df_sub, root=EMB_ROOT):
         paths = []
         for _, r in df_sub.iterrows():
