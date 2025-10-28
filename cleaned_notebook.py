@@ -426,7 +426,7 @@ if __name__ == "__main__":
     #clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
     #clip_proc = CLIPProcessor.from_pretrained(clip_name)
 
-    clip_model, preprocess = clip.load("ViT-B/32", device=device)
+    clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
 
 
     # main loop
