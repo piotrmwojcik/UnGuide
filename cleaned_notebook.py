@@ -390,8 +390,8 @@ if __name__ == "__main__":
     # --- config you can tweak ---
     prompt = "a photo of the truck"
     search_word = "truck"
-    num_images = 20
-    cos_radius = 1.0  # cosine_distance for sampling
+    num_images = 100
+    cos_radius = 0.75  # cosine_distance for sampling
     out_dir = Path("./random_replacements_truck")
     base_seed = 71995  # will offset per image for reproducibility
     device = model.device  # your SD model device
