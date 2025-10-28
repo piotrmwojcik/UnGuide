@@ -414,6 +414,7 @@ if __name__ == "__main__":
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)  # returns (model, preprocess)
     clip_model.eval()
     clip_diffs = []  # we'll store (baseline - replaced) per image
+    clip_diffs = []  # we'll store (baseline - replaced) per image
 
     # --- main loop (unchanged setup above) ---
     for i in range(num_images):
