@@ -482,7 +482,7 @@ if __name__ == "__main__":
         im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()  # [3,H,W] uint8
         im_pil = to_pil_image(im_u8)  # PIL.Image
 
-        text_tokens = clip.tokenize(prompt).to(device)
+        text_tokens = clip.tokenize([prompt]).to(device)
         text_features = clip_model.encode_text(text_tokens).float()
 
         image = preprocess(im_pil).unsqueeze(0).to(device)  # [1,3,224,224] etc.
