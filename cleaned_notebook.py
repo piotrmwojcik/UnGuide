@@ -481,7 +481,7 @@ if __name__ == "__main__":
             cos_sim = (img_f @ txt_f.T).item()  # in [-1, 1]
         print("cosine similarity:", cos_sim)
         # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs:.3f}.png"
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim:.3f}.png"
         img_path = out_dir / img_name
         im_pil.save(img_path)
 
