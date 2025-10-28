@@ -32,6 +32,13 @@ from utils import get_models, print_trainable_parameters, set_seed
 
 # --- cell separator ---
 
+from pathlib import Path
+PROJECT_ROOT = Path.cwd().parent
+import sys, os
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+    print('Top of sys.path:', sys.path[0])
+
 model_orig, sampler_orig, model, sampler = get_models(
     "../configs/stable-diffusion/v1-inference.yaml", "../models/sd-v1-4.ckpt", "cuda"
 )
