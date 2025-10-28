@@ -519,14 +519,14 @@ def main():
 
     df = pd.read_csv(args.csv_path)
     THRESHOLD_RETAIN = 0.025
-    THRESHOLD_REMOVE = 0.01
+    THRESHOLD_REMOVE = 0.005
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # Compute the gap and filter
     df["clip_gap"] = df["clip_cos_baseline"] - df["clip_cos_replaced"]
     retain_prompts = df[df["clip_gap"] >= THRESHOLD_RETAIN]
-    remove_prompts = df[(df["clip_gap"] > 0) | (df["clip_gap"] < THRESHOLD_REMOVE)]
+    remove_prompts = df[(df["clip_gap"] < 0) | (df["clip_gap"] < THRESHOLD_REMOVE)]
 
     # Print matching entries (you can change displayed columns if you want)
     cols_to_show = [
