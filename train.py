@@ -732,7 +732,7 @@ def main():
                     retain_prompt = random.choice(retain_tensors)
                     retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                      tokenizer=tokenizer)
-                    retain_prompt = retain_prompt.unsqueeze()
+                    retain_prompt = retain_prompt.unsqueeze(dim=0)
                     print('!!!! ', retain_prompt.shape)
                     #cifar_100_category = random.choice(CIFAR100)
                     #cifar_100_prompt = f"A photo of the {cifar_100_category}."
