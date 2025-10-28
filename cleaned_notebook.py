@@ -379,11 +379,11 @@ if __name__ == "__main__":
     from PIL import Image
 
     # --- config you can tweak ---
-    prompt = "a photo of the truck"
-    search_word = "truck"
+    prompt = "a photo of the cat"
+    search_word = "cat"
     num_images = 200
     cos_radius = 0.70  # cosine_distance for sampling
-    out_dir = Path("./random_replacements_truck")
+    out_dir = Path("./random_replacements_cat")
     base_seed = 71995  # will offset per image for reproducibility
     device = model.device  # your SD model device
     steps = 50
@@ -405,12 +405,10 @@ if __name__ == "__main__":
             "img_replaced_path", "img_baseline_path"
         ])
 
-
     # helper: save a single image tensor [3,H,W] in [0,1]
     def _save_img_tensor(im_01: torch.Tensor, path: Path):
         im_u8 = (im_01.clamp(0, 1) * 255).round().to(torch.uint8).cpu()
         to_pil_image(im_u8).save(path)
-
 
     # CLIP
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)  # returns (model, preprocess)
@@ -462,7 +460,6 @@ if __name__ == "__main__":
                 start_code=start_code, prefix="__tmp__"
             )
 
-
         # Decode/scale → imgs in [0,1]
         def _to_img01(lat):
             if lat.min() < -1.001 or lat.max() > 1.001 or (lat.ndim == 4 and lat.shape[1] == 4):
@@ -471,7 +468,6 @@ if __name__ == "__main__":
             else:
                 x = lat
             return x
-
 
         imgs_repl = _to_img01(latents_repl)
         imgs_ref = _to_img01(latents_ref)
