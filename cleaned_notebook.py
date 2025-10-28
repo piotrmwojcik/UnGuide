@@ -447,7 +447,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             rep_vec_est = cond_replaced[0, i0:i0 + L, :].mean(dim=0).cpu()  # [768]
         emb_path = emb_dir / f"idx{i:03d}_seed{seed_i}_spanmean.pt"
-        torch.save(rep_vec_est, emb_path)
+        torch.save(cond_replaced, emb_path)
 
         # --- deterministic latent noise for this sample ---
         H = W = image_size
