@@ -412,10 +412,6 @@ if __name__ == "__main__":
 
 
     clip_name = "openai/clip-vit-large-patch14"
-    #clip_model = CLIPModel.from_pretrained(clip_name).to(device).eval()
-    #clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
-    #clip_proc = CLIPProcessor.from_pretrained(clip_name)
-
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
 
     # main loop
@@ -445,44 +441,66 @@ if __name__ == "__main__":
         H = W = image_size
         g = torch.Generator(device=device).manual_seed(seed_i)
         start_code = torch.randn(1, 4, H // 8, W // 8, generator=g, device=device)
-
-        # --- generate (disable autocast to avoid fp16/float mismatch) ---
         with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
-            latents = generate_and_save_sd_images(
-                model=model,
-                sampler=sampler,
-                cond=cond_replaced,  # <-- replaced hidden states
+            # replaced
+            latents_repl = generate_and_save_sd_images(
+                model=model, sampler=sampler, cond=cond_replaced,
                 device=torch.device("cuda") if device.type == "cuda" else device,
-                steps=steps,
-                eta=eta,
-                batch_size=1,
-                out_dir=str(out_dir),  # we ignore internal saving (if any); we Save below
-                start_code=start_code,
-                prefix="__tmp_",
+                steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
+                start_code=start_code, prefix="__tmp__"
+            )
+            # baseline (unaltered prompt) – reuse the SAME start_code
+            cond_orig = model.get_learned_conditioning([prompt]).to(device)
+            latents_ref = generate_and_save_sd_images(
+                model=model, sampler=sampler, cond=cond_orig,
+                device=torch.device("cuda") if device.type == "cuda" else device,
+                steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
+                start_code=start_code, prefix="__tmp__"
             )
 
-        # Decode/scale if needed → imgs in [0,1]
-        if latents.min() < -1.001 or latents.max() > 1.001 or (latents.ndim == 4 and latents.shape[1] == 4):
-            imgs = model.decode_first_stage(latents)  # [-1,1]
-            imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
-        else:
-            imgs = latents
 
+        # Decode/scale → imgs in [0,1]
+        def _to_img01(lat):
+            if lat.min() < -1.001 or lat.max() > 1.001 or (lat.ndim == 4 and lat.shape[1] == 4):
+                x = model.decode_first_stage(lat)  # [-1,1]
+                x = (x.clamp(-1, 1) + 1) / 2.0
+            else:
+                x = lat
+            return x
+
+
+        imgs_repl = _to_img01(latents_repl)
+        imgs_ref = _to_img01(latents_ref)
+
+        # --- CLIP cosine similarity (image vs original text prompt) for both images ---
         with torch.no_grad():
-            im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-            im_pil = to_pil_image(im_u8)
+            # to PIL
+            im_pil_repl = to_pil_image((imgs_repl[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu())
+            im_pil_ref = to_pil_image((imgs_ref[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu())
 
-            image = clip_preprocess(im_pil).unsqueeze(0).to(device)
-            text = clip.tokenize([prompt]).to(device)
+            # preprocess for CLIP
+            image_repl = clip_preprocess(im_pil_repl).unsqueeze(0).to(device)
+            image_ref = clip_preprocess(im_pil_ref).unsqueeze(0).to(device)
 
-            img_f = torch.nn.functional.normalize(clip_model.encode_image(image).float(), dim=-1)
-            txt_f = torch.nn.functional.normalize(clip_model.encode_text(text).float(), dim=-1)
+            # text features (original prompt as reference)
+            text_tokens = clip.tokenize([prompt]).to(device)
 
-            cos_sim = (img_f @ txt_f.T).item()  # in [-1, 1]
-        print("cosine similarity:", cos_sim)
-        # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim:.3f}.png"
+            img_f_repl = torch.nn.functional.normalize(clip_model.encode_image(image_repl).float(), dim=-1)
+            img_f_ref = torch.nn.functional.normalize(clip_model.encode_image(image_ref).float(), dim=-1)
+            txt_f = torch.nn.functional.normalize(clip_model.encode_text(text_tokens).float(), dim=-1)
+
+            cos_sim_repl = float((img_f_repl @ txt_f.T).item())  # [-1, 1]
+            cos_sim_ref = float((img_f_ref @ txt_f.T).item())  # baseline score
+
+        print(f"CLIP cosine — replaced: {cos_sim_repl:.3f} | baseline: {cos_sim_ref:.3f}")
+
+        # ---- save replaced image with both scores in filename ----
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim_repl:.3f}_ref{cos_sim_ref:.3f}.png"
         img_path = out_dir / img_name
-        im_pil.save(img_path)
+        im_pil_repl.save(img_path)
+
+        # (optional) also save the baseline image next to it for A/B inspection
+        img_ref_name = f"idx{i:03d}_seed{seed_i}_BASELINE_clip{cos_sim_ref:.3f}.png"
+        im_pil_ref.save(out_dir / img_ref_name)
 
 
