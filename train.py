@@ -731,7 +731,7 @@ def main():
                     base.time_step = 0
                     retain_prompt = random.choice(retain_tensors)
                     retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
-                                                                     clip_model=clip_text_encoder)
+                                                                     tokenizer=tokenizer)
                     retain_prompt = retain_prompt.unsqueeze()
                     print('!!!! ', retain_prompt.shape)
                     #cifar_100_category = random.choice(CIFAR100)
