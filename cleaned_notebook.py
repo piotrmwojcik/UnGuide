@@ -495,18 +495,8 @@ if __name__ == "__main__":
         # make a PIL image from imgs[0] in [0,1]
         im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
         im_pil = to_pil_image(im_u8)
-
-
-
-        with torch.no_grad():
-            im_inputs = clip_proc(images=im_pil, return_tensors="pt")
-            im_inputs = {k: v.to(device) for k, v in im_inputs.items()}
-            image_feat = clip_model.get_image_features(**im_inputs)  # [1, D]
-            image_feat = F.normalize(image_feat, dim=-1)  # [1, D]
-            clip_sim = float((text_feat @ image_feat.T).squeeze().item())
-
         # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{clip_sim:.3f}.png"
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs:.3f}.png"
         img_path = out_dir / img_name
         im_pil.save(img_path)
 
