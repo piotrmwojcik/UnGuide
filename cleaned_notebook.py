@@ -394,6 +394,7 @@ if __name__ == "__main__":
     # --------------------------------
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    emb_dir.mkdir(parents=True, exist_ok=True)
     log_path = out_dir / "log.csv"
 
     # CSV header
