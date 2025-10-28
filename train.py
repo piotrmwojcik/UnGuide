@@ -526,7 +526,7 @@ def main():
     # Compute the gap and filter
     df["clip_gap"] = df["clip_cos_baseline"] - df["clip_cos_replaced"]
     retain_prompts = df[df["clip_gap"] >= THRESHOLD_RETAIN]
-    remove_prompts = df[df["clip_gap"] > 0 or df["clip_gap"] < THRESHOLD_REMOVE]
+    remove_prompts = df[(df["clip_gap"] > 0) | (df["clip_gap"] < THRESHOLD_REMOVE)]
 
     # Print matching entries (you can change displayed columns if you want)
     cols_to_show = [
