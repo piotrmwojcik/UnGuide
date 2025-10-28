@@ -761,14 +761,7 @@ def main():
                     _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 2 * (delta_live ** 2).mean()
-
-                    curr = base.current_conditioning.detach().float()
-                    tgt = cond_target.detach().float()
-                    cos_sim = F.cosine_similarity(curr, tgt, dim=-1, eps=1e-8)
-                    cos_sim = cos_sim.clamp_min(0.0)
-                    cos_dist = (1.0 - cos_sim)
-                    amp = 1.0 + 2.0 * cos_dist
+                    loss = (delta_live ** 2).mean()
 
                     loss_for_backward = loss * amp / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
