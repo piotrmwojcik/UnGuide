@@ -518,7 +518,7 @@ def main():
     )
 
     df = pd.read_csv(args.csv_path)
-    THRESHOLD = 0.0025
+    THRESHOLD = 0.025
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -532,7 +532,7 @@ def main():
     ]
     cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
     print('!!!!!!!')
-    print(cols_to_show)
+    print(retain_prompts[cols_to_show].to_string(index=False))
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
