@@ -377,53 +377,110 @@ def set_global_seed(seed: int = 2):
 
 
 if __name__ == "__main__":
-    set_global_seed(5)
+    import os, csv, math, json, time
+    from pathlib import Path
+    import torch
+    from torchvision.transforms.functional import to_pil_image
 
+    # --- config you can tweak ---
     prompt = "a photo of the truck"
-    cond_replaced, _, meta = replace_token_with_nearby_embedding(
-        prompt,
-        search_word="truck",
-        sample_mode="uniform",
-        replace_eos=True,
-        cosine_distance=1.0,
-        seed=71995,
-        device=model.device
-    )
-    print(cond_replaced.shape)
-    i0, L = meta["src_start"], meta["src_len"]
-    indices = list(range(i0, i0 + L))
-    print("Replaced token indices in 77-length seq:", indices)
-    # For Stable Diffusion (CompVis LDM style), you can pass:
-    # conditioning={"c_crossattn": [cond_hidden]}  (instead of model.get_learned_conditioning([...]))
-    # Unconditional stays the usual empty prompt:
-    # uncond = model.get_learned_conditioning([""])
+    search_word = "truck"
+    num_images = 20
+    cos_radius = 1.0  # cosine_distance for sampling
+    out_dir = Path("./random_replacements_truck")
+    base_seed = 71995  # will offset per image for reproducibility
+    device = model.device  # your SD model device
+    steps = 50
+    guidance = 7.5
+    eta = 0.0
+    image_size = 512  # must match your sampler/model
+    # --------------------------------
 
-    orig = model.get_learned_conditioning([prompt]).to(model.device)
-    print("Δcond L2:", (cond_replaced - orig).norm().item())
-    print("cosine_similarity_achieved", meta["cosine_similarity_achieved"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    log_path = out_dir / "log.csv"
 
-    batch_size = 1
-    device = model.device
-    start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
-    cond = model.get_learned_conditioning([prompt] * start_code.shape[0])
-    pokemon = model.get_learned_conditioning(['pokemon'] * start_code.shape[0])
+    # CSV header
+    with open(log_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "idx", "seed", "cosine_similarity_achieved", "delta_L2",
+            "src_start", "src_len", "replaced_token_indices",
+            "img_path"
+        ])
 
-    with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
-        generated_img = generate_and_save_sd_images(
-            model=model,
-            sampler=sampler,
-            cond=cond_replaced,
-            device=torch.device("cuda"),
-            steps=50,
-            out_dir="tmp",
-            start_code=start_code,
-            prefix="orig_",
+
+    # helper: save a single image tensor [3,H,W] in [0,1]
+    def _save_img_tensor(im_01: torch.Tensor, path: Path):
+        im_u8 = (im_01.clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+        to_pil_image(im_u8).save(path)
+
+
+    # main loop
+    for i in range(num_images):
+        seed_i = base_seed + i
+
+        # --- sample a replacement embedding and build cond ---
+        cond_replaced, _, meta = replace_token_with_nearby_embedding(
+            prompt,
+            search_word=search_word,
+            sample_mode="uniform",
+            replace_eos=True,
+            cosine_distance=cos_radius,
+            seed=seed_i,
+            device=device,
         )
 
-        print('!! ', generated_img.shape)  # [0,1]
+        # delta to original cond (nice to log)
+        with torch.no_grad():
+            orig = model.get_learned_conditioning([prompt]).to(device)
+            delta_l2 = (cond_replaced - orig).norm().item()
+            cos_ok = float(meta.get("cosine_similarity_achieved", float("nan")))
+            i0, L = meta["src_start"], meta["src_len"]
+            indices = list(range(i0, i0 + L))
 
-    # --- cell separator ---
+        # --- deterministic latent noise for this sample ---
+        H = W = image_size
+        g = torch.Generator(device=device).manual_seed(seed_i)
+        start_code = torch.randn(1, 4, H // 8, W // 8, generator=g, device=device)
 
-    x = generated_img[0]  # [3,H,W] or [H,W,3], torch.Tensor or np.ndarray
+        # --- generate (disable autocast to avoid fp16/float bias mismatch) ---
+        with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
+            latents = generate_and_save_sd_images(
+                model=model,
+                sampler=sampler,
+                cond=cond_replaced,  # <-- replaced hidden states
+                device=torch.device("cuda") if device.type == "cuda" else device,
+                steps=steps,
+                eta=eta,
+                batch_size=1,
+                out_dir=str(out_dir),  # we’ll save ourselves below (to control filenames)
+                start_code=start_code,
+                prefix="__tmp_",  # temporary; we will ignore these (or set to a non-saving path)
+            )
+
+        # `generate_and_save_sd_images` in your version returns decoded [B,3,H,W] in [0,1]
+        # If your function returns latents, decode here instead:
+        if latents.min() < 0.0 - 1e-3 or latents.max() > 1.0 + 1e-3 or latents.shape[1] == 4:
+            # looks like it's latents or [-1,1] — decode/scale to [0,1]
+            imgs = model.decode_first_stage(latents)  # [-1,1]
+            imgs = (imgs.clamp(-1, 1) + 1) / 2.0  # [0,1]
+        else:
+            imgs = latents
+
+        # save with cosine similarity in the filename
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}.png"
+        img_path = out_dir / img_name
+        _save_img_tensor(imgs[0], img_path)
+
+        # append log row
+        with open(log_path, "a", newline="") as f:
+            w = csv.writer(f)
+            w.writerow([
+                i, seed_i, f"{cos_ok:.6f}", f"{delta_l2:.6f}",
+                i0, L, json.dumps(indices),
+                str(img_path.resolve()),
+            ])
+
+    print(f"Done. Saved {num_images} images and log to: {out_dir}")
 
     pass
