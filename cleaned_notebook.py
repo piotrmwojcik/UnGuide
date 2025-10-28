@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import wandb
+import clip
 from functools import partial
 
 import numpy as np
