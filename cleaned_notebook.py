@@ -479,22 +479,21 @@ if __name__ == "__main__":
         else:
             imgs = latents
 
-        im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()  # [3,H,W] uint8
-        im_pil = to_pil_image(im_u8)  # PIL.Image
+        with torch.no_grad():
+            im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+            im_pil = to_pil_image(im_u8)
 
-        text_tokens = clip.tokenize([prompt]).to(device)
-        text_features = clip_model.encode_text(text_tokens).float()
+            image = clip_preprocess(im_pil).unsqueeze(0).to(device)
+            text_tokens = clip.tokenize([prompt]).to(device)
 
-        image = preprocess(im_pil).unsqueeze(0).to(device)  # [1,3,224,224] etc.
-        image_features = clip_model.encode_image(image).float()
-        image_features = torch.nn.functional.normalize(image_features, dim=-1)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        text_features /= text_features.norm(dim=-1, keepdim=True)
-        probs = (100.0 * image_features @ text_features.T).softmax(dim=-1).cpu().tolist()[0]
-        # ---- compute CLIP similarity(prompt, image) BEFORE saving ----
-        # make a PIL image from imgs[0] in [0,1]
-        im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-        im_pil = to_pil_image(im_u8)
+            img_f = clip_model.encode_image(image).float()
+            txt_f = clip_model.encode_text(text_tokens).float()
+
+            img_f = torch.nn.functional.normalize(img_f, dim=-1)
+            txt_f = torch.nn.functional.normalize(txt_f, dim=-1)
+
+            # cosine similarity in [-1, 1]
+            cos_sim = (img_f @ txt_f.T).item()
         print('!!! ', probs)
         # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
         img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs[0]:.3f}.png"
