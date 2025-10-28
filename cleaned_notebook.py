@@ -483,7 +483,7 @@ if __name__ == "__main__":
         im_pil = to_pil_image(im_u8)  # PIL.Image
 
         text_tokens = clip.tokenize(prompt).to(device)
-        text_features = model.encode_text(text_tokens).float()
+        text_features = clip_model.encode_text(text_tokens).float()
 
         image = clip_preprocess(im_pil).unsqueeze(0).to(device)  # [1,3,224,224] etc.
         image_features = clip_model.encode_image(image).float()
