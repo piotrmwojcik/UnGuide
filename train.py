@@ -481,7 +481,6 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
-
 def main():
     args = parse_args()
 
@@ -556,7 +555,7 @@ def main():
     retain_tensors, _ = load_tensors(retain_paths)
     remove_tensors, _ = load_tensors(remove_paths)
 
-    print(retain_tensors)
+    print('!!!', len(retain_tensors, len(remove_tensors)))
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
