@@ -384,7 +384,7 @@ if __name__ == "__main__":
     num_images = 200
     cos_radius = 0.70  # cosine_distance for sampling
     out_dir = Path("./random_replacements_cat")
-    emd_dir = Path("./random_replacements_cat_emb")
+    emb_dir = Path("./random_replacements_cat_emb")
     base_seed = 71995  # will offset per image for reproducibility
     device = model.device  # your SD model device
     steps = 50
