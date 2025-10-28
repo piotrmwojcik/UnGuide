@@ -492,11 +492,10 @@ if __name__ == "__main__":
             img_f = torch.nn.functional.normalize(img_f, dim=-1)
             txt_f = torch.nn.functional.normalize(txt_f, dim=-1)
 
-            # cosine similarity in [-1, 1]
-            cos_sim = (img_f @ txt_f.T).item()
-        print('!!! ', probs)
+            probs = (100.0 * img_f @ txt_f.T).softmax(dim=-1).cpu().tolist()[0]
+            print(probs)
         # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs[0]:.3f}.png"
+        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs:.3f}.png"
         img_path = out_dir / img_name
         im_pil.save(img_path)
 
