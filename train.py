@@ -518,20 +518,22 @@ def main():
     )
 
     df = pd.read_csv(args.csv_path)
-    THRESHOLD = 0.025
+    THRESHOLD_RETAIN = 0.025
+    THRESHOLD_REMOVE = 0.01
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # Compute the gap and filter
     df["clip_gap"] = df["clip_cos_baseline"] - df["clip_cos_replaced"]
-    retain_prompts = df[df["clip_gap"] >= THRESHOLD]
+    retain_prompts = df[df["clip_gap"] >= THRESHOLD_RETAIN]
+    remove_prompts = df[df["clip_gap"] > 0 or df["clip_gap"] < THRESHOLD_REMOVE]
 
     # Print matching entries (you can change displayed columns if you want)
     cols_to_show = [
         "idx", "seed", "clip_gap",
     ]
     cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
-    print(retain_prompts[cols_to_show].to_string(index=False))
+    print(remove_prompts[cols_to_show].to_string(index=False))
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
@@ -648,7 +650,6 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the bird")
             inputs_other2 = encode("a photo of the dog")
-            print('!!!! inputs_other2 ', inputs_other2.shape)
             inputs_other3 = encode("a photo of the feline")
             inputs_target = encode(target_text)
             with torch.no_grad():
