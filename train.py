@@ -34,6 +34,7 @@ from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torch.utils.data import DataLoader
+import pandas as pd
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
@@ -106,7 +107,7 @@ def parse_args():
         default=1,
         help="Batch size (per device) for the training dataloader.",
     )
-
+    parser.add_argument("--csv_path", type=str, default=None, help="csv")
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
@@ -576,10 +577,23 @@ def main():
             * accelerator.num_processes
     )
 
-    # Check cosines
-    #cos = (Y @ base)  # since both unit-norm
-    #print('!!!! ', cos.min().item(), cos.mean().item())
-    #sys.exit(0)
+    df = pd.read_csv(args.csv_path)
+    THRESHOLD = 0.025
+    for col in ["clip_cos_replaced", "clip_cos_baseline"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Compute the gap and filter
+    df["clip_gap"] = df["clip_cos_baseline"] - df["clip_cos_replaced"]
+    retain_prompts = df[df["clip_gap"] >= THRESHOLD]
+
+    # Print matching entries (you can change displayed columns if you want)
+    cols_to_show = [
+        "idx", "seed",
+        "clip_cos_replaced", "clip_cos_baseline", "clip_gap",
+        "img_replaced_path", "img_baseline_path"
+    ]
+    cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
+    print(cols_to_show)
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
