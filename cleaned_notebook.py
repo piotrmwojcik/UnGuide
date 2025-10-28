@@ -14,6 +14,13 @@ import json
 import os
 import wandb
 import clip
+import torch
+from collections import defaultdict
+
+import torch
+import torch.nn.functional as F
+from typing import Optional, Literal
+from transformers import CLIPTokenizerFast, CLIPTextModel
 from functools import partial
 
 import numpy as np
@@ -166,21 +173,6 @@ def sample_token_nearby(
 
 # --- cell separator ---
 
-tok = torch.randn(768)                   # example token
-Y   = sample_token_nearby(tok, cosine_distance_max=0.2, n=4, mode="cap")
-cos = (F.normalize(tok, dim=0).unsqueeze(0) @ Y.T).squeeze(0)  # [4]
-# cos should be >= 0.8
-print("cos(min/mean):", float(cos.min()), float(cos.mean()))
-
-# --- cell separator ---
-
-import torch
-from collections import defaultdict
-
-import torch
-import torch.nn.functional as F
-from typing import Optional, Literal
-from transformers import CLIPTokenizerFast, CLIPTextModel
 
 # ---------- cached CLIP text pieces ----------
 _tok = CLIPTokenizerFast.from_pretrained("openai/clip-vit-large-patch14")
@@ -386,8 +378,6 @@ if __name__ == "__main__":
     from transformers import CLIPModel, CLIPTokenizerFast, CLIPProcessor
     from PIL import Image
 
-
-
     # --- config you can tweak ---
     prompt = "a photo of the truck"
     search_word = "truck"
@@ -427,7 +417,6 @@ if __name__ == "__main__":
     #clip_proc = CLIPProcessor.from_pretrained(clip_name)
 
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
-
 
     # main loop
     for i in range(num_images):
@@ -484,16 +473,13 @@ if __name__ == "__main__":
             im_pil = to_pil_image(im_u8)
 
             image = clip_preprocess(im_pil).unsqueeze(0).to(device)
-            text_tokens = clip.tokenize([prompt]).to(device)
+            text = clip.tokenize([prompt]).to(device)
 
-            img_f = clip_model.encode_image(image).float()
-            txt_f = clip_model.encode_text(text_tokens).float()
+            img_f = torch.nn.functional.normalize(clip_model.encode_image(image).float(), dim=-1)
+            txt_f = torch.nn.functional.normalize(clip_model.encode_text(text).float(), dim=-1)
 
-            img_f = torch.nn.functional.normalize(img_f, dim=-1)
-            txt_f = torch.nn.functional.normalize(txt_f, dim=-1)
-
-            probs = (100.0 * img_f @ txt_f.T).softmax(dim=-1).cpu().tolist()[0]
-            print(probs)
+            cos_sim = (img_f @ txt_f.T).item()  # in [-1, 1]
+        print("cosine similarity:", cos_sim)
         # ---- save with BOTH cos (embed replacement) and clip similarity in filename ----
         img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{probs:.3f}.png"
         img_path = out_dir / img_name
