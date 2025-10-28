@@ -553,9 +553,21 @@ def main():
                 print(f"[missing] {p}")
         return tensors, ok_paths
 
+    root = Path(f"random_replacements_{args.target_object}_emb")  # folder with the .pt files
+    def rows_to_paths(df_sub, root=EMB_ROOT):
+        paths = []
+        for _, r in df_sub.iterrows():
+            i = int(r["idx"])
+            s = int(r["seed"])
+            p = root / f"idx{i:03d}_seed{s}_spanmean.pt"
+            paths.append(p)
+        return paths
+
+    retain_paths = rows_to_paths(retain_df)
+    remove_paths = rows_to_paths(remove_df)
+
     retain_tensors, _ = load_tensors(retain_paths)
     remove_tensors, _ = load_tensors(remove_paths)
-    root = Path(f"random_replacements_{args.target_object}_emb")  # folder with the .pt files
 
     print(retain_tensors)
 
