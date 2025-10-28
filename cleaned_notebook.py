@@ -356,14 +356,15 @@ def replace_token_with_nearby_embedding(
 
 import os, random
 def set_global_seed(seed: int = 2):
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")  # for CUDA matmul determinism (set before torch init ideally)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
-    # (optional) more determinism
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    # Optional (stricter, may error on some ops):
+    # torch.use_deterministic_algorithms(True)
     # torch.use_deterministic_algorithms(True)  # enable if you want strict determinism
 
 # 1) set seeds
@@ -420,6 +421,7 @@ if __name__ == "__main__":
     # --- main loop (unchanged setup above) ---
     for i in range(num_images):
         seed_i = base_seed + i
+        set_global_seed(seed_i)
 
         # --- sample a replacement embedding and build cond ---
         cond_replaced, _, meta = replace_token_with_nearby_embedding(
@@ -454,19 +456,26 @@ if __name__ == "__main__":
 
         # --- generate latents for replaced and baseline (same noise) ---
         with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
-            latents_repl = generate_and_save_sd_images(
-                model=model, sampler=sampler, cond=cond_replaced,
-                device=torch.device("cuda") if device.type == "cuda" else device,
-                steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
-                start_code=start_code, prefix="__tmp__"
-            )
-            cond_orig = orig
-            latents_ref = generate_and_save_sd_images(
-                model=model, sampler=sampler, cond=cond_orig,
-                device=torch.device("cuda") if device.type == "cuda" else device,
-                steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
-                start_code=start_code, prefix="__tmp__"
-            )
+            with torch.random.fork_rng(devices=[device]):
+                torch.manual_seed(seed_i)  # make sure internal torch.randn (if any) is in the same state
+                latents_repl = generate_and_save_sd_images(
+                    model=model, sampler=sampler, cond=cond_replaced,
+                    device=torch.device("cuda") if device.type == "cuda" else device,
+                    steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
+                    start_code=start_code.clone(),  # clone to avoid in-place changes
+                    prefix="__tmp__"
+                )
+
+            with torch.random.fork_rng(devices=[device]):
+                torch.manual_seed(seed_i)
+                cond_orig = orig
+                latents_ref = generate_and_save_sd_images(
+                    model=model, sampler=sampler, cond=cond_orig,
+                    device=torch.device("cuda") if device.type == "cuda" else device,
+                    steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
+                    start_code=start_code.clone(),
+                    prefix="__tmp__"
+                )
 
 
         # Decode/scale → imgs in [0,1]
