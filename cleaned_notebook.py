@@ -413,8 +413,9 @@ if __name__ == "__main__":
     # CLIP
     clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)  # returns (model, preprocess)
     clip_model.eval()
+    clip_diffs = []  # we'll store (baseline - replaced) per image
 
-    # main loop
+    # --- main loop (unchanged setup above) ---
     for i in range(num_images):
         seed_i = base_seed + i
 
@@ -429,13 +430,20 @@ if __name__ == "__main__":
             device=device,
         )
 
-        # delta to original cond (nice to log)
+        # Log some conditioning stats
         with torch.no_grad():
             orig = model.get_learned_conditioning([prompt]).to(device)
             delta_l2 = (cond_replaced - orig).norm().item()
             cos_ok = float(meta.get("cosine_similarity_achieved", float("nan")))
             i0, L = meta["src_start"], meta["src_len"]
             indices = list(range(i0, i0 + L))
+
+        # --- save the altered embedding (mean over replaced span) ---
+        # This approximates “the replacement vector” used for the span.
+        with torch.no_grad():
+            rep_vec_est = cond_replaced[0, i0:i0 + L, :].mean(dim=0).cpu()  # [768]
+        emb_path = emb_dir / f"idx{i:03d}_seed{seed_i}_spanmean.pt"
+        torch.save(rep_vec_est, emb_path)
 
         # --- deterministic latent noise for this sample ---
         H = W = image_size
@@ -444,14 +452,12 @@ if __name__ == "__main__":
 
         # --- generate latents for replaced and baseline (same noise) ---
         with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
-            # replaced
             latents_repl = generate_and_save_sd_images(
                 model=model, sampler=sampler, cond=cond_replaced,
                 device=torch.device("cuda") if device.type == "cuda" else device,
                 steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
                 start_code=start_code, prefix="__tmp__"
             )
-            # baseline (unaltered prompt) – reuse the SAME start_code
             cond_orig = orig
             latents_ref = generate_and_save_sd_images(
                 model=model, sampler=sampler, cond=cond_orig,
@@ -459,6 +465,7 @@ if __name__ == "__main__":
                 steps=steps, eta=eta, batch_size=1, out_dir=str(out_dir),
                 start_code=start_code, prefix="__tmp__"
             )
+
 
         # Decode/scale → imgs in [0,1]
         def _to_img01(lat):
@@ -469,41 +476,41 @@ if __name__ == "__main__":
                 x = lat
             return x
 
+
         imgs_repl = _to_img01(latents_repl)
         imgs_ref = _to_img01(latents_ref)
 
         # --- CLIP cosine similarity (image vs original text prompt) for both images ---
         with torch.no_grad():
-            # to PIL
             im_pil_repl = to_pil_image((imgs_repl[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu())
             im_pil_ref = to_pil_image((imgs_ref[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu())
 
-            # preprocess for CLIP
             image_repl = clip_preprocess(im_pil_repl).unsqueeze(0).to(device)
             image_ref = clip_preprocess(im_pil_ref).unsqueeze(0).to(device)
 
-            # text features (original prompt as reference)
             text_tokens = clip.tokenize([prompt]).to(device)
-            txt_f = F.normalize(clip_model.encode_text(text_tokens).float(), dim=-1)
+            txt_f = torch.nn.functional.normalize(clip_model.encode_text(text_tokens).float(), dim=-1)
 
-            img_f_repl = F.normalize(clip_model.encode_image(image_repl).float(), dim=-1)
-            img_f_ref = F.normalize(clip_model.encode_image(image_ref).float(), dim=-1)
+            img_f_repl = torch.nn.functional.normalize(clip_model.encode_image(image_repl).float(), dim=-1)
+            img_f_ref = torch.nn.functional.normalize(clip_model.encode_image(image_ref).float(), dim=-1)
 
             cos_sim_repl = float((img_f_repl @ txt_f.T).item())  # [-1, 1]
             cos_sim_ref = float((img_f_ref @ txt_f.T).item())  # baseline score
 
-        print(f"[{i:03d}] CLIP cosine — replaced: {cos_sim_repl:.3f} | baseline: {cos_sim_ref:.3f}")
+        # store difference (baseline - replaced) to summarize later
+        clip_diffs.append(cos_sim_ref - cos_sim_repl)
 
-        # ---- save images with scores in filenames ----
+        # ---- save replaced image with both scores in filename ----
         img_name_repl = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim_repl:.3f}_ref{cos_sim_ref:.3f}.png"
         img_path_repl = out_dir / img_name_repl
         im_pil_repl.save(img_path_repl)
 
+        # also save the baseline image
         img_name_ref = f"idx{i:03d}_seed{seed_i}_BASELINE_clip{cos_sim_ref:.3f}.png"
         img_path_ref = out_dir / img_name_ref
         im_pil_ref.save(img_path_ref)
 
-        # ---- append log row ----
+        # ---- append log row (also log embedding path and score diff) ----
         with open(log_path, "a", newline="") as f:
             w = csv.writer(f)
             w.writerow([
@@ -512,3 +519,21 @@ if __name__ == "__main__":
                 f"{cos_sim_repl:.6f}", f"{cos_sim_ref:.6f}",
                 str(img_path_repl.resolve()), str(img_path_ref.resolve()),
             ])
+
+    # ---- after the loop: summarize CLIP diff stats ----
+    if clip_diffs:
+        diffs = np.array(clip_diffs, dtype=np.float32)
+        diff_mean = float(np.mean(diffs))
+        diff_median = float(np.median(diffs))
+        print(f"\nSummary over {len(diffs)} samples:")
+        print(f"  Mean  (baseline - replaced) CLIP cosine:  {diff_mean:.6f}")
+        print(f"  Median(baseline - replaced) CLIP cosine:  {diff_median:.6f}")
+
+        stats = {
+            "num_samples": len(diffs),
+            "mean_clip_diff": diff_mean,
+            "median_clip_diff": diff_median,
+            "definition": "clip_diff = cosine(image_baseline, text_prompt) - cosine(image_replaced, text_prompt)"
+        }
+        with open(out_dir / "clip_diff_stats.json", "w") as f:
+            json.dump(stats, f, indent=2)
