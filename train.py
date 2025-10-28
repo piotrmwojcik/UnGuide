@@ -717,8 +717,12 @@ def main():
 
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)  # the actual Module used in forward
-            base.current_conditioning = cond_target
-            base.target_prompt = cond_target
+            remove_prompt = random.choice(remove_tensors)
+            remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
+                                                             tokenizer=tokenizer)
+            remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
+            base.current_conditioning = remove_prompt
+            #base.target_prompt = remove_prompt
             base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
             # starting latent code
             start_code = torch.randn(
@@ -733,7 +737,6 @@ def main():
                     retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                      tokenizer=tokenizer)
                     retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
-                    print('!!!! ', retain_prompt.shape)
                     #cifar_100_category = random.choice(CIFAR100)
                     #cifar_100_prompt = f"A photo of the {cifar_100_category}."
 
@@ -755,7 +758,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
 
-                    loss_for_backward = loss * amp / accelerator.gradient_accumulation_steps
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
                 else:
                     with torch.no_grad():
