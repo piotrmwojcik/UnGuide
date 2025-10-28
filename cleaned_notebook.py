@@ -401,7 +401,8 @@ if __name__ == "__main__":
         w.writerow([
             "idx", "seed", "cosine_similarity_achieved", "delta_L2",
             "src_start", "src_len", "replaced_token_indices",
-            "img_path"
+            "clip_cos_replaced", "clip_cos_baseline",
+            "img_replaced_path", "img_baseline_path"
         ])
 
 
@@ -411,8 +412,9 @@ if __name__ == "__main__":
         to_pil_image(im_u8).save(path)
 
 
-    clip_name = "openai/clip-vit-large-patch14"
-    clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
+    # CLIP
+    clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)  # returns (model, preprocess)
+    clip_model.eval()
 
     # main loop
     for i in range(num_images):
@@ -441,6 +443,8 @@ if __name__ == "__main__":
         H = W = image_size
         g = torch.Generator(device=device).manual_seed(seed_i)
         start_code = torch.randn(1, 4, H // 8, W // 8, generator=g, device=device)
+
+        # --- generate latents for replaced and baseline (same noise) ---
         with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
             # replaced
             latents_repl = generate_and_save_sd_images(
@@ -450,7 +454,7 @@ if __name__ == "__main__":
                 start_code=start_code, prefix="__tmp__"
             )
             # baseline (unaltered prompt) – reuse the SAME start_code
-            cond_orig = model.get_learned_conditioning([prompt]).to(device)
+            cond_orig = orig
             latents_ref = generate_and_save_sd_images(
                 model=model, sampler=sampler, cond=cond_orig,
                 device=torch.device("cuda") if device.type == "cuda" else device,
@@ -484,23 +488,31 @@ if __name__ == "__main__":
 
             # text features (original prompt as reference)
             text_tokens = clip.tokenize([prompt]).to(device)
+            txt_f = F.normalize(clip_model.encode_text(text_tokens).float(), dim=-1)
 
-            img_f_repl = torch.nn.functional.normalize(clip_model.encode_image(image_repl).float(), dim=-1)
-            img_f_ref = torch.nn.functional.normalize(clip_model.encode_image(image_ref).float(), dim=-1)
-            txt_f = torch.nn.functional.normalize(clip_model.encode_text(text_tokens).float(), dim=-1)
+            img_f_repl = F.normalize(clip_model.encode_image(image_repl).float(), dim=-1)
+            img_f_ref = F.normalize(clip_model.encode_image(image_ref).float(), dim=-1)
 
             cos_sim_repl = float((img_f_repl @ txt_f.T).item())  # [-1, 1]
             cos_sim_ref = float((img_f_ref @ txt_f.T).item())  # baseline score
 
-        print(f"CLIP cosine — replaced: {cos_sim_repl:.3f} | baseline: {cos_sim_ref:.3f}")
+        print(f"[{i:03d}] CLIP cosine — replaced: {cos_sim_repl:.3f} | baseline: {cos_sim_ref:.3f}")
 
-        # ---- save replaced image with both scores in filename ----
-        img_name = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim_repl:.3f}_ref{cos_sim_ref:.3f}.png"
-        img_path = out_dir / img_name
-        im_pil_repl.save(img_path)
+        # ---- save images with scores in filenames ----
+        img_name_repl = f"idx{i:03d}_seed{seed_i}_cos{cos_ok:.3f}_clip{cos_sim_repl:.3f}_ref{cos_sim_ref:.3f}.png"
+        img_path_repl = out_dir / img_name_repl
+        im_pil_repl.save(img_path_repl)
 
-        # (optional) also save the baseline image next to it for A/B inspection
-        img_ref_name = f"idx{i:03d}_seed{seed_i}_BASELINE_clip{cos_sim_ref:.3f}.png"
-        im_pil_ref.save(out_dir / img_ref_name)
+        img_name_ref = f"idx{i:03d}_seed{seed_i}_BASELINE_clip{cos_sim_ref:.3f}.png"
+        img_path_ref = out_dir / img_name_ref
+        im_pil_ref.save(img_path_ref)
 
-
+        # ---- append log row ----
+        with open(log_path, "a", newline="") as f:
+            w = csv.writer(f)
+            w.writerow([
+                i, seed_i, f"{cos_ok:.6f}", f"{delta_l2:.6f}",
+                i0, L, json.dumps(indices),
+                f"{cos_sim_repl:.6f}", f"{cos_sim_ref:.6f}",
+                str(img_path_repl.resolve()), str(img_path_ref.resolve()),
+            ])
