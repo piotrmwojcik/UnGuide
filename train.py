@@ -737,8 +737,6 @@ def main():
                     retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                      tokenizer=tokenizer)
                     retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
-                    #cifar_100_category = random.choice(CIFAR100)
-                    #cifar_100_prompt = f"A photo of the {cifar_100_category}."
 
                     with torch.no_grad():
                         base.current_conditioning = retain_prompt
