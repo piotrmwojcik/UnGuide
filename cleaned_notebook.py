@@ -426,9 +426,9 @@ if __name__ == "__main__":
     #clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
     #clip_proc = CLIPProcessor.from_pretrained(clip_name)
 
-    model, preprocess = clip.load("ViT-B/32", device=args.device)
+    model, preprocess = clip.load("ViT-B/32", device=device)
 
-    text_tokens = clip.tokenize(prompts).to(args.device)
+    text_tokens = clip.tokenize(prompts).to(device)
     text_features = model.encode_text(text_tokens).float()
 
 
