@@ -571,8 +571,6 @@ def main():
 
     print(retain_tensors)
 
-    print(remove_prompts[cols_to_show].to_string(index=False))
-
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
 
