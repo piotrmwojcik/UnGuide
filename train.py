@@ -402,7 +402,7 @@ def _iter_hyperlora_layers(root: nn.Module):
 def pooled_from_hidden_and_prompt(
         last_hidden: torch.Tensor,  # [77, 768] or [1,77,768]
         prompt: str,
-        clip_model: "CLIPModel|None" = None,  # optional; from openai/clip-vit-large-patch14
+        tokenizer,  # optional; from openai/clip-vit-large-patch14
 ):
     """
     Returns:
@@ -415,7 +415,7 @@ def pooled_from_hidden_and_prompt(
     assert last_hidden.shape[1] == 77, "Expected sequence length 77"
 
     # Tokenize prompt to get attention mask (EOS = last non-pad token)
-    enc = _tok(
+    enc = tokenizer(
         prompt,
         return_tensors="pt",
         padding="max_length",
@@ -428,13 +428,6 @@ def pooled_from_hidden_and_prompt(
 
     # Take the EOS hidden state
     pooled = last_hidden[0, eos_idx, :]  # [768]
-
-    if clip_model is not None:
-        # Project like CLIP does, then L2-normalize
-        # clip_model.text_projection is [768, D] (e.g., D=512)
-        proj = clip_model.text_projection  # torch.nn.Parameter
-        pooled = pooled @ proj  # [D]
-        pooled = pooled / pooled.norm(dim=-1, keepdim=False).clamp_min(1e-12)
 
     return pooled, eos_idx
 
