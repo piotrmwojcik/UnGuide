@@ -390,8 +390,8 @@ if __name__ == "__main__":
     # --- config you can tweak ---
     prompt = "a photo of the truck"
     search_word = "truck"
-    num_images = 100
-    cos_radius = 0.75  # cosine_distance for sampling
+    num_images = 200
+    cos_radius = 0.70  # cosine_distance for sampling
     out_dir = Path("./random_replacements_truck")
     base_seed = 71995  # will offset per image for reproducibility
     device = model.device  # your SD model device
@@ -421,15 +421,15 @@ if __name__ == "__main__":
 
 
     clip_name = "openai/clip-vit-large-patch14"
-    clip_model = CLIPModel.from_pretrained(clip_name).to(device).eval()
-    clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
-    clip_proc = CLIPProcessor.from_pretrained(clip_name)
+    #clip_model = CLIPModel.from_pretrained(clip_name).to(device).eval()
+    #clip_tok = CLIPTokenizerFast.from_pretrained(clip_name)
+    #clip_proc = CLIPProcessor.from_pretrained(clip_name)
 
-    with torch.no_grad():
-        txt_inputs = clip_tok([prompt], return_tensors="pt", padding=True, truncation=True)
-        txt_inputs = {k: v.to(device) for k, v in txt_inputs.items()}
-        text_feat = clip_model.get_text_features(**txt_inputs)  # [1, D]
-        text_feat = F.normalize(text_feat, dim=-1)  # [1, D]
+    model, preprocess = clip.load("ViT-B/32", device=args.device)
+
+    text_tokens = clip.tokenize(prompts).to(args.device)
+    text_features = model.encode_text(text_tokens).float()
+
 
     # main loop
     for i in range(num_images):
@@ -481,10 +481,21 @@ if __name__ == "__main__":
         else:
             imgs = latents
 
+        im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()  # [3,H,W] uint8
+        im_pil = to_pil_image(im_u8)  # PIL.Image
+
+        image = clip_preprocess(im_pil).unsqueeze(0).to(device)  # [1,3,224,224] etc.
+        image_features = clip_model.encode_image(image).float()
+        image_features = torch.nn.functional.normalize(image_features, dim=-1)
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+        probs = (100.0 * image_features @ text_features.T).softmax(dim=-1).cpu().tolist()[0]
         # ---- compute CLIP similarity(prompt, image) BEFORE saving ----
         # make a PIL image from imgs[0] in [0,1]
         im_u8 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
         im_pil = to_pil_image(im_u8)
+
+
 
         with torch.no_grad():
             im_inputs = clip_proc(images=im_pil, return_tensors="pt")
@@ -498,12 +509,4 @@ if __name__ == "__main__":
         img_path = out_dir / img_name
         im_pil.save(img_path)
 
-        # ---- append log row (also add CLIP score) ----
-        with open(log_path, "a", newline="") as f:
-            w = csv.writer(f)
-            w.writerow([
-                "idx", "seed", "cosine_similarity_achieved", "delta_L2",
-                "src_start", "src_len", "replaced_token_indices",
-                "clip_text_image_similarity",
-                "img_path"
-            ])
+
