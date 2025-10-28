@@ -481,6 +481,20 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
+def load_by_idx_seed(idx_list, seed_list, root=root):
+    assert len(idx_list) == len(seed_list)
+    tensors, paths_ok = [], []
+    for i, s in zip(idx_list, seed_list):
+        p = root / f"idx{i:03d}_seed{s}_spanmean.pt"
+        try:
+            t = torch.load(p, map_location="cpu")
+            tensors.append(t)
+            paths_ok.append(p)
+        except FileNotFoundError:
+            print(f"[missing] {p}")
+    return tensors, paths_ok
+
+
 def main():
     args = parse_args()
 
@@ -528,11 +542,23 @@ def main():
     retain_prompts = df[df["clip_gap"] >= THRESHOLD_RETAIN]
     remove_prompts = df[(df["clip_gap"] < 0) | (df["clip_gap"] < THRESHOLD_REMOVE)]
 
-    # Print matching entries (you can change displayed columns if you want)
-    cols_to_show = [
-        "idx", "seed", "clip_gap",
-    ]
-    cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
+    def load_tensors(paths):
+        tensors, ok_paths = [], []
+        for p in paths:
+            try:
+                t = torch.load(p, map_location="cpu")
+                tensors.append(t)
+                ok_paths.append(p)
+            except FileNotFoundError:
+                print(f"[missing] {p}")
+        return tensors, ok_paths
+
+    retain_tensors, _ = load_tensors(retain_paths)
+    remove_tensors, _ = load_tensors(remove_paths)
+    root = Path(f"random_replacements_{args.target_object}_emb")  # folder with the .pt files
+
+    print(retain_tensors)
+
     print(remove_prompts[cols_to_show].to_string(index=False))
 
     #logger = get_logger(__name__)
