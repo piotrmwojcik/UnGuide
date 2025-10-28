@@ -481,19 +481,6 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
-def load_by_idx_seed(idx_list, seed_list, root=root):
-    assert len(idx_list) == len(seed_list)
-    tensors, paths_ok = [], []
-    for i, s in zip(idx_list, seed_list):
-        p = root / f"idx{i:03d}_seed{s}_spanmean.pt"
-        try:
-            t = torch.load(p, map_location="cpu")
-            tensors.append(t)
-            paths_ok.append(p)
-        except FileNotFoundError:
-            print(f"[missing] {p}")
-    return tensors, paths_ok
-
 
 def main():
     args = parse_args()
@@ -563,8 +550,8 @@ def main():
             paths.append(p)
         return paths
 
-    retain_paths = rows_to_paths(retain_df)
-    remove_paths = rows_to_paths(remove_df)
+    retain_paths = rows_to_paths(retain_prompts)
+    remove_paths = rows_to_paths(remove_prompts)
 
     retain_tensors, _ = load_tensors(retain_paths)
     remove_tensors, _ = load_tensors(remove_paths)
