@@ -518,7 +518,7 @@ def main():
     )
 
     df = pd.read_csv(args.csv_path)
-    THRESHOLD = 0.025
+    THRESHOLD = 0.0025
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -528,9 +528,7 @@ def main():
 
     # Print matching entries (you can change displayed columns if you want)
     cols_to_show = [
-        "idx", "seed",
-        "clip_cos_replaced", "clip_cos_baseline", "clip_gap",
-        "img_replaced_path", "img_baseline_path"
+        "idx", "seed", "clip_gap",
     ]
     cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
     print('!!!!!!!')
