@@ -531,7 +531,6 @@ def main():
         "idx", "seed", "clip_gap",
     ]
     cols_to_show = [c for c in cols_to_show if c in retain_prompts.columns]
-    print('!!!!!!!')
     print(retain_prompts[cols_to_show].to_string(index=False))
 
     #logger = get_logger(__name__)
@@ -649,6 +648,7 @@ def main():
             #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the bird")
             inputs_other2 = encode("a photo of the dog")
+            print('!!!! inputs_other2 ', inputs_other2.shape)
             inputs_other3 = encode("a photo of the feline")
             inputs_target = encode(target_text)
             with torch.no_grad():
