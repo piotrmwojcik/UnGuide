@@ -399,6 +399,46 @@ def _iter_hyperlora_layers(root: nn.Module):
 #             yield name, m
 
 
+def pooled_from_hidden_and_prompt(
+        last_hidden: torch.Tensor,  # [77, 768] or [1,77,768]
+        prompt: str,
+        clip_model: "CLIPModel|None" = None,  # optional; from openai/clip-vit-large-patch14
+):
+    """
+    Returns:
+      pooled: [768] if clip_model is None; else the projected & L2-normed feature (e.g. [512])
+      eos_idx: int, the EOS position we used
+    """
+    # Make shapes consistent
+    if last_hidden.ndim == 2:  # [77,768] -> [1,77,768]
+        last_hidden = last_hidden.unsqueeze(0)
+    assert last_hidden.shape[1] == 77, "Expected sequence length 77"
+
+    # Tokenize prompt to get attention mask (EOS = last non-pad token)
+    enc = _tok(
+        prompt,
+        return_tensors="pt",
+        padding="max_length",
+        max_length=77,
+        truncation=True,
+        add_special_tokens=True,
+    )
+    # eos index is the last position with mask==1
+    eos_idx = int(enc["attention_mask"].sum(dim=-1).item() - 1)
+
+    # Take the EOS hidden state
+    pooled = last_hidden[0, eos_idx, :]  # [768]
+
+    if clip_model is not None:
+        # Project like CLIP does, then L2-normalize
+        # clip_model.text_projection is [768, D] (e.g., D=512)
+        proj = clip_model.text_projection  # torch.nn.Parameter
+        pooled = pooled @ proj  # [D]
+        pooled = pooled / pooled.norm(dim=-1, keepdim=False).clamp_min(1e-12)
+
+    return pooled, eos_idx
+
+
 def collect_hyperlora_tensors_and_grads(
     model_wrapped: nn.Module, accelerator, verbose: bool = False, all_ranks: bool = True
 ) -> Dict[str, Dict[str, Any]]:
@@ -555,7 +595,7 @@ def main():
     retain_tensors, _ = load_tensors(retain_paths)
     remove_tensors, _ = load_tensors(remove_paths)
 
-    print('!!!', len(retain_tensors), len(remove_tensors))
+    #print('!!!', len(retain_tensors), len(remove_tensors))
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
@@ -651,7 +691,7 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
-            target_text = random.choice(prompt_augmentation(args.target_object))
+            target_text = f"a photo of the {args.target_object}"
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
@@ -696,12 +736,17 @@ def main():
                 #if False:
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
-                    cifar_100_category = random.choice(CIFAR100)
-                    cifar_100_prompt = f"A photo of the {cifar_100_category}."
+                    retain_prompt = random.choice(retain_tensors)
+                    retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
+                                                                     clip_model=clip_text_encoder)
+                    retain_prompt = retain_prompt.unsqueeze()
+                    print('!!!! ', retain_prompt.shape)
+                    #cifar_100_category = random.choice(CIFAR100)
+                    #cifar_100_prompt = f"A photo of the {cifar_100_category}."
 
                     inputs_cifar_100 = encode(cifar_100_prompt)
                     with torch.no_grad():
-                        base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
+                        base.current_conditioning = retain_prompt
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
