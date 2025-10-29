@@ -764,14 +764,14 @@ def main():
                     #z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     #emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
                     base.time_step = 0
-                    _iter_and_call_hyperlora_layers(base, clip_embedding, base.time_step)
+                    _iter_and_call_hyperlora_layers(base, retain_prompt, base.time_step)
                     #_ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
                     #    l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
                     #accelerator.print(f"||tensors_flat_t_live||_2 = {l2:.6f}")
                     base.time_step = int(torch.randint(1, 150, (1,), device=accelerator.device))
-                    _ = _iter_and_call_hyperlora_layers(base, clip_embedding, base.time_step)
+                    _ = _iter_and_call_hyperlora_layers(base, retain_prompt, base.time_step)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
