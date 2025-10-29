@@ -714,13 +714,13 @@ def main():
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
-
             # pass both to model for HyperLoRA
-            base = accelerator.unwrap_model(model)  # the actual Module used in forward
-            remove_prompt = random.choice(remove_tensors)
-            remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
-                                                             tokenizer=tokenizer)
-            remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
+            base = accelerator.unwrap_model(model)
+            with torch.no_grad():# the actual Module used in forward
+                remove_prompt = random.choice(remove_tensors).detach()
+                remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
+                                                                tokenizer=tokenizer)
+                remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
             base.current_conditioning = remove_prompt
             #base.target_prompt = remove_prompt
             base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
@@ -733,10 +733,11 @@ def main():
                 #if False:
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
-                    retain_prompt = random.choice(retain_tensors)
-                    retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
+                    with torch.no_grad():
+                        retain_prompt = random.choice(retain_tensors).detach()
+                        retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                      tokenizer=tokenizer)
-                    retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
+                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
 
                     with torch.no_grad():
                         base.current_conditioning = retain_prompt
