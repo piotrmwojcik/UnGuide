@@ -772,7 +772,7 @@ def main():
                     e_0.requires_grad_(False)
                     e_p.requires_grad_(False)
                     target = e_0 - (args.negative_guidance * (e_p - e_0))
-                    loss = 10 * criterion(e_n, target)  # per-rank scalar tensor
+                    loss = criterion(e_n, target)  # per-rank scalar tensor
 
                     # ---- BACKWARD (per micro-step) ----
                     # Scale the loss for gradient accumulation so the effective grad equals the true average
