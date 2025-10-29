@@ -139,7 +139,7 @@ CIFAR100 = [
     'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
     'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
     'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','mountain',
-    'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pickup truck','pine tree',
+    'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pine tree',
     'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
     'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
     'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
