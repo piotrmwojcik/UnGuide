@@ -713,6 +713,7 @@ def main():
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
+
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
             # pass both to model for HyperLoRA
             base = accelerator.unwrap_model(model)
@@ -734,10 +735,12 @@ def main():
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     with torch.no_grad():
-                        retain_prompt = random.choice(retain_tensors).detach()
-                        retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
-                                                                     tokenizer=tokenizer)
-                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
+                        cifar_100_category = random.choice(CIFAR100)
+                        cifar_100_prompt = f"A photo of the {cifar_100_category}."
+
+                        inputs_cifar_100 = encode(cifar_100_prompt)
+                        with torch.no_grad():
+                            base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
                     with torch.no_grad():
                         base.current_conditioning = retain_prompt
