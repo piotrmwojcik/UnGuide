@@ -87,7 +87,7 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def forward(self, x, clip, clip_target, t):
+    def forward(self, x, clip, t):
         B = clip.shape[0]
         emb = clip
         #emb = self.layers(clip)
@@ -148,7 +148,6 @@ class HyperLoRALinear(nn.Module):
             return self.original(x)
         else:
             clip_embedding = parent.current_conditioning
-            target_embedding = None #parent.target_prompt
         # Expected shape: (batch_size, seq_len, hidden_size)
         # e.g., (1, 77, 768)
         #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
@@ -171,7 +170,7 @@ class HyperLoRALinear(nn.Module):
         #         self._printed_original_trainables = True
         #
         #     return self.original(x)
-        return self.original(x) + self.hyper_lora(x, clip_embedding,target_embedding,  parent.time_step)
+        return self.original(x) + self.hyper_lora(x, clip_embedding, parent.time_step)
 
 
 def inject_hyper_lora(
