@@ -107,7 +107,7 @@ def parse_args():
         default=1,
         help="Batch size (per device) for the training dataloader.",
     )
-    parser.add_argument("--csv_path", type=str, default=None, help="csv")
+    parser.add_argument("--csv_path", type=str, required=True, help="Path to CSV file with prompt metrics (clip_cos_replaced, clip_cos_baseline, idx, seed)")
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
