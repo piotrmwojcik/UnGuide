@@ -735,15 +735,13 @@ def main():
                 if 'neutral.json' in sample['file']:
                     base.time_step = 0
                     with torch.no_grad():
-                        cifar_100_category = random.choice(CIFAR100)
-                        cifar_100_prompt = f"A photo of the {cifar_100_category}."
+                        retain_prompt = random.choice(retain_tensors)
+                        retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
+                                                                         tokenizer=tokenizer)
 
-                        inputs_cifar_100 = encode(cifar_100_prompt)
-                        with torch.no_grad():
-                            base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
-
-                    #with torch.no_grad():
-                    #    base.current_conditioning = retain_prompt
+                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
+                    with torch.no_grad():
+                        base.current_conditioning = retain_prompt
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
@@ -775,7 +773,7 @@ def main():
                     e_0.requires_grad_(False)
                     e_p.requires_grad_(False)
                     target = e_0 - (args.negative_guidance * (e_p - e_0))
-                    loss = criterion(e_n, target)  # per-rank scalar tensor
+                    loss = 10 * criterion(e_n, target)  # per-rank scalar tensor
 
                     # ---- BACKWARD (per micro-step) ----
                     # Scale the loss for gradient accumulation so the effective grad equals the true average
