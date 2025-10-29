@@ -742,8 +742,8 @@ def main():
                         with torch.no_grad():
                             base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
-                    with torch.no_grad():
-                        base.current_conditioning = retain_prompt
+                    #with torch.no_grad():
+                    #    base.current_conditioning = retain_prompt
                     #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
