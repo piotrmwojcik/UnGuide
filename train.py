@@ -685,6 +685,8 @@ def main():
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             target_text = f"a photo of the {args.target_object}"
+            neutral_loss = None
+            remove_loss = None
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = base.get_learned_conditioning(sample["reference"])
@@ -756,6 +758,7 @@ def main():
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
+                    neutral_loss = loss.detach()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
@@ -811,6 +814,7 @@ def main():
 
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
+                    remove_loss = loss.detach()
                     loss_for_backward = 1.75 * loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
@@ -902,13 +906,36 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
-                loss_reduced = accelerator.gather(loss.detach()).mean()
+                loss_detached = loss.detach()
+                loss_reduced = accelerator.reduce(loss_detached, reduction="mean")
+                loss_value = float(loss_reduced.item())
 
-            loss_value = float(loss_reduced.item())
+                neutral_loss_value = None
+                remove_loss_value = None
+
+                neutral_tensor = neutral_loss if neutral_loss is not None else torch.zeros_like(loss_detached)
+                neutral_count_tensor = torch.ones_like(loss_detached) if neutral_loss is not None else torch.zeros_like(loss_detached)
+                neutral_sum = accelerator.reduce(neutral_tensor, reduction="sum")
+                neutral_count = accelerator.reduce(neutral_count_tensor, reduction="sum")
+                if accelerator.is_main_process and neutral_count.item() > 0:
+                    neutral_loss_value = (neutral_sum / neutral_count).item()
+
+                remove_tensor = remove_loss if remove_loss is not None else torch.zeros_like(loss_detached)
+                remove_count_tensor = torch.ones_like(loss_detached) if remove_loss is not None else torch.zeros_like(loss_detached)
+                remove_sum = accelerator.reduce(remove_tensor, reduction="sum")
+                remove_count = accelerator.reduce(remove_count_tensor, reduction="sum")
+                if accelerator.is_main_process and remove_count.item() > 0:
+                    remove_loss_value = (remove_sum / remove_count).item()
+
             losses.append(loss_value)
 
             if accelerator.is_local_main_process and args.use_wandb:
-                wandb.log({"loss": loss_value}, step=i)
+                log_payload = {"loss": loss_value}
+                if neutral_loss_value is not None:
+                    log_payload["loss_neutral"] = float(neutral_loss_value)
+                if remove_loss_value is not None:
+                    log_payload["loss_remove"] = float(remove_loss_value)
+                wandb.log(log_payload, step=i)
 
             if accelerator.is_local_main_process:
                 pbar.set_postfix({"loss": f"{loss_value:.6f}"})
