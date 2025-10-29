@@ -733,7 +733,7 @@ def main():
             with accelerator.accumulate(model):
                 #if False:
                 if 'neutral.json' in sample['file']:
-                    base.time_step = 0
+
                     with torch.no_grad():
                         retain_prompt = random.choice(retain_tensors)
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
@@ -746,6 +746,7 @@ def main():
 
                     z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
+                    base.time_step = 0
                     _ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     #with torch.no_grad():
@@ -811,7 +812,7 @@ def main():
 
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
-                    loss_for_backward = 1.75 * loss / accelerator.gradient_accumulation_steps
+                    loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
 
