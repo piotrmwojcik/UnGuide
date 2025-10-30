@@ -1,5 +1,5 @@
 import weakref
-from typing import List
+from typing import List, Dict, Tuple, Optional
 
 import torch
 import math
@@ -9,22 +9,50 @@ from functools import partial
 import torch.nn as nn
 
 
-class TimeFourier(nn.Module):
-
-    def __init__(self, T=151, L=16):  # outputs 2L dims
+class HypernetworkManager(nn.Module):
+    def __init__(self):
         super().__init__()
-        # freq_k = (2π/T) * 2^k  for k=0..L-1
+        self.hyper_layers = nn.ModuleList()
+        self.layer_name_to_idx = {}
+        self.lora_weights_cache = {}
+        self.current_context = {'clip_emb': None, 'timestep': None}
+        self.auto_mode = True
+
+    def add_hyperlora(self, name: str, hyper_lora):
+        idx = len(self.hyper_layers)
+        self.hyper_layers.append(hyper_lora)
+        self.layer_name_to_idx[name] = idx
+
+    def set_context(self, clip_emb, timestep):
+        self.current_context['clip_emb'] = clip_emb
+        self.current_context['timestep'] = timestep
+
+    def get_context(self):
+        return self.current_context['clip_emb'], self.current_context['timestep']
+
+    def compute_and_cache_loras(self, clip_emb, clip_target, timestep):
+        self.lora_weights_cache.clear()
+        for name, idx in self.layer_name_to_idx.items():
+            hyper = self.hyper_layers[idx]
+            x_L, x_R = hyper.get_lora_matrices(clip_emb, clip_target, timestep)
+            self.lora_weights_cache[name] = (x_L, x_R)
+
+    def get_cached_lora(self, layer_name):
+        return self.lora_weights_cache.get(layer_name, None)
+
+
+class TimeFourier(nn.Module):
+    def __init__(self, T=151, L=16):
+        super().__init__()
         k = torch.linspace(0, L - 1, L, dtype=torch.float32)
         freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
-        # make it follow .to(device) / .half() calls automatically
-        self.register_buffer("freqs", freqs)  # shape: (L,)
+        self.register_buffer("freqs", freqs)
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
-        # t: (B,) int/long
-        t = t.to(dtype=torch.float32).unsqueeze(-1)  # (B,1)
-        w = self.freqs.to(dtype=t.dtype)             # (L,)
-        angles = t * w                               # (B,L)
-        return torch.cat([angles.cos(), angles.sin()], dim=-1)  # (B, 2L)
+        t = t.to(dtype=torch.float32).unsqueeze(-1)
+        w = self.freqs.to(dtype=t.dtype)
+        angles = t * w
+        return torch.cat([angles.cos(), angles.sin()], dim=-1)
 
 
 class HyperLora(nn.Module):
@@ -71,8 +99,6 @@ class HyperLora(nn.Module):
             nn.Linear(100, out_dim * rank),
         )
         self.time_feat = TimeFourier()
-        self.in_dim = in_dim
-        self.out_dim = out_dim
 
         self.use_scaling = use_scaling
         if self.use_scaling:
@@ -87,26 +113,35 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def forward(self, x, clip, t):
+    def get_lora_matrices(self, clip, clip_target, t):
+        if isinstance(t, torch.Tensor):
+            t = int(t.item())
+
         B = clip.shape[0]
         emb = clip
-        #emb = self.layers(clip)
-        t_feats = torch.full((B,), t, dtype=x.dtype, device=x.device)
-        t_feats = self.time_feat(t_feats).to(x.device)
+        t_feats = torch.full((B,), t, dtype=clip.dtype, device=clip.device)
+        t_feats = self.time_feat(t_feats).to(clip.device)
         emb = torch.cat([emb, t_feats], dim=-1)
+
         if self.use_scaling:
             x_L = self.forward_alpha(t) * self.forward_linear_L(emb, t)
         else:
             x_L = self.forward_linear_L(emb, t)
         x_R = self.forward_linear_R(emb, t)
+
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
+
+        return x_L, x_R
+
+    def forward(self, x, clip, clip_target, t):
+        x_L, x_R = self.get_lora_matrices(clip, clip_target, t)
 
         if x_L.requires_grad:
             x_L.retain_grad()
         if x_R.requires_grad:
             x_R.retain_grad()
-        # stash references so you can read .grad later
+
         self._last_x_L = x_L
         self._last_x_R = x_R
 
@@ -121,6 +156,7 @@ class HyperLoRALinear(nn.Module):
         clip_size: int = 768,
         rank: int = 1,
         alpha: int = 16,
+        layer_name: str = None,
     ):
         super().__init__()
         self.original = original_linear
@@ -131,46 +167,46 @@ class HyperLoRALinear(nn.Module):
             clip_size,
             alpha,
         )
-        self.time_feat = TimeFourier(T=151, L=16)
         self.parent_model = None
+        self.layer_name = layer_name
 
     def set_parent_model(self, model):
         self.parent_model = weakref.ref(model)
 
     def forward(self, x):
-        # use the `()` for weakref
         parent = self.parent_model()
-        assert parent.time_step is not None
-        #assert parent.target_prompt is not None
 
-        if parent.current_conditioning is None:
-            print("WARNING: this shouldn't happen")
-            return self.original(x)
+        if hasattr(parent, 'hyper') and parent.hyper is not None:
+            if parent.hyper.auto_mode:
+                clip_embedding, timestep = parent.hyper.get_context()
+                if clip_embedding is None:
+                    print("WARNING: clip_embedding is None in auto mode")
+                    return self.original(x)
+                return self.original(x) + self.hyper_lora(x, clip_embedding, None, timestep)
+            else:
+                lora_weights = parent.hyper.get_cached_lora(self.layer_name)
+                if lora_weights is None:
+                    return self.original(x)
+                x_L, x_R = lora_weights
+
+                batch_size = x.shape[0]
+                if x_L.shape[0] == 1 and batch_size > 1:
+                    x_L = x_L.expand(batch_size, -1, -1)
+                    x_R = x_R.expand(batch_size, -1, -1)
+
+                return self.original(x) + (x @ x_L) @ x_R
         else:
-            clip_embedding = parent.current_conditioning
-        # Expected shape: (batch_size, seq_len, hidden_size)
-        # e.g., (1, 77, 768)
-        #if clip_embedding.dim() == 3 and clip_embedding.shape[0] == 1:
-        #    clip_embedding = clip_embedding[0]
+            if not hasattr(parent, 'current_conditioning'):
+                print("WARNING: parent model has neither 'hyper' nor 'current_conditioning'")
+                return self.original(x)
 
-        # Take the mean of the sequence of embeddings
-        #if clip_embedding.dim() == 2:
-        #    clip_embedding = clip_embedding.mean(dim=0)
-        #print(self.original(x).shape, self.hyper_lora(x, clip_embedding, parent.time_step).shape)
-        # if parent.time_step == 0:
-        #     # Print once
-        #     if not hasattr(self, "_printed_original_trainables"):
-        #         total = 0
-        #         print("[original] Trainable parameters:")
-        #         for name, p in self.original.named_parameters():
-        #             if p.requires_grad:
-        #                 print(f"  - {name} shape={tuple(p.shape)}  numel={p.numel():,}")
-        #                 total += p.numel()
-        #         print(f"[original] Total trainable params: {total:,}")
-        #         self._printed_original_trainables = True
-        #
-        #     return self.original(x)
-        return self.original(x) + self.hyper_lora(x, clip_embedding, parent.time_step)
+            clip_embedding = parent.current_conditioning
+            timestep = getattr(parent, 'time_step', None)
+
+            if clip_embedding is None or timestep is None:
+                return self.original(x)
+
+            return self.original(x) + self.hyper_lora(x, clip_embedding, None, timestep)
 
 
 def inject_hyper_lora(
@@ -186,8 +222,9 @@ def inject_hyper_lora(
         ):
             device = next(child.parameters()).device
             hyper_lora_layer = hyper_lora_factory(child).to(device)
+            hyper_lora_layer.layer_name = full_name
             setattr(module, child_name, hyper_lora_layer)
-            hyper_lora_layers.append(hyper_lora_layer)
+            hyper_lora_layers.append((full_name, hyper_lora_layer))
         else:
             child_layers = inject_hyper_lora(
                 child, target_modules, hyper_lora_factory, full_name
@@ -214,8 +251,9 @@ def inject_hyper_lora_nsfw(module, hyper_lora_factory, name=""):
             print(f"Injecting HyperLoRA into: {full_name}")
             device = next(child.parameters()).device
             hyper_lora_layer = hyper_lora_factory(child).to(device)
+            hyper_lora_layer.layer_name = full_name
             setattr(module, child_name, hyper_lora_layer)
-            hyper_lora_layers.append(hyper_lora_layer)
+            hyper_lora_layers.append((full_name, hyper_lora_layer))
         else:
             child_layers = inject_hyper_lora_nsfw(child, hyper_lora_factory, full_name)
             hyper_lora_layers.extend(child_layers)
