@@ -757,6 +757,7 @@ def main():
                     base.hyper.set_context(retain_prompt, 150)
                     base.hyper.compute_and_cache_loras(retain_prompt, 150)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+                    print(tensors_flat_t1_live)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
 
