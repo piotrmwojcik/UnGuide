@@ -755,6 +755,7 @@ def main():
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
                     for nl, hl in _iter_hyperlora_layers(model):
                         nl = re.sub(r'^module\.model\.diffusion_model\.', '', nl)
+                        print(nl)
                         d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
                         for k in d.keys():
                             print('!!! ', d[k].shape)
