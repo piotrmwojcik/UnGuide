@@ -46,6 +46,7 @@ class HypernetworkManager(nn.Module):
         return self.lora_weights_cache.get(layer_name, None)
 
 
+
 class TimeFourier(nn.Module):
 
     def __init__(self, T=151, L=16):
