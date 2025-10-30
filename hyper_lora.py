@@ -207,7 +207,7 @@ class HyperLoRALinear(nn.Module):
             if clip_embedding is None or timestep is None:
                 return self.original(x)
 
-            return self.original(x) + self.hyper_lora(x, clip_embedding, None, timestep)
+            return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
 
 
 def inject_hyper_lora(
