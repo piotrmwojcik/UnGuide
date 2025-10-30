@@ -122,11 +122,7 @@ class HyperLora(nn.Module):
 
     def make_t_feats(self, t, B, ref):
         # Normalize t into a 1D float tensor on the same device/dtype as clip
-        if isinstance(t, torch.Tensor):
-            if t.ndim == 0:
-                t = t.item()
-            else:
-                t = t.flatten()
+
         if isinstance(t, (list, tuple)):
             t = torch.tensor(t)
 
@@ -144,10 +140,9 @@ class HyperLora(nn.Module):
 
     def get_lora_matrices(self, clip, t):
         B = clip.shape[0]
-        t_feats = self.make_t_feats(t, clip, B)
+        t_feats = self.make_t_feats(t, B, clip)
 
         emb = clip
-        print('!!! ', emb.shape, t_feats.shape)
         emb = torch.cat([emb, t_feats], dim=-1)
 
         assert self.use_scaling
