@@ -760,7 +760,7 @@ def main():
                         return torch.cat(
                             [w.reshape(-1)
                              for name, _ in layers
-                             for w in hyper.get_cached_lora(pat.sub('', name))],
+                             for w in base.hyper.get_cached_lora(pat.sub('', name))],
                             dim=0
                         )
                     tensors_flat_t_live = flatten_cached()
