@@ -751,11 +751,11 @@ def main():
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
                         accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
+                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, 0)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 150)
+                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, 150)
                     #tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     #print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t1_live - tensors_flat_t_live)
                     #delta_live = tensors_flat_t1_live - tensors_flat_t_live
