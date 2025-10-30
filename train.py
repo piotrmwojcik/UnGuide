@@ -742,13 +742,12 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         retain_prompt = random.choice(retain_tensors)
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                          tokenizer=tokenizer)
-                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
+                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
                     with torch.no_grad():
                         base.hyper.set_context(retain_prompt, 0)
 
