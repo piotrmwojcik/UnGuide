@@ -753,19 +753,23 @@ def main():
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
-                    for nl, hl in _iter_hyperlora_layers(model):
-                        nl = re.sub(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$', '', nl)
-                        d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
-                        for el in d:
-                            print(el.shape)
-                    tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
-                    #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, t_)
-                    tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
-                    #print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t1_live - tensors_flat_t_live)
+                    pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
+
+                    def flatten_cached():
+                        return torch.cat(
+                            [w.reshape(-1)
+                             for name, _ in layers
+                             for w in hyper.get_cached_lora(pat.sub('', name))],
+                            dim=0
+                        )
+                    tensors_flat_t_live = flatten_cached()
+                    t_ = torch.randint(1, 150, (1,), device=accelerator.device).item()
+                    hyper.compute_and_cache_loras(retain_prompt, t_)
+
+                    tensors_flat_t1_live = flatten_cached()
+
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = (delta_live ** 2).mean()
+                    loss = delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
