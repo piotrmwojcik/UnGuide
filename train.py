@@ -742,9 +742,7 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                #if False:
                 if 'neutral.json' in sample['file']:
-
                     with torch.no_grad():
                         retain_prompt = random.choice(retain_tensors)
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
@@ -754,14 +752,10 @@ def main():
                     with torch.no_grad():
                         base.hyper.set_context(retain_prompt, 0)
 
-                    #z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
                     base.hyper.compute_and_cache_loras(retain_prompt, 0)
-                    #_ = base.hyper.get_cached_lora
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
-                    base.hyper.set_context(retain_prompt, t_)
-                    #_ = base.apply_model(z, t_enc_ddpm, emb_target)
+                    base.hyper.set_context(retain_prompt, 150)
                     base.hyper.compute_and_cache_loras(retain_prompt, t_)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
