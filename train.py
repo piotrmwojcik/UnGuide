@@ -755,7 +755,7 @@ def main():
                     for nl, hl in _iter_hyperlora_layers(model):
                         d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
                         for k in d.keys():
-                            print('!!! ', d[k].shape)
+                            print('!!! ', nl)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
