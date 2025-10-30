@@ -42,7 +42,7 @@ from tqdm import tqdm
 from data_utils import TargetReferenceDataset, collate_prompts
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from ldm.util import instantiate_from_config  # (kept if your get_models uses it)
-from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
+from hyper_lora import (HyperLoRALinear, HypernetworkManager, inject_hyper_lora,
                         inject_hyper_lora_nsfw)
 from sampling import sample_model
 from utils import get_models, print_trainable_parameters  # DO NOT import set_seed here to avoid clashes
@@ -108,6 +108,7 @@ def parse_args():
         help="Batch size (per device) for the training dataloader.",
     )
     parser.add_argument("--csv_path", type=str, default=None, help="csv")
+    parser.add_argument("--use_dummy_embeddings", action="store_true", help="Use dummy zero tensors instead of loading embeddings (for testing)")
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
@@ -388,23 +389,6 @@ def _iter_hyperlora_layers(root: nn.Module):
             yield name, m
 
 
-def _iter_and_call_hyperlora_layers(root: nn.Module, clip_embedding, time_step):
-    seen = set()
-    for name, m in root.named_modules():
-        if isinstance(m, HyperLoRALinear):
-            hl = m.hyper_lora
-            if id(hl) in seen:
-                continue
-            seen.add(id(hl))
-            m(clip_embedding, time_step)
-            yield name + ".hyper_lora", hl
-        elif isinstance(m, HyperLora):
-            if id(m) in seen:
-                continue
-            seen.add(id(m))
-            yield name, m
-
-
 # def _iter_hyperlora_layers(root: nn.Module) -> Iterator[Tuple[str, HyperLora]]:
 #     """Yield (qualified_name, HyperLora) whether wrapped or direct."""
 #     for name, m in root.named_modules():
@@ -602,10 +586,23 @@ def main():
     retain_paths = rows_to_paths(retain_prompts)
     remove_paths = rows_to_paths(remove_prompts)
 
-    retain_tensors, _ = load_tensors(retain_paths)
-    remove_tensors, _ = load_tensors(remove_paths)
+    if args.use_dummy_embeddings:
+        print("WARNING: Using dummy zero tensors for embeddings (testing mode)")
+        dummy_embedding = torch.zeros(77, 768)
+        retain_tensors = [dummy_embedding for _ in range(max(1, len(retain_prompts)))]
+        remove_tensors = [dummy_embedding for _ in range(max(1, len(remove_prompts)))]
+    else:
+        retain_tensors, _ = load_tensors(retain_paths)
+        remove_tensors, _ = load_tensors(remove_paths)
 
-    #print('!!!', len(retain_tensors), len(remove_tensors))
+        if not retain_tensors or not remove_tensors:
+            raise ValueError(
+                f"Failed to load embeddings. "
+                f"Found {len(retain_tensors)} retain tensors and {len(remove_tensors)} remove tensors. "
+                f"Expected embeddings in: {EMB_ROOT}. "
+                f"Please generate the embeddings first, use --use_dummy_embeddings flag for testing, "
+                f"or provide a valid csv_path."
+            )
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
@@ -636,8 +633,7 @@ def main():
     for p in model.model.diffusion_model.parameters():
         p.requires_grad = False
 
-    # Add attribute used downstream
-    model.current_conditioning = None
+    model.hyper = HypernetworkManager()
 
     # Inject HyperLoRA/LoRA BEFORE prepare(), then build optimizer on trainable params
     use_hyper = True  # your script forces hypernetwork on; keep same behavior
@@ -650,7 +646,7 @@ def main():
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, args.target_modules, hyper_lora_factory
     )
-    for layer in hyper_lora_layers:
+    for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
 
     # Optimizer on trainable (LoRA) params only
@@ -669,8 +665,9 @@ def main():
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
 
     base = accelerator.unwrap_model(model)
-    for layer in hyper_lora_layers:
+    for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(base)
+        base.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
         # Create sampler AFTER prepare so it uses the wrapped model
     sampler = DDIMSampler(base)
@@ -732,16 +729,13 @@ def main():
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
                 #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
-            # pass both to model for HyperLoRA
-            base = accelerator.unwrap_model(model)
-            with torch.no_grad():# the actual Module used in forward
+
+            with torch.no_grad():
                 remove_prompt = random.choice(remove_tensors).detach()
                 remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                                                                 tokenizer=tokenizer)
                 remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
-            base.current_conditioning = remove_prompt
-            #base.target_prompt = remove_prompt
-            base.time_step = int(torch.randint(0, 149, (1,), device=accelerator.device))
+            base.hyper.set_context(remove_prompt, int(torch.randint(0, 149, (1,), device=accelerator.device)))
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -758,21 +752,14 @@ def main():
 
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
                     with torch.no_grad():
-                        base.current_conditioning = retain_prompt
-                    #base.current_conditioning = (1- alpha) * cond_target + alpha * cond_cat
+                        base.hyper.set_context(retain_prompt, 0)
 
-                    #z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
-                    #emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
-                    with torch.no_grad:
-                        base.time_step = 0
-                    _iter_and_call_hyperlora_layers(base, retain_prompt, base.time_step)
-                    #_ = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_target)
+                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
+                    _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    #with torch.no_grad():
-                    #    l2 = tensors_flat_t_live.float().norm(p=2).item()  # L2 norm
-                    #accelerator.print(f"||tensors_flat_t_live||_2 = {l2:.6f}")
-                    base.time_step = int(torch.randint(1, 150, (1,), device=accelerator.device))
-                    _ = _iter_and_call_hyperlora_layers(base, retain_prompt, base.time_step)
+                    base.hyper.set_context(retain_prompt, int(torch.randint(1, 150, (1,), device=accelerator.device)))
+                    _ = base.apply_model(z, t_enc_ddpm, emb_target)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
@@ -786,7 +773,7 @@ def main():
                         e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
                     # prediction for trainable model (needs grads)
-                    e_n = accelerator.unwrap_model(model).apply_model(z, t_enc_ddpm, emb_n)
+                    e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # targets and loss
                     e_0.requires_grad_(False)
@@ -798,7 +785,6 @@ def main():
                     # Scale the loss for gradient accumulation so the effective grad equals the true average
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward, retain_graph=True)
-                    base = accelerator.unwrap_model(model)
                     dev = next(base.parameters()).device
 
                     recs = collect_hyperlora_tensors_and_grads(model, accelerator)
@@ -819,8 +805,8 @@ def main():
                         if xL is not None: xL.grad = None
                         if xR is not None: xR.grad = None
 
-                    # Advance time and run forward to populate new live tensors
-                    base.time_step = base.time_step + 1
+                    _, current_timestep = base.hyper.get_context()
+                    base.hyper.set_context(remove_prompt, current_timestep + 1)
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # LIVE vector at t+1 (keeps graph)
@@ -862,8 +848,7 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
-                base.time_step = 150
-                base.current_conditioning = cond_target
+                base.hyper.set_context(cond_target, 150)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -877,7 +862,7 @@ def main():
                     caption = f"target: {args.target_object}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other
+                base.hyper.set_context(cond_other, 150)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -891,9 +876,7 @@ def main():
                     caption = f"target: bird"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other2
-                #base.time_step = 0
-                #print('---!!! ', base.time_step, accelerator.unwrap_model(model).time_step)
+                base.hyper.set_context(cond_other2, 150)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -907,7 +890,7 @@ def main():
                     caption = f"target: dog"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.current_conditioning = cond_other3
+                base.hyper.set_context(cond_other3, 150)
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
