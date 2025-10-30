@@ -753,7 +753,7 @@ def main():
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt,
-                                                                                  torch.full((150, 1), 0))
+                                                                                  torch.full((150,), 0))
                     pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
@@ -768,7 +768,7 @@ def main():
 
                     tensors_flat_t_live = flatten_cached()
                     t_ = torch.arange(1, 151).to(model.device).unsqueeze(1)
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(B, 1), t_)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(B,), t_)
 
                     tensors_flat_t1_live = flatten_cached()
 
