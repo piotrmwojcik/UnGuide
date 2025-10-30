@@ -120,7 +120,7 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def make_t_feats(t, B, ref):
+    def make_t_feats(self, t, B, ref):
         # Normalize t into a 1D float tensor on the same device/dtype as clip
         if isinstance(t, torch.Tensor):
             if t.ndim == 0:
