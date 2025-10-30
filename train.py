@@ -108,6 +108,7 @@ def parse_args():
         help="Batch size (per device) for the training dataloader.",
     )
     parser.add_argument("--csv_path", type=str, default=None, help="csv")
+    parser.add_argument("--use_dummy_embeddings", action="store_true", help="Use dummy zero tensors instead of loading embeddings (for testing)")
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
@@ -585,16 +586,23 @@ def main():
     retain_paths = rows_to_paths(retain_prompts)
     remove_paths = rows_to_paths(remove_prompts)
 
-    retain_tensors, _ = load_tensors(retain_paths)
-    remove_tensors, _ = load_tensors(remove_paths)
+    if args.use_dummy_embeddings:
+        print("WARNING: Using dummy zero tensors for embeddings (testing mode)")
+        dummy_embedding = torch.zeros(77, 768)
+        retain_tensors = [dummy_embedding for _ in range(max(1, len(retain_prompts)))]
+        remove_tensors = [dummy_embedding for _ in range(max(1, len(remove_prompts)))]
+    else:
+        retain_tensors, _ = load_tensors(retain_paths)
+        remove_tensors, _ = load_tensors(remove_paths)
 
-    if not retain_tensors or not remove_tensors:
-        raise ValueError(
-            f"Failed to load embeddings. "
-            f"Found {len(retain_tensors)} retain tensors and {len(remove_tensors)} remove tensors. "
-            f"Expected embeddings in: {EMB_ROOT}. "
-            f"Please generate the embeddings first or provide a valid csv_path."
-        )
+        if not retain_tensors or not remove_tensors:
+            raise ValueError(
+                f"Failed to load embeddings. "
+                f"Found {len(retain_tensors)} retain tensors and {len(remove_tensors)} remove tensors. "
+                f"Expected embeddings in: {EMB_ROOT}. "
+                f"Please generate the embeddings first, use --use_dummy_embeddings flag for testing, "
+                f"or provide a valid csv_path."
+            )
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
