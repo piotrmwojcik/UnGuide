@@ -753,7 +753,7 @@ def main():
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
                     for nl, hl in _iter_hyperlora_layers(model):
-                        d = accelerator.unwrap_model(model).get_cached_lora(nl)
+                        d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
                         for k in d.keys():
                             print('!!! ', d[k].shape)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
