@@ -756,6 +756,7 @@ def main():
                     for nl, hl in _iter_hyperlora_layers(model):
                         nl = re.sub(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$', '', nl)
                         d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
+                        print('!!! ', len(d))
                         for el in d:
                             print(len(el))
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
