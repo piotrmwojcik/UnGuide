@@ -157,17 +157,6 @@ class HyperLora(nn.Module):
     def forward(self, x, clip, t):
         alpha, x_L, x_R = self.get_lora_matrices(clip, t)
 
-        if alpha.requires_grad:
-            alpha.retain_grad()
-        if x_L.requires_grad:
-            x_L.retain_grad()
-        if x_R.requires_grad:
-            x_R.retain_grad()
-
-        self._last_alpha = alpha
-        self._last_x_L = x_L
-        self._last_x_R = x_R
-
         return (x @ x_L) @ x_R
 
 
