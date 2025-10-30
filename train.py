@@ -755,6 +755,7 @@ def main():
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
                     pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
 
+                    layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
                     def flatten_cached():
                         return torch.cat(
                             [w.reshape(-1)
