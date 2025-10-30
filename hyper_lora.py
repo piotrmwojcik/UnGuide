@@ -122,7 +122,6 @@ class HyperLora(nn.Module):
         emb = clip
         t_feats = torch.full((B,), t, dtype=clip.dtype, device=clip.device)
         t_feats = self.time_feat(t_feats).to(clip.device)
-        print('!!!! ', emb.shape, t_feats.shape)
         emb = torch.cat([emb, t_feats], dim=-1)
 
         if self.use_scaling:
