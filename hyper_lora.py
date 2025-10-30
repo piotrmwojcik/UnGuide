@@ -131,8 +131,8 @@ class HyperLora(nn.Module):
 
         assert self.use_scaling
         if self.use_scaling:
-            x_alpha = self.forward_alpha(t)
-            x_L = x_alpha * self.forward_linear_L(emb, t)
+            alpha = self.forward_alpha(t)
+            x_L = alpha * self.forward_linear_L(emb, t)
         else:
             x_L = self.forward_linear_L(emb, t)
         x_R = self.forward_linear_R(emb, t)
@@ -140,19 +140,19 @@ class HyperLora(nn.Module):
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
 
-        return x_alpha, x_L, x_R
+        return alpha, x_L, x_R
 
     def forward(self, x, clip, t):
-        x_alpha, x_L, x_R = self.get_lora_matrices(clip, t)
+        alpha, x_L, x_R = self.get_lora_matrices(clip, t)
 
-        if x_alpha.requires_grad:
-            x_alpha.retain_grad()
+        if alpha.requires_grad:
+            alpha.retain_grad()
         if x_L.requires_grad:
             x_L.retain_grad()
         if x_R.requires_grad:
             x_R.retain_grad()
 
-        self._last_alpha = x_alpha
+        self._last_alpha = alpha
         self._last_x_L = x_L
         self._last_x_R = x_R
 
