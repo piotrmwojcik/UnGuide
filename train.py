@@ -665,7 +665,7 @@ def main():
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
 
     for layer_name, layer in hyper_lora_layers:
-        layer.set_parent_model(base)
+        layer.set_parent_model(accelerator.unwrap_model(model))
         base.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
         # Create sampler AFTER prepare so it uses the wrapped model
