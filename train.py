@@ -751,11 +751,15 @@ def main():
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
-                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, 0)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
+                    for nl, hl in _iter_hyperlora_layers(model):
+                        d = accelerator.unwrap_model(model).get_cached_lora(nl)
+                        for k in d.keys():
+                            print('!!! ', d[k].shape)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
-                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, t_)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, t_)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     #print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t1_live - tensors_flat_t_live)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
@@ -796,7 +800,6 @@ def main():
 
                     # Clear grads before the next forward
                     #optimizer.zero_grad(set_to_none=True)
-
 
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
