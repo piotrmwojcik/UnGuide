@@ -30,11 +30,11 @@ class HypernetworkManager(nn.Module):
     def get_context(self):
         return self.current_context['clip_emb'], self.current_context['timestep']
 
-    def compute_and_cache_loras(self, clip_emb, clip_target, timestep):
+    def compute_and_cache_loras(self, clip_emb, timestep):
         self.lora_weights_cache.clear()
         for name, idx in self.layer_name_to_idx.items():
             hyper = self.hyper_layers[idx]
-            x_L, x_R = hyper.get_lora_matrices(clip_emb, clip_target, timestep)
+            x_L, x_R = hyper.get_lora_matrices(clip_emb,  timestep)
             self.lora_weights_cache[name] = (x_L, x_R)
 
     def get_cached_lora(self, layer_name):
@@ -114,7 +114,7 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def get_lora_matrices(self, clip, clip_target, t):
+    def get_lora_matrices(self, clip, t):
         if isinstance(t, torch.Tensor):
             t = int(t.item())
 
@@ -135,8 +135,8 @@ class HyperLora(nn.Module):
 
         return x_L, x_R
 
-    def forward(self, x, clip, clip_target, t):
-        x_L, x_R = self.get_lora_matrices(clip, clip_target, t)
+    def forward(self, x, clip, t):
+        x_L, x_R = self.get_lora_matrices(clip, t)
 
         if x_L.requires_grad:
             x_L.retain_grad()

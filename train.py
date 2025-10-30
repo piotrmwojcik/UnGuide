@@ -754,12 +754,15 @@ def main():
                     with torch.no_grad():
                         base.hyper.set_context(retain_prompt, 0)
 
-                    z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
+                    #z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                     emb_target = base.get_learned_conditioning(f"A photo of the {args.target_object}")
-                    _ = base.apply_model(z, t_enc_ddpm, emb_target)
+                    base.hyper.compute_and_cache_loras(emb_target, 0)
+                    #_ = base.hyper.get_cached_lora
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    base.hyper.set_context(retain_prompt, int(torch.randint(1, 150, (1,), device=accelerator.device)))
-                    _ = base.apply_model(z, t_enc_ddpm, emb_target)
+                    t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
+                    base.hyper.set_context(retain_prompt, t_)
+                    #_ = base.apply_model(z, t_enc_ddpm, emb_target)
+                    base.hyper.compute_and_cache_loras(emb_target, t_)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
