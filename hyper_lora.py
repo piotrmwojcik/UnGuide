@@ -33,7 +33,7 @@ class HypernetworkManager(nn.Module):
     def compute(self, clip_emb, timestep):
         for name, idx in self.layer_name_to_idx.items():
             hyper = self.hyper_layers[idx]
-            x_L, x_R = hyper.get_lora_matrices(clip_emb, timestep)
+            _ = hyper.get_lora_matrices(clip_emb, timestep)
 
     def compute_and_cache_loras(self, clip_emb, timestep):
         self.lora_weights_cache.clear()

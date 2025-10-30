@@ -756,7 +756,7 @@ def main():
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     base.hyper.set_context(retain_prompt, 150)
-                    base.hyper.compute_and_cache_loras(retain_prompt, t_)
+                    base.hyper.compute(retain_prompt, t_)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
