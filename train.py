@@ -757,7 +757,7 @@ def main():
                         nl = re.sub(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$', '', nl)
                         d = accelerator.unwrap_model(model).hyper.get_cached_lora(nl)
                         for el in d:
-                            print(el[0].shape, el[1].shape, el[2].shape)
+                            print(len(el))
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
