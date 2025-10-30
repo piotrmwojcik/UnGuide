@@ -747,7 +747,6 @@ def main():
                         retain_prompt = random.choice(retain_tensors)
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                          tokenizer=tokenizer)
-
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
                     with torch.no_grad():
                         base.hyper.set_context(retain_prompt, 0)
@@ -756,7 +755,7 @@ def main():
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     base.hyper.set_context(retain_prompt, 150)
-                    base.hyper.compute(retain_prompt, 150)
+                    base.hyper.compute_and_cache_loras(retain_prompt, 150)
                     tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = (delta_live ** 2).mean()
