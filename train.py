@@ -765,7 +765,7 @@ def main():
                         )
                     tensors_flat_t_live = flatten_cached()
                     t_ = torch.randint(1, 150, (1,), device=accelerator.device).item()
-                    hyper.compute_and_cache_loras(retain_prompt, t_)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, t_)
 
                     tensors_flat_t1_live = flatten_cached()
 
