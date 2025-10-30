@@ -183,7 +183,7 @@ class HyperLoRALinear(nn.Module):
                 if clip_embedding is None:
                     print("WARNING: clip_embedding is None in auto mode")
                     return self.original(x)
-                return self.original(x) + self.hyper_lora(x, clip_embedding, None, timestep)
+                return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
             else:
                 lora_weights = parent.hyper.get_cached_lora(self.layer_name)
                 if lora_weights is None:
