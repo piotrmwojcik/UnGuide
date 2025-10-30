@@ -664,7 +664,6 @@ def main():
     # Prepare for DDP / Mixed precision
     model, optimizer, ds_loader = accelerator.prepare(model, optimizer, ds_loader)
 
-    base = accelerator.unwrap_model(model)
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(base)
         base.hyper.add_hyperlora(layer_name, layer.hyper_lora)
@@ -748,13 +747,13 @@ def main():
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                          tokenizer=tokenizer)
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
-                        base.hyper.set_context(retain_prompt, 0)
+                        accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
-                    base.hyper.compute_and_cache_loras(retain_prompt, 0)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 0)
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
-                    base.hyper.set_context(retain_prompt, 150)
-                    base.hyper.compute_and_cache_loras(retain_prompt, 150)
+                    accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt, 150)
                     #tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     #print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t1_live - tensors_flat_t_live)
                     #delta_live = tensors_flat_t1_live - tensors_flat_t_live
@@ -781,7 +780,7 @@ def main():
                     # Scale the loss for gradient accumulation so the effective grad equals the true average
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward, retain_graph=True)
-                    dev = next(base.parameters()).device
+                    dev = next(accelerator.unwrap_model(model).parameters()).device
 
                     recs = collect_hyperlora_tensors_and_grads(model, accelerator)
                     pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
@@ -795,13 +794,9 @@ def main():
 
                     # Clear grads before the next forward
                     #optimizer.zero_grad(set_to_none=True)
-                    for _, hl in _iter_hyperlora_layers(base):
-                        xL = getattr(hl, "_last_x_L", None)
-                        xR = getattr(hl, "_last_x_R", None)
-                        if xL is not None: xL.grad = None
-                        if xR is not None: xR.grad = None
 
-                    _, current_timestep = base.hyper.get_context()
+
+                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
