@@ -755,11 +755,11 @@ def main():
                     tensors_flat_t_live = flatten_live_tensors(model, accelerator)
                     t_ = int(torch.randint(1, 150, (1,), device=accelerator.device))
                     accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 150)
-                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, 150)
-                    #tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+                    accelerator.unwrap_model(model).hyper.compute(retain_prompt, t)
+                    tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
                     #print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t1_live - tensors_flat_t_live)
-                    #delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = (tensors_flat_t_live ** 2).mean()
+                    delta_live = tensors_flat_t1_live - tensors_flat_t_live
+                    loss = (delta_live ** 2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
