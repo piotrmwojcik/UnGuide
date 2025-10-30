@@ -107,7 +107,7 @@ def parse_args():
         default=1,
         help="Batch size (per device) for the training dataloader.",
     )
-    parser.add_argument("--csv_path", type=str, required=True, help="Path to CSV file with prompt metrics (clip_cos_replaced, clip_cos_baseline, idx, seed)")
+    parser.add_argument("--csv_path", type=str, default=None, help="csv")
 
     # Logging / tracking
     parser.add_argument("--use-wandb", action="store_true", dest="use_wandb")
@@ -588,7 +588,13 @@ def main():
     retain_tensors, _ = load_tensors(retain_paths)
     remove_tensors, _ = load_tensors(remove_paths)
 
-    #print('!!!', len(retain_tensors), len(remove_tensors))
+    if not retain_tensors or not remove_tensors:
+        raise ValueError(
+            f"Failed to load embeddings. "
+            f"Found {len(retain_tensors)} retain tensors and {len(remove_tensors)} remove tensors. "
+            f"Expected embeddings in: {EMB_ROOT}. "
+            f"Please generate the embeddings first or provide a valid csv_path."
+        )
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
