@@ -43,6 +43,7 @@ class HypernetworkManager(nn.Module):
             self.lora_weights_cache[name] = (x_alpha, x_L, x_R)
 
     def get_cached_lora(self, layer_name):
+        print('!!! ', self.lora_weights_cache.keys())
         return self.lora_weights_cache.get(layer_name, None)
 
 
