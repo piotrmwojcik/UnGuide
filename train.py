@@ -669,13 +669,13 @@ def main():
         accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
         # Create sampler AFTER prepare so it uses the wrapped model
-    sampler = DDIMSampler(base)
+    sampler = DDIMSampler(accelerator.unwrap_model(model))
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     # Tokenizer + CLIP text encoder (inference-only; keep unwrapped)
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
     # Quick sampler
-    quick_sampler = create_quick_sampler(base, sampler, args.image_size, args.ddim_steps, args.ddim_eta)
+    quick_sampler = create_quick_sampler(accelerator.unwrap_model(model), sampler, args.image_size, args.ddim_steps, args.ddim_eta)
 
     def encode(text: str):
         return (
@@ -697,12 +697,14 @@ def main():
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
+            base = accelerator.unwrap_model(model)
+
             target_text = f"a photo of the {args.target_object}"
 
             # Get conditional embeddings (strings) directly for LDM
-            emb_0 = base.get_learned_conditioning(sample["reference"])
-            emb_p = base.get_learned_conditioning(sample["target"])
-            emb_n = base.get_learned_conditioning(sample["target"])
+            emb_0 = accelerator.unwrap_model(model).get_learned_conditioning(sample["reference"])
+            emb_p = accelerator.unwrap_model(model).get_learned_conditioning(sample["target"])
+            emb_n = accelerator.unwrap_model(model).get_learned_conditioning(sample["target"])
 
             optimizer.zero_grad(set_to_none=True)
 
