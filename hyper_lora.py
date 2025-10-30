@@ -120,14 +120,33 @@ class HyperLora(nn.Module):
     def forward_alpha(self, t):
         return self.alpha_b + t / 150 * self.alpha
 
-    def get_lora_matrices(self, clip, t):
+    def make_t_feats(t, B, ref):
+        # Normalize t into a 1D float tensor on the same device/dtype as clip
         if isinstance(t, torch.Tensor):
-            t = int(t.item())
+            if t.ndim == 0:
+                t = t.item()
+            else:
+                t = t.flatten()
+        if isinstance(t, (list, tuple)):
+            t = torch.tensor(t)
 
+        if isinstance(t, (int, float)):
+            return torch.full((B,), t, dtype=ref.dtype, device=ref.device)
+
+        if not isinstance(t, torch.Tensor):
+            raise TypeError("t must be int/float, list/tuple, or torch.Tensor")
+
+        if t.numel() == 1:
+            return torch.full((B,), t.item(), dtype=ref.dtype, device=ref.device)
+        if t.numel() == B:
+            return t.to(dtype=ref.dtype, device=ref.device)
+        raise ValueError(f"t must have length 1 or {B}, got {t.numel()}")
+
+    def get_lora_matrices(self, clip, t):
         B = clip.shape[0]
+        t_feats = make_t_feats(t, B, clip)
+
         emb = clip
-        t_feats = torch.full((B,), t, dtype=clip.dtype, device=clip.device)
-        t_feats = self.time_feat(t_feats).to(clip.device)
         emb = torch.cat([emb, t_feats], dim=-1)
 
         assert self.use_scaling
