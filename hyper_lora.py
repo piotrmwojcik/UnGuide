@@ -147,6 +147,7 @@ class HyperLora(nn.Module):
         t_feats = self.make_t_feats(t, B, clip)
 
         emb = clip
+        print('!!! ', emb.shape, t_feats.shape)
         emb = torch.cat([emb, t_feats], dim=-1)
 
         assert self.use_scaling
