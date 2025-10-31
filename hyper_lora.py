@@ -140,6 +140,7 @@ class HyperLora(nn.Module):
 
     def get_lora_matrices(self, clip, t):
         B = clip.shape[0]
+        print('!!!! ', t.shape)
         t_feats = self.make_t_feats(t, B, clip)
 
         emb = clip
