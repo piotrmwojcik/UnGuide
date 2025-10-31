@@ -856,7 +856,7 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
-                base.hyper.set_context(cond_target, 150)
+                base.hyper.set_context(cond_target, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -870,7 +870,7 @@ def main():
                     caption = f"target: {args.target_object}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.hyper.set_context(cond_other, 150)
+                base.hyper.set_context(cond_other, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -884,7 +884,7 @@ def main():
                     caption = f"target: bird"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.hyper.set_context(cond_other2, 150)
+                base.hyper.set_context(cond_other2, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -898,7 +898,7 @@ def main():
                     caption = f"target: dog"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
-                base.hyper.set_context(cond_other3, 150)
+                base.hyper.set_context(cond_other3, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
