@@ -112,6 +112,7 @@ class HyperLora(nn.Module):
             self.alpha = nn.Parameter(torch.tensor(alpha_init))
 
     def forward_linear_L(self, emb, t):
+        print('!!!! ', self.xL_const_flat.shape, self.left_head(emb).shape)
         return self.xL_const_flat + t / 150 * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
@@ -123,8 +124,6 @@ class HyperLora(nn.Module):
     def get_lora_matrices(self, clip, t):
         #B = clip.shape[0]
         t_feats = self.time_feat(t)
-
-        print('!!!! ', t_feats.shape, clip.shape)
 
         emb = clip
         emb = torch.cat([emb, t_feats], dim=-1)
