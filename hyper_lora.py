@@ -124,6 +124,8 @@ class HyperLora(nn.Module):
         #B = clip.shape[0]
         t_feats = self.time_feat(t)
 
+        print('!!!! ', t_feats.shape, clip.shape)
+
         emb = clip
         emb = torch.cat([emb, t_feats], dim=-1)
 
