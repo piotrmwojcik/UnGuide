@@ -737,7 +737,6 @@ def main():
                 remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                                                                 tokenizer=tokenizer)
                 remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
-            base.hyper.set_context(remove_prompt, int(torch.randint(0, 149, (1,), device=accelerator.device)))
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -778,6 +777,7 @@ def main():
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
                 else:
+                    base.hyper.set_context(remove_prompt, int(torch.randint(0, 149, (1,), device=accelerator.device)))
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
