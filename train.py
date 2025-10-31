@@ -751,7 +751,7 @@ def main():
                         retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt,
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1),
                                                                                   torch.full((150,), 0).to(accelerator.device))
                     pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
 
