@@ -753,7 +753,7 @@ def main():
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1),
                                                                                   torch.full((150,), 0).to(accelerator.device))
-                    pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
+                    pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
 
@@ -765,7 +765,7 @@ def main():
                         return torch.cat(
                             [w.reshape(-1)
                              for name, _ in layers
-                             for w in base.hyper.get_cached_lora(pat.sub('', name))],
+                             for w in base.hyper.get_cached_lora(pat.sub(r'\1', name))],
                             dim=0
                         )
 
