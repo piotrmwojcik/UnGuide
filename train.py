@@ -777,7 +777,8 @@ def main():
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
                 else:
-                    base.hyper.set_context(remove_prompt, int(torch.randint(0, 149, (1,), device=accelerator.device)))
+                    rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
+                    base.hyper.set_context(remove_prompt, torch.tensor([rtimestep]))
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)

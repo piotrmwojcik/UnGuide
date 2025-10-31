@@ -121,7 +121,7 @@ class HyperLora(nn.Module):
         return self.alpha_b + t / 150 * self.alpha
 
     def get_lora_matrices(self, clip, t):
-        B = clip.shape[0]
+        #B = clip.shape[0]
         t_feats = self.time_feat(t)
 
         emb = clip
