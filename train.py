@@ -752,7 +752,7 @@ def main():
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt,
-                                                                                  torch.full((150,).to(accelerator.device), 0))
+                                                                                  torch.full((150,), 0).to(accelerator.device))
                     pat = re.compile(r'^module\.model\.diffusion_model\.|\.hyper_lora.*$')
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
