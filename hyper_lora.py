@@ -113,13 +113,13 @@ class HyperLora(nn.Module):
 
     def forward_linear_L(self, emb, t):
         print('!!!! ', self.xL_const_flat.shape, t.shape, self.left_head(emb).shape)
-        return self.xL_const_flat + t / 150 * self.left_head(emb)
+        return self.xL_const_flat + t[:, None] / 150 * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
-        return self.xR_const_flat + t / 150 * self.right_head(emb)
+        return self.xR_const_flat + t[:, None] / 150 * self.right_head(emb)
 
     def forward_alpha(self, t):
-        return self.alpha_b + t / 150 * self.alpha
+        return self.alpha_b + t[:, None] / 150 * self.alpha
 
     def get_lora_matrices(self, clip, t):
         #B = clip.shape[0]
