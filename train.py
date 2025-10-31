@@ -757,9 +757,6 @@ def main():
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
 
-                    for name, _ in layers:
-                        print('!!!')
-                        print(name, pat.sub('', name))
 
                     def flatten_cached():
                         return torch.cat(
