@@ -587,6 +587,8 @@ def main():
     retain_paths = rows_to_paths(retain_prompts)
     remove_paths = rows_to_paths(remove_prompts)
 
+    print(f"Using {len(retain_paths)} retain and {len(remove_paths)} remove augmentations.")
+
     if args.use_dummy_embeddings:
         print("WARNING: Using dummy zero tensors for embeddings (testing mode)")
         dummy_embedding = torch.zeros(77, 768)
@@ -756,7 +758,6 @@ def main():
                     pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
-
 
                     def flatten_cached():
                         return torch.cat(
