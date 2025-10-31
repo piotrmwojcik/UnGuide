@@ -767,7 +767,7 @@ def main():
                         )
 
                     tensors_flat_t_live = flatten_cached()
-                    t_ = torch.arange(1, 151).to(model.device)
+                    t_ = (torch.arange(150, device=model.device) % 150) + 1
                     print('!!!! ', t_.shape)
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1), t_)
 
