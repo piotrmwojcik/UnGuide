@@ -830,15 +830,9 @@ def main():
                     # make sure cache for current context/timestep is populated (and grads retained)
                     hyper = accelerator.unwrap_model(model).hyper
                     # current context timestep (should be rtimestep, but read back to be safe)
-                    _, current_timestep = hyper.get_context()
-                    if isinstance(remove_prompt, torch.Tensor) and remove_prompt.dim() == 1:
-                        ctx_batch = remove_prompt.unsqueeze(0)
-                    else:
-                        ctx_batch = remove_prompt  # assume already batched (1, D)
-                    #hyper.compute_and_cache_loras(ctx_batch, ts_batch)
                     _retain_grad_for_cached_lora(model, accelerator)
 
-                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
+                    _, current_timestep = hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
