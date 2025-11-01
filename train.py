@@ -516,6 +516,119 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
+def collect_cached_lora_grads(
+    model_wrapped,
+    accelerator,
+    *,
+    verbose: bool = True,
+    all_ranks: bool = False,
+):
+    """
+    Collect alpha plus cached LoRA weights and their grads (from the cache).
+    Prints per-layer grad norms and warns if any tensor is missing or lacks .grad.
+    Returns a dict:
+        out[layer_name] = {
+            "alpha": Tensor|None,
+            "alpha_grad": Tensor|None,
+            "cached": List[Tensor]|None,        # detached copies
+            "cached_grad": List[Tensor|None]|None,  # detached copies or None per item
+        }
+    """
+    import os, re, torch
+    from typing import Dict, Any
+
+    base = accelerator.unwrap_model(model_wrapped)
+    hyper = base.hyper
+    out: Dict[str, Dict[str, Any]] = {}
+
+    # printing control
+    rank = int(os.environ.get("RANK", "0"))
+    do_print = (accelerator.is_main_process or all_ranks)
+
+    def _say(msg: str):
+        if verbose and do_print:
+            print(f"[RANK {rank}] {msg}", flush=True)
+
+    # map param/module names -> cache keys like in your example
+    pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
+
+    # use the same enumeration you already rely on
+    layers = list(_iter_hyperlora_layers(base))
+
+    for lname, hl in layers:
+        rec: Dict[str, Any] = {}
+
+        # ---- alpha values + grads (unchanged) ----
+        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
+            rec["alpha"] = hl.alpha.detach().clone()
+            a_g = hl.alpha.grad
+            if a_g is None:
+                _say(f"HyperLoRA:{lname} — NO GRAD for alpha (alpha.grad is None)")
+                rec["alpha_grad"] = None
+            else:
+                rec["alpha_grad"] = a_g.detach().clone()
+        else:
+            rec["alpha"] = None
+            rec["alpha_grad"] = None
+            _say(f"HyperLoRA:{lname} — alpha not used (use_scaling=False or missing)")
+
+        # ---- cached lora weights + grads (new) ----
+        cache_key = pat.sub(r'\1', lname)
+        try:
+            cached_list = hyper.get_cached_lora(cache_key)
+        except Exception as e:
+            _say(f"HyperLoRA:{lname} — failed to read cache for key '{cache_key}': {e}")
+            rec["cached"] = None
+            rec["cached_grad"] = None
+            out[lname] = rec
+            continue
+
+        if not cached_list:
+            _say(f"HyperLoRA:{lname} — cache empty for key '{cache_key}'")
+            rec["cached"] = None
+            rec["cached_grad"] = None
+            out[lname] = rec
+            continue
+
+        # detach copies for logging/saving; collect grads (may be None)
+        cached_detached = []
+        cached_grad_detached = []
+        any_none_grad = False
+        for idx, w in enumerate(cached_list):
+            cached_detached.append(w.detach().clone())
+            g = getattr(w, "grad", None)
+            if g is None:
+                any_none_grad = True
+                cached_grad_detached.append(None)
+            else:
+                cached_grad_detached.append(g.detach().clone())
+
+        rec["cached"] = cached_detached
+        rec["cached_grad"] = cached_grad_detached
+
+        # ---- print summary norms ----
+        def _norm(t):
+            return "None" if t is None else f"{t.detach().norm().item():.3e}"
+
+        # concatenated grad norm across all cached tensors (ignoring None)
+        grads_present = [g for g in cached_grad_detached if g is not None]
+        if grads_present:
+            flat = torch.cat([g.reshape(-1) for g in grads_present], dim=0)
+            cached_grad_norm = f"{flat.norm().item():.3e}"
+        else:
+            cached_grad_norm = "None"
+
+        if any_none_grad:
+            _say(f"HyperLoRA:{lname} — some cached LoRA tensors have NO GRAD")
+
+        _say(
+            f"HyperLoRA:{lname} | dα={_norm(rec['alpha_grad'])} | ||d cached LoRA||={cached_grad_norm}"
+        )
+
+        out[lname] = rec
+
+    return out
+
 def main():
     args = parse_args()
 
@@ -718,21 +831,16 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-
-            #inputs = encode(sample["target"])
-            #print('!!! ', sample["target"])
             inputs_other = encode("a photo of the bird")
             inputs_other2 = encode("a photo of the dog")
             inputs_other3 = encode("a photo of the feline")
             inputs_target = encode(target_text)
             with torch.no_grad():
-                #cond_target = clip_text_encoder(inputs).pooler_output.detach()
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
-                #cond_ref    = clip_text_encoder(inputs[1]).pooler_output.detach()
 
             with torch.no_grad():
                 remove_prompt = random.choice(remove_tensors).detach()
@@ -759,26 +867,22 @@ def main():
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
 
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts.repeat(10, 1),
-                                                                                  torch.full((150,), 0).to(accelerator.device))
-                    pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
+                    hyper = accelerator.unwrap_model(model).hyper
+                    batch_prompts = retain_prompts.repeat(10, 1)  # (10*K, D)
+                    B = batch_prompts.shape[0]
 
-                    layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
+                    hyper.compute_and_cache_loras(
+                        batch_prompts,
+                        torch.zeros(B, device=accelerator.device)
+                    )
 
-                    def flatten_cached():
-                        return torch.cat(
-                            [w.reshape(-1)
-                             for name, _ in layers
-                             for w in base.hyper.get_cached_lora(pat.sub(r'\1', name))],
-                            dim=0
-                        )
+                    tensors_flat_t_live = flatten_cached_from_cache(model, accelerator)
 
-                    tensors_flat_t_live = flatten_cached()
-                    t_ = (torch.arange(150, device=model.device) % 150) + 1
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts.repeat(10, 1), t_)
+                    # now fill cache at nonzero timesteps and read again
+                    t_ = (torch.arange(B, device=accelerator.device) % B) + 1  # length B
+                    hyper.compute_and_cache_loras(batch_prompts, t_)
 
-                    tensors_flat_t1_live = flatten_cached()
-
+                    tensors_flat_t1_live = flatten_cached_from_cache(model, accelerator)
                     delta_live = 10 * tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
 

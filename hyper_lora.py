@@ -142,10 +142,6 @@ class HyperLora(nn.Module):
         if x_R.requires_grad:
             x_R.retain_grad()
 
-        self._last_alpha = alpha
-        self._last_x_L = x_L
-        self._last_x_R = x_R
-
         x_L = x_L.view(-1, self.in_dim, self.rank)
         x_R = x_R.view(-1, self.rank, self.out_dim)
 
