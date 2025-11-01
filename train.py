@@ -516,25 +516,6 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
-_PAT = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
-
-
-
-
-
-def _flatten_cached_grads_from_cache(model_wrapped, accelerator):
-    base = accelerator.unwrap_model(model_wrapped)
-    hyper = base.hyper
-    layers = list(_iter_hyperlora_layers(base))
-    grads = []
-    for name, _ in layers:
-        key = _PAT.sub(r'\1', name)
-        for w in hyper.get_cached_lora(key):
-            g = getattr(w, "grad", None)
-            if g is not None:
-                grads.append(g.reshape(-1))
-    return None if not grads else torch.cat(grads, dim=0)
-
 
 def _retain_grad_for_cached_lora(model_wrapped, accelerator):
     base = accelerator.unwrap_model(model_wrapped)
@@ -838,13 +819,13 @@ def main():
                     accelerator.backward(loss_for_backward, retain_graph=True)
 
                     # --- use cached LoRA grads instead of live-tensor grads ---
-                    grads_flat_t = _flatten_cached_grads_from_cache(model, accelerator)
+                    grads_flat_t = hyper.flatten_cached_grads_from_cache()
                     if grads_flat_t is None:
                         raise RuntimeError(
                             "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
-                    tensors_flat_t_live = _flatten_cached_from_cache(model, accelerator)
+                    tensors_flat_t_live = hyper.flatten_cached_from_cache()
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
