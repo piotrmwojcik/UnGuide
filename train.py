@@ -810,7 +810,13 @@ def main():
                             "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
+
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
+
+                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
+                    base.hyper.set_context(remove_prompt, current_timestep + 1)
+                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
+                    tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
