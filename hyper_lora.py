@@ -63,7 +63,8 @@ class HypernetworkManager(nn.Module):
         return None if not grads else torch.cat(grads, dim=0)
 
     def retain_grad_for_cached_lora(self):
-        for name, _ in self.layer_name_to_idx.items():
+        for name, idx in self.layer_name_to_idx.items():
+            hyper = self.hyper_layers[idx]
             for w in hyper.get_cached_lora(name):
                 if hasattr(w, "retain_grad"):
                     w.retain_grad()
