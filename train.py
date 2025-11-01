@@ -517,18 +517,6 @@ from typing import Optional, Literal
 
 
 
-def _retain_grad_for_cached_lora(model_wrapped, accelerator):
-    base = accelerator.unwrap_model(model_wrapped)
-    hyper = base.hyper
-    layers = list(_iter_hyperlora_layers(base))
-    for name, _ in layers:
-        key = _PAT.sub(r'\1', name)
-        print('!!! ', key)
-        for w in hyper.get_cached_lora(key):
-            if hasattr(w, "retain_grad"):
-                w.retain_grad()
-
-
 def main():
     args = parse_args()
 
