@@ -747,7 +747,7 @@ def main():
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
-                        K = 20
+                        K = 15
                         sampled_list = random.sample(retain_tensors, K)
 
                         processed = []
@@ -759,7 +759,7 @@ def main():
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
 
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts,
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts.repeat(10, 1),
                                                                                   torch.full((150,), 0).to(accelerator.device))
                     pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
@@ -775,7 +775,7 @@ def main():
 
                     tensors_flat_t_live = flatten_cached()
                     t_ = (torch.arange(150, device=model.device) % 150) + 1
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts, t_)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts.repeat(10, 1), t_)
 
                     tensors_flat_t1_live = flatten_cached()
 
