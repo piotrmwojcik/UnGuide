@@ -750,11 +750,11 @@ def main():
                         retain_prompt = random.choice(retain_tensors)
                         retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
                                                                          tokenizer=tokenizer)
-                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device).detach()
+                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
                         #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
 
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1),
-                                                                                  torch.full((150,), 0).to(accelerator.device).detach())
+                                                                                  torch.full((150,), 0).to(accelerator.device))
                     pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
                     layers = list(_iter_hyperlora_layers(model))  # reuse the same layer names
@@ -769,10 +769,9 @@ def main():
 
                     tensors_flat_t_live = flatten_cached()
                     t_ = (torch.arange(150, device=model.device) % 150) + 1
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1), t_.detach())
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1), t_)
 
                     tensors_flat_t1_live = flatten_cached()
-                    print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t_live.shape)
 
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
