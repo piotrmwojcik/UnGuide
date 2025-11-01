@@ -55,8 +55,7 @@ class HypernetworkManager(nn.Module):
     def flatten_cached_grads_from_cache(self):
         grads = []
         for name, idx in self.layer_name_to_idx.items():
-            hyper = self.hyper_layers[idx]
-            for w in hyper.get_cached_lora(name):
+            for w in self.get_cached_lora(name):
                 g = getattr(w, "grad", None)
                 if g is not None:
                     grads.append(g.reshape(-1))
@@ -64,11 +63,9 @@ class HypernetworkManager(nn.Module):
 
     def retain_grad_for_cached_lora(self):
         for name, idx in self.layer_name_to_idx.items():
-            hyper = self.hyper_layers[idx]
-            for w in hyper.get_cached_lora(name):
+            for w in self.get_cached_lora(name):
                 if hasattr(w, "retain_grad"):
                     w.retain_grad()
-
 
 
 class TimeFourier(nn.Module):
