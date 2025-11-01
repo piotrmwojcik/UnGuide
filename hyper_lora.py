@@ -16,7 +16,7 @@ class HypernetworkManager(nn.Module):
         self.layer_name_to_idx = {}
         self.lora_weights_cache = {}
         self.current_context = {'clip_emb': None, 'timestep': None}
-        self.auto_mode = False
+        self.auto_mode = True
 
     def add_hyperlora(self, name: str, hyper_lora):
         idx = len(self.hyper_layers)
@@ -44,6 +44,14 @@ class HypernetworkManager(nn.Module):
 
     def get_cached_lora(self, layer_name):
         return self.lora_weights_cache.get(layer_name, None)
+
+    def flatten_cached_from_cache(self):
+        hyper = base.hyper
+        vecs = []
+        for name, idx in self.layer_name_to_idx.items():
+            for w in hyper.get_cached_lora(name):
+                vecs.append(w.reshape(-1))
+        return None if not vecs else torch.cat(vecs, dim=0)
 
 
 

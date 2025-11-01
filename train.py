@@ -519,16 +519,7 @@ from typing import Optional, Literal
 _PAT = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
 
-def _flatten_cached_from_cache(model_wrapped, accelerator):
-    base = accelerator.unwrap_model(model_wrapped)
-    hyper = base.hyper
-    layers = list(_iter_hyperlora_layers(base))
-    vecs = []
-    for name, _ in layers:
-        key = _PAT.sub(r'\1', name)
-        for w in hyper.get_cached_lora(key):
-            vecs.append(w.reshape(-1))
-    return None if not vecs else torch.cat(vecs, dim=0)
+
 
 
 def _flatten_cached_grads_from_cache(model_wrapped, accelerator):
@@ -804,13 +795,13 @@ def main():
                         torch.zeros(B, device=accelerator.device)
                     )
 
-                    tensors_flat_t_live = _flatten_cached_from_cache(model, accelerator)
+                    tensors_flat_t_live = hyper.flatten_cached_from_cache()
 
                     # now fill cache at nonzero timesteps and read again
                     t_ = (torch.arange(B, device=accelerator.device) % B) + 1  # length B
                     hyper.compute_and_cache_loras(batch_prompts, t_)
 
-                    tensors_flat_t1_live = _flatten_cached_from_cache(model, accelerator)
+                    tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = 10 * tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
 
