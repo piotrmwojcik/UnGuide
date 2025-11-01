@@ -793,15 +793,6 @@ def main():
                     base.hyper.retain_grad_for_cached_lora()
                     e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
-                    # make sure cache for current context/timestep is populated (and grads retained)
-
-                    base.hyper.set_context(remove_prompt, current_timestep + 1)
-                    _, current_timestep = base.hyper.get_context()
-                    base.hyper.compute_and_cache_loras(
-                       remove_prompt, current_timestep
-                    )
-                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
-
                     # targets and loss
                     e_0.requires_grad_(False)
                     e_p.requires_grad_(False)
