@@ -790,7 +790,7 @@ def main():
 
                     # make sure cache for current context/timestep is populated (and grads retained)
                     hyper = accelerator.unwrap_model(model).hyper
-                    _retain_grad_for_cached_lora(model, accelerator)
+                    hyper.retain_grad_for_cached_lora()
 
                     _, current_timestep = hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
