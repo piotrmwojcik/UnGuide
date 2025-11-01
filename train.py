@@ -790,6 +790,7 @@ def main():
                     base.hyper.compute_and_cache_loras(
                         remove_prompt, current_timestep
                     )
+                    base.hyper.retain_grad_for_cached_lora()
                     e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # make sure cache for current context/timestep is populated (and grads retained)
@@ -799,7 +800,6 @@ def main():
                     base.hyper.compute_and_cache_loras(
                        remove_prompt, current_timestep
                     )
-                    base.hyper.retain_grad_for_cached_lora()
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # targets and loss
