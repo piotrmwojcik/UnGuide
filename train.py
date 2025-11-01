@@ -747,13 +747,19 @@ def main():
             with accelerator.accumulate(model):
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
-                        retain_prompt = random.choice(retain_tensors)
-                        retain_prompt, _ = pooled_from_hidden_and_prompt(retain_prompt, target_text,
-                                                                         tokenizer=tokenizer)
-                        retain_prompt = retain_prompt.unsqueeze(dim=0).to(base.device)
-                        #accelerator.unwrap_model(model).hyper.set_context(retain_prompt, 0)
+                        K = 20
+                        sampled_list = random.sample(retain_tensors, K)
 
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1),
+                        processed = []
+                        with torch.no_grad():
+                            for rp in sampled_list:
+                                rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
+                                processed.append(rp_proc.detach())
+
+                        # (K, D) tensor on the correct device
+                        retain_prompts = torch.stack(processed, dim=0).to(base.device)
+
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts,
                                                                                   torch.full((150,), 0).to(accelerator.device))
                     pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
@@ -769,7 +775,7 @@ def main():
 
                     tensors_flat_t_live = flatten_cached()
                     t_ = (torch.arange(150, device=model.device) % 150) + 1
-                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1), t_)
+                    accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompts, t_)
 
                     tensors_flat_t1_live = flatten_cached()
 
