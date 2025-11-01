@@ -786,7 +786,7 @@ def main():
                         e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
                     # prediction for trainable model (needs grads)
-                    hyper.compute_and_cache_loras(
+                    base.hyper.compute_and_cache_loras(
                         hyper.get_context()
                     )
                     e_n = base.apply_model(z, t_enc_ddpm, emb_n)
@@ -797,7 +797,7 @@ def main():
 
                     _, current_timestep = hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
-                    hyper.compute_and_cache_loras(
+                    base.hyper.compute_and_cache_loras(
                         hyper.get_context()
                     )
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
