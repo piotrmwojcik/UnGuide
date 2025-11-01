@@ -551,6 +551,7 @@ def _retain_grad_for_cached_lora(model_wrapped, accelerator):
     layers = list(_iter_hyperlora_layers(base))
     for name, _ in layers:
         key = _PAT.sub(r'\1', name)
+        print('!!! ', key)
         for w in hyper.get_cached_lora(key):
             if hasattr(w, "retain_grad"):
                 w.retain_grad()
@@ -829,7 +830,6 @@ def main():
 
                     # make sure cache for current context/timestep is populated (and grads retained)
                     hyper = accelerator.unwrap_model(model).hyper
-                    # current context timestep (should be rtimestep, but read back to be safe)
                     _retain_grad_for_cached_lora(model, accelerator)
 
                     _, current_timestep = hyper.get_context()
