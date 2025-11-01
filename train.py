@@ -516,118 +516,45 @@ import torch.nn.functional as F
 from typing import Optional, Literal
 
 
-def collect_cached_lora_grads(
-    model_wrapped,
-    accelerator,
-    *,
-    verbose: bool = True,
-    all_ranks: bool = False,
-):
-    """
-    Collect alpha plus cached LoRA weights and their grads (from the cache).
-    Prints per-layer grad norms and warns if any tensor is missing or lacks .grad.
-    Returns a dict:
-        out[layer_name] = {
-            "alpha": Tensor|None,
-            "alpha_grad": Tensor|None,
-            "cached": List[Tensor]|None,        # detached copies
-            "cached_grad": List[Tensor|None]|None,  # detached copies or None per item
-        }
-    """
-    import os, re, torch
-    from typing import Dict, Any
+_PAT = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
 
+
+def _flatten_cached_from_cache(model_wrapped, accelerator):
     base = accelerator.unwrap_model(model_wrapped)
     hyper = base.hyper
-    out: Dict[str, Dict[str, Any]] = {}
-
-    # printing control
-    rank = int(os.environ.get("RANK", "0"))
-    do_print = (accelerator.is_main_process or all_ranks)
-
-    def _say(msg: str):
-        if verbose and do_print:
-            print(f"[RANK {rank}] {msg}", flush=True)
-
-    # map param/module names -> cache keys like in your example
-    pat = re.compile(r'^(?:module\.)?model\.diffusion_model\.(.*?)(?:\.hyper_lora.*)?$')
-
-    # use the same enumeration you already rely on
     layers = list(_iter_hyperlora_layers(base))
+    vecs = []
+    for name, _ in layers:
+        key = _PAT.sub(r'\1', name)
+        for w in hyper.get_cached_lora(key):
+            vecs.append(w.reshape(-1))
+    return None if not vecs else torch.cat(vecs, dim=0)
 
-    for lname, hl in layers:
-        rec: Dict[str, Any] = {}
 
-        # ---- alpha values + grads (unchanged) ----
-        if getattr(hl, "use_scaling", False) and hasattr(hl, "alpha"):
-            rec["alpha"] = hl.alpha.detach().clone()
-            a_g = hl.alpha.grad
-            if a_g is None:
-                _say(f"HyperLoRA:{lname} — NO GRAD for alpha (alpha.grad is None)")
-                rec["alpha_grad"] = None
-            else:
-                rec["alpha_grad"] = a_g.detach().clone()
-        else:
-            rec["alpha"] = None
-            rec["alpha_grad"] = None
-            _say(f"HyperLoRA:{lname} — alpha not used (use_scaling=False or missing)")
-
-        # ---- cached lora weights + grads (new) ----
-        cache_key = pat.sub(r'\1', lname)
-        try:
-            cached_list = hyper.get_cached_lora(cache_key)
-        except Exception as e:
-            _say(f"HyperLoRA:{lname} — failed to read cache for key '{cache_key}': {e}")
-            rec["cached"] = None
-            rec["cached_grad"] = None
-            out[lname] = rec
-            continue
-
-        if not cached_list:
-            _say(f"HyperLoRA:{lname} — cache empty for key '{cache_key}'")
-            rec["cached"] = None
-            rec["cached_grad"] = None
-            out[lname] = rec
-            continue
-
-        # detach copies for logging/saving; collect grads (may be None)
-        cached_detached = []
-        cached_grad_detached = []
-        any_none_grad = False
-        for idx, w in enumerate(cached_list):
-            cached_detached.append(w.detach().clone())
+def _flatten_cached_grads_from_cache(model_wrapped, accelerator):
+    base = accelerator.unwrap_model(model_wrapped)
+    hyper = base.hyper
+    layers = list(_iter_hyperlora_layers(base))
+    grads = []
+    for name, _ in layers:
+        key = _PAT.sub(r'\1', name)
+        for w in hyper.get_cached_lora(key):
             g = getattr(w, "grad", None)
-            if g is None:
-                any_none_grad = True
-                cached_grad_detached.append(None)
-            else:
-                cached_grad_detached.append(g.detach().clone())
+            if g is not None:
+                grads.append(g.reshape(-1))
+    return None if not grads else torch.cat(grads, dim=0)
 
-        rec["cached"] = cached_detached
-        rec["cached_grad"] = cached_grad_detached
 
-        # ---- print summary norms ----
-        def _norm(t):
-            return "None" if t is None else f"{t.detach().norm().item():.3e}"
+def _retain_grad_for_cached_lora(model_wrapped, accelerator):
+    base = accelerator.unwrap_model(model_wrapped)
+    hyper = base.hyper
+    layers = list(_iter_hyperlora_layers(base))
+    for name, _ in layers:
+        key = _PAT.sub(r'\1', name)
+        for w in hyper.get_cached_lora(key):
+            if hasattr(w, "retain_grad"):
+                w.retain_grad()
 
-        # concatenated grad norm across all cached tensors (ignoring None)
-        grads_present = [g for g in cached_grad_detached if g is not None]
-        if grads_present:
-            flat = torch.cat([g.reshape(-1) for g in grads_present], dim=0)
-            cached_grad_norm = f"{flat.norm().item():.3e}"
-        else:
-            cached_grad_norm = "None"
-
-        if any_none_grad:
-            _say(f"HyperLoRA:{lname} — some cached LoRA tensors have NO GRAD")
-
-        _say(
-            f"HyperLoRA:{lname} | dα={_norm(rec['alpha_grad'])} | ||d cached LoRA||={cached_grad_norm}"
-        )
-
-        out[lname] = rec
-
-    return out
 
 def main():
     args = parse_args()
@@ -890,7 +817,8 @@ def main():
                     print('loss neutral ', loss_for_backward)
                 else:
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
-                    base.hyper.set_context(remove_prompt, torch.tensor([rtimestep]).to(accelerator.device))
+                    base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
+
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
@@ -899,6 +827,18 @@ def main():
                     # prediction for trainable model (needs grads)
                     e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
+                    # make sure cache for current context/timestep is populated (and grads retained)
+                    hyper = accelerator.unwrap_model(model).hyper
+                    # current context timestep (should be rtimestep, but read back to be safe)
+                    _, current_timestep = hyper.get_context()
+                    if isinstance(remove_prompt, torch.Tensor) and remove_prompt.dim() == 1:
+                        ctx_batch = remove_prompt.unsqueeze(0)
+                    else:
+                        ctx_batch = remove_prompt  # assume already batched (1, D)
+                    ts_batch = torch.as_tensor([int(current_timestep)], device=accelerator.device)
+                    hyper.compute_and_cache_loras(ctx_batch, ts_batch)
+                    _retain_grad_for_cached_lora(model, accelerator)
+
                     # targets and loss
                     e_0.requires_grad_(False)
                     e_p.requires_grad_(False)
@@ -906,30 +846,26 @@ def main():
                     loss = criterion(e_n, target)  # per-rank scalar tensor
 
                     # ---- BACKWARD (per micro-step) ----
-                    # Scale the loss for gradient accumulation so the effective grad equals the true average
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward, retain_graph=True)
+
                     dev = next(accelerator.unwrap_model(model).parameters()).device
 
-                    recs = collect_hyperlora_tensors_and_grads(model, accelerator)
-                    pack = concat_grads_and_tensors(recs, device=dev)  # has 'grads_flat', 'tensors_flat', etc.
-
+                    # --- use cached LoRA grads instead of live-tensor grads ---
+                    grads_flat_t = _flatten_cached_grads_from_cache(model, accelerator)
+                    if grads_flat_t is None:
+                        raise RuntimeError(
+                            "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                    grads_flat_t = -1 * args.internal_lr * pack["grads_flat"].detach()
+                    grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
 
-                    # --- LIVE anchor at t (no detach!) ---
-                    tensors_flat_t_live = flatten_live_tensors(model, accelerator)
-                    #print('!! ', pack["grads_flat"].shape, pack["tensors_flat"].shape, tensors_flat_t_live.shape)
+                    # --- LIVE anchor at t from cache (keeps graph because we just computed/cached it) ---
+                    tensors_flat_t_live = _flatten_cached_from_cache(model, accelerator)
 
-                    # Clear grads before the next forward
-                    #optimizer.zero_grad(set_to_none=True)
-
-                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-                    base.hyper.set_context(remove_prompt, current_timestep + 1)
-                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
-
-                    # LIVE vector at t+1 (keeps graph)
-                    tensors_flat_t1_live = flatten_live_tensors(model, accelerator)
+                    # advance the timestep by +1, refresh cache, and read live vector again
+                    next_ts = torch.as_tensor([int(current_timestep) + 1], device=accelerator.device)
+                    hyper.compute_and_cache_loras(ctx_batch, next_ts)
+                    tensors_flat_t1_live = _flatten_cached_from_cache(model, accelerator)
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
