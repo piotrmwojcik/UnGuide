@@ -780,6 +780,10 @@ def main():
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
+                    rem, current_timestep = base.hyper.get_context()
+                    base.hyper.compute_and_cache_loras(
+                        remove_prompt, current_timestep
+                    )
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
