@@ -741,8 +741,8 @@ def main():
                 device=accelerator.device
             )
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                #if False:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 15
                         sampled_list = random.sample(retain_tensors, K)
