@@ -772,6 +772,7 @@ def main():
                     accelerator.unwrap_model(model).hyper.compute_and_cache_loras(retain_prompt.repeat(150, 1), t_.detach())
 
                     tensors_flat_t1_live = flatten_cached()
+                    print('!!! ', tensors_flat_t1_live.shape, tensors_flat_t_live.shape)
 
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
