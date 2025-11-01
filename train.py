@@ -803,13 +803,13 @@ def main():
                         torch.zeros(B, device=accelerator.device)
                     )
 
-                    tensors_flat_t_live = flatten_cached_from_cache(model, accelerator)
+                    tensors_flat_t_live = _flatten_cached_from_cache(model, accelerator)
 
                     # now fill cache at nonzero timesteps and read again
                     t_ = (torch.arange(B, device=accelerator.device) % B) + 1  # length B
                     hyper.compute_and_cache_loras(batch_prompts, t_)
 
-                    tensors_flat_t1_live = flatten_cached_from_cache(model, accelerator)
+                    tensors_flat_t1_live = _flatten_cached_from_cache(model, accelerator)
                     delta_live = 10 * tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
 
