@@ -212,7 +212,7 @@ class HyperLoRALinear(nn.Module):
                 lora_weights = parent.hyper.get_cached_lora(self.layer_name)
                 if lora_weights is None:
                     return self.original(x)
-                x_L, x_R = lora_weights
+                alpha, x_L, x_R = lora_weights
 
                 batch_size = x.shape[0]
                 if x_L.shape[0] == 1 and batch_size > 1:
