@@ -835,9 +835,12 @@ def main():
                         ctx_batch = remove_prompt.unsqueeze(0)
                     else:
                         ctx_batch = remove_prompt  # assume already batched (1, D)
-                    ts_batch = torch.as_tensor([int(current_timestep)], device=accelerator.device)
-                    hyper.compute_and_cache_loras(ctx_batch, ts_batch)
+                    #hyper.compute_and_cache_loras(ctx_batch, ts_batch)
                     _retain_grad_for_cached_lora(model, accelerator)
+
+                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
+                    base.hyper.set_context(remove_prompt, current_timestep + 1)
+                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # targets and loss
                     e_0.requires_grad_(False)
@@ -849,8 +852,6 @@ def main():
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     accelerator.backward(loss_for_backward, retain_graph=True)
 
-                    dev = next(accelerator.unwrap_model(model).parameters()).device
-
                     # --- use cached LoRA grads instead of live-tensor grads ---
                     grads_flat_t = _flatten_cached_grads_from_cache(model, accelerator)
                     if grads_flat_t is None:
@@ -858,14 +859,7 @@ def main():
                             "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
-
-                    # --- LIVE anchor at t from cache (keeps graph because we just computed/cached it) ---
                     tensors_flat_t_live = _flatten_cached_from_cache(model, accelerator)
-
-                    # advance the timestep by +1, refresh cache, and read live vector again
-                    next_ts = torch.as_tensor([int(current_timestep) + 1], device=accelerator.device)
-                    hyper.compute_and_cache_loras(ctx_batch, next_ts)
-                    tensors_flat_t1_live = _flatten_cached_from_cache(model, accelerator)
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
