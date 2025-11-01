@@ -47,9 +47,8 @@ class HypernetworkManager(nn.Module):
 
     def flatten_cached_from_cache(self):
         vecs = []
-        for name, idx in self.layer_name_to_idx.items():
-            hyper = self.hyper_layers[idx]
-            for w in hyper.get_cached_lora(name):
+        for name, _ in self.layer_name_to_idx.items():
+            for w in self.get_cached_lora(name):
                 vecs.append(w.reshape(-1))
         return None if not vecs else torch.cat(vecs, dim=0)
 
@@ -66,7 +65,6 @@ class HypernetworkManager(nn.Module):
 
 
 class TimeFourier(nn.Module):
-
     def __init__(self, T=151, L=16):
         super().__init__()
         k = torch.linspace(0, L - 1, L, dtype=torch.float32)
