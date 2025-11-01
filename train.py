@@ -829,7 +829,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    loss = criterion(delta_live, grads_flat_t)
+                    loss = 20 * criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
@@ -876,6 +876,7 @@ def main():
                     caption = f"target: {args.target_object}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+
                 base.hyper.set_context(cond_other, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(cond_other, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
