@@ -815,6 +815,9 @@ def main():
 
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
+                    base.hyper.compute_and_cache_loras(
+                        remove_prompt, current_timestep + 1
+                    )
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
 
