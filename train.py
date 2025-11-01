@@ -813,7 +813,7 @@ def main():
                     accelerator.backward(loss_for_backward, retain_graph=True)
 
                     # --- use cached LoRA grads instead of live-tensor grads ---
-                    grads_flat_t = hyper.flatten_cached_grads_from_cache()
+                    grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
                     if grads_flat_t is None:
                         raise RuntimeError(
                             "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
