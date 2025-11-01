@@ -793,14 +793,13 @@ def main():
                     e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # make sure cache for current context/timestep is populated (and grads retained)
-                    hyper = accelerator.unwrap_model(model).hyper
-                    hyper.retain_grad_for_cached_lora()
 
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
                     _, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
                        remove_prompt, current_timestep
                     )
+                    base.hyper.retain_grad_for_cached_lora()
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
                     # targets and loss
