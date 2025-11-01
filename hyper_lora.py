@@ -16,7 +16,7 @@ class HypernetworkManager(nn.Module):
         self.layer_name_to_idx = {}
         self.lora_weights_cache = {}
         self.current_context = {'clip_emb': None, 'timestep': None}
-        self.auto_mode = True
+        self.auto_mode = False
 
     def add_hyperlora(self, name: str, hyper_lora):
         idx = len(self.hyper_layers)
