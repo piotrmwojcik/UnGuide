@@ -786,7 +786,7 @@ def main():
                         e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
                     # prediction for trainable model (needs grads)
-                    rem, current_timestep = hyper.get_context()
+                    rem, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
                         remove_prompt, current_timestep
                     )
@@ -796,10 +796,10 @@ def main():
                     hyper = accelerator.unwrap_model(model).hyper
                     hyper.retain_grad_for_cached_lora()
 
-                    _, current_timestep = hyper.get_context()
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
+                    _, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
-                       remove_prompt, current_timestep + 1
+                       remove_prompt, current_timestep
                     )
                     _ = base.apply_model(z, t_enc_ddpm, emb_n)
 
