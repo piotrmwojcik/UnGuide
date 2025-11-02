@@ -932,8 +932,10 @@ def main():
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
-                loss_retain_reduced = accelerator.gather(loss_retain.detach()).mean()
-                loss_remove_reduced = accelerator.gather(loss_remove.detach()).mean()
+                if loss_retain is not None:
+                    loss_retain_reduced = accelerator.gather(loss_retain.detach()).mean()
+                if loss_remove is not None:
+                    loss_remove_reduced = accelerator.gather(loss_remove.detach()).mean()
 
             loss_value = float(loss_reduced.item())
             losses.append(loss_value)
