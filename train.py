@@ -736,6 +736,7 @@ def main():
                 remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                                                                 tokenizer=tokenizer)
                 remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
+                remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -780,11 +781,11 @@ def main():
                     print('loss neutral ', loss_for_backward)
                 else:
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
-                    base.hyper.set_context(cond_target, torch.tensor([rtimestep], device=accelerator.device))
+                    base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
                     rem, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
-                        cond_target, current_timestep
+                        remove_prompt, current_timestep
                     )
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
