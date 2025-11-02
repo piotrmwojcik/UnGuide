@@ -760,7 +760,7 @@ def main():
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
 
                     hyper = accelerator.unwrap_model(model).hyper
-                    batch_prompts = retain_prompts.repeat(50, 1)  # (10*K, D)
+                    batch_prompts = retain_prompts.repeat(5, 1)  # (10*K, D)
                     B = batch_prompts.shape[0]
                     perm = torch.randperm(B, device=batch_prompts.device)
                     batch_prompts = batch_prompts[perm]
