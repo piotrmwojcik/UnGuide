@@ -590,6 +590,8 @@ def main():
     retain_paths = rows_to_paths(retain_prompts)
     remove_paths = rows_to_paths(remove_prompts)
 
+    print(remove_paths[:30])
+
     print(f"Using {len(retain_paths)} retain and {len(remove_paths)} remove augmentations.")
 
     if args.use_dummy_embeddings:
