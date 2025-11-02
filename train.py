@@ -599,6 +599,8 @@ def main():
         retain_tensors, _ = load_tensors(retain_paths)
         remove_tensors, _ = load_tensors(remove_paths)
 
+        remove_tensors = remove_tensors[:30]
+
         if not retain_tensors or not remove_tensors:
             raise ValueError(
                 f"Failed to load embeddings. "
@@ -728,7 +730,6 @@ def main():
                 cond_other2 = clip_text_encoder(inputs_other2).pooler_output.detach()
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
-
 
             with torch.no_grad():
                 remove_prompt = random.choice(remove_tensors).detach()
