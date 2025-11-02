@@ -747,7 +747,7 @@ def main():
                 #if False:
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
-                        K = 1
+                        K = 30
                         sampled_list = random.sample(retain_tensors, K)
 
                         processed = []
@@ -760,8 +760,10 @@ def main():
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
 
                     hyper = accelerator.unwrap_model(model).hyper
-                    batch_prompts = retain_prompts.repeat(150, 1)  # (10*K, D)
+                    batch_prompts = retain_prompts.repeat(50, 1)  # (10*K, D)
                     B = batch_prompts.shape[0]
+                    perm = torch.randperm(B, device=batch_prompts.device)
+                    batch_prompts = batch_prompts[perm]
 
                     hyper.compute_and_cache_loras(
                         batch_prompts,
