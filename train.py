@@ -938,7 +938,7 @@ def main():
                 idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
                 sample_prompt = retain_tensors[idx].to(accelerator.device)
                 with torch.no_grad():
-                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text.to(accelerator.device),
                                                                      tokenizer=tokenizer)
                    sample_ = remove_prompt.unsqueeze(dim=0).to(accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
