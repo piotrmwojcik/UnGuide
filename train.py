@@ -320,6 +320,7 @@ def generate_and_save_sd_images(
     sampler,
     prompt: str,
     device: torch.device,
+    cond = None,
     steps: int = 50,
     eta: float = 0.0,
     batch_size: int = 1,
@@ -347,7 +348,8 @@ def generate_and_save_sd_images(
 
     model.eval()
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        if prompt is not None:
+            cond  = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
         samples_latent, _ = sampler.sample(
@@ -736,7 +738,7 @@ def main():
                 remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                                                                 tokenizer=tokenizer)
                 remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
-                remove_prompt = cond_target
+                #remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -930,6 +932,29 @@ def main():
                 )
                 if imgs is not None:
                     caption = f"target: feline"
+                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                    wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+
+                idx = torch.randint(0, retain_prompts.size(0), (1,), device=retain_prompts.device).item()
+                sample_prompt = retain_prompts[idx]
+                with torch.no_grad():
+                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                                                                     tokenizer=tokenizer)
+                   sample_ = remove_prompt.unsqueeze(dim=0).to(base.device)
+                base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
+                imgs = generate_and_save_sd_images(
+                    model=base,
+                    sampler=sampler,
+                    prompt=None,
+                    cond=sample_prompt,
+                    device=accelerator.device,
+                    steps=50,
+                    out_dir=os.path.join(args.output_dir, "tmp"),
+                    prefix=f"unl_{i}_",
+                )
+                if imgs is not None:
+                    caption = f"retain prompt"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
