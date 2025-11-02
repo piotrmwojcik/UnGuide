@@ -936,11 +936,11 @@ def main():
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
                 idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
-                sample_prompt = retain_tensors[idx]
+                sample_prompt = retain_tensors[idx].to(accelerator.device)
                 with torch.no_grad():
                    sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                                                                      tokenizer=tokenizer)
-                   sample_ = remove_prompt.unsqueeze(dim=0).to(base.device)
+                   sample_ = remove_prompt.unsqueeze(dim=0).to(accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
