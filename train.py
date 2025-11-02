@@ -941,6 +941,7 @@ def main():
                    sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                                                                      tokenizer=tokenizer)
                    sample_ = remove_prompt.unsqueeze(dim=0).to(accelerator.device)
+                print('!!! ', base.device, accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
