@@ -666,7 +666,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=0.5
+        optimizer, milestones=[1000], gamma=0.5
     )
 
     # Prepare for DDP / Mixed precision
