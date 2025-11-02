@@ -780,11 +780,11 @@ def main():
                     print('loss neutral ', loss_for_backward)
                 else:
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
-                    base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
+                    base.hyper.set_context(cond_target, torch.tensor([rtimestep], device=accelerator.device))
 
                     rem, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
-                        remove_prompt, current_timestep
+                        cond_target, current_timestep
                     )
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
