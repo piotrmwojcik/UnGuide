@@ -956,7 +956,7 @@ def main():
                 if imgs is not None:
                     caption = f"retain prompt"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
                 idx = torch.randint(0, len(remove_tensors), (1,), device=accelerator.device).item()
                 sample_prompt = remove_tensors[idx].to(accelerator.device)
@@ -979,7 +979,7 @@ def main():
                 if imgs is not None:
                     caption = f"remove prompt"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                    wandb.log({"remove": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
                 if loss_retain is not None:
