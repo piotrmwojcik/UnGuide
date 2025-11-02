@@ -777,10 +777,10 @@ def main():
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
-                    loss_retain = loss.clone().detach()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                    print('loss neutral ', loss_for_backward)
+                    loss_retain = loss.clone().detach()
+                    print('loss neutral ', loss_retain)
                 else:
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
@@ -837,7 +837,7 @@ def main():
                     loss = criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
-                    print('loss remove ', loss_for_backward)
+                    print('loss remove ', loss_remove)
                 accelerator.backward(loss_for_backward)
 
                 # ---- OPTIMIZER STEP (only on last micro-step) ----
