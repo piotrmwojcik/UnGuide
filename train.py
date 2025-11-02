@@ -935,7 +935,7 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, retain_prompts.size(0), (1,), device=retain_prompts.device).item()
+                idx = torch.randint(0, len(retain_prompts), (1,), device=retain_prompts.device).item()
                 sample_prompt = retain_prompts[idx]
                 with torch.no_grad():
                    sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
