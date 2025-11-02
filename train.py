@@ -935,8 +935,8 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, len(retain_prompts), (1,), device=retain_prompts.device).item()
-                sample_prompt = retain_prompts[idx]
+                idx = torch.randint(0, len(retain_tensors), (1,), device=retain_tensors.device).item()
+                sample_prompt = retain_tensors[idx]
                 with torch.no_grad():
                    sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                                                                      tokenizer=tokenizer)
@@ -947,7 +947,7 @@ def main():
                     model=base,
                     sampler=sampler,
                     prompt=None,
-                    cond=sample_prompt,
+                    cond=[sample_prompt],
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
