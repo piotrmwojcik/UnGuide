@@ -943,10 +943,10 @@ def main():
             if accelerator.is_local_main_process and args.use_wandb:
                 wandb.log({"loss": loss_value}, step=i)
 
-            if accelerator.is_local_main_process and args.use_wandb:
+            if accelerator.is_local_main_process and args.use_wandb and loss_retain is not None:
                 wandb.log({"loss retain": float(loss_retain_reduced.item())}, step=i)
 
-            if accelerator.is_local_main_process and args.use_wandb:
+            if accelerator.is_local_main_process and args.use_wandb and loss_remove is not None:
                 wandb.log({"loss remove": float(loss_remove_reduced.item())}, step=i)
 
             if accelerator.is_local_main_process:
