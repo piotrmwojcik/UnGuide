@@ -742,6 +742,7 @@ def main():
                 (1, 4, args.image_size // 8, args.image_size // 8),
                 device=accelerator.device
             )
+            loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
                 #if False:
                 if 'neutral.json' in sample['file']:
@@ -776,6 +777,7 @@ def main():
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
+                    loss_retain = loss.clone().detach()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss neutral ', loss_for_backward)
@@ -834,6 +836,7 @@ def main():
                     # e.g., MSE to the target step
                     loss = criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
+                    loss_remove = loss.clone().detach()
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
 
@@ -929,12 +932,20 @@ def main():
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
+                loss_retain_reduced = accelerator.gather(loss_retain.detach()).mean()
+                loss_remove_reduced = accelerator.gather(loss_remove.detach()).mean()
 
             loss_value = float(loss_reduced.item())
             losses.append(loss_value)
 
             if accelerator.is_local_main_process and args.use_wandb:
                 wandb.log({"loss": loss_value}, step=i)
+
+            if accelerator.is_local_main_process and args.use_wandb:
+                wandb.log({"loss retain": float(loss_retain_reduced.item())}, step=i)
+
+            if accelerator.is_local_main_process and args.use_wandb:
+                wandb.log({"loss remove": float(loss_remove_reduced.item())}, step=i)
 
             if accelerator.is_local_main_process:
                 pbar.set_postfix({"loss": f"{loss_value:.6f}"})
