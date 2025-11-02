@@ -948,7 +948,7 @@ def main():
                     model=base,
                     sampler=sampler,
                     prompt=None,
-                    cond=[sample_prompt],
+                    cond=sample_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
