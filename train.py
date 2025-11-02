@@ -774,7 +774,7 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, t_)
 
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
-                    delta_live = 2 * tensors_flat_t1_live - tensors_flat_t_live
+                    delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     loss = delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
@@ -832,7 +832,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    loss = 50 * criterion(delta_live, grads_flat_t)
+                    loss = criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     print('loss remove ', loss_for_backward)
                 accelerator.backward(loss_for_backward)
