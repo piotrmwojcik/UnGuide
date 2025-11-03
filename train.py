@@ -740,7 +740,7 @@ def main():
                 remove_prompt = random.choice(remove_tensors).detach()
                 remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                                                                 tokenizer=tokenizer)
-                remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device)
+                remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
                 #remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
