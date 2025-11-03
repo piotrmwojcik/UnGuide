@@ -757,7 +757,7 @@ def main():
                         sampled_list = random.sample(CIFAR100, K)
                         sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
-                        processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output for cifar_100_prompt in sampled_list]
+                        processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.squeeze() for cifar_100_prompt in sampled_list]
                         #with torch.no_grad():
                         #    base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
@@ -946,7 +946,7 @@ def main():
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
                 idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
-                sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.squeeze().detach()
+                sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
                 #sample_prompt = retain_tensors[idx].to(accelerator.device)
                 #with torch.no_grad():
                 #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
