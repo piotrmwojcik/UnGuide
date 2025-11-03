@@ -617,7 +617,7 @@ def main():
     if is_main:
         print(remove_paths[:30])
         print('!!!')
-        print(retain_tensors)
+        print(retain_paths)
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
     if is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all"):
