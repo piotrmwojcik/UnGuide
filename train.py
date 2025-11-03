@@ -601,7 +601,7 @@ def main():
         retain_tensors, _ = load_tensors(retain_paths)
         remove_tensors, _ = load_tensors(remove_paths)
 
-        remove_tensors = remove_tensors[:30]
+        remove_tensors = remove_tensors[:20]
 
         if not retain_tensors or not remove_tensors:
             raise ValueError(
