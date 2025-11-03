@@ -367,11 +367,11 @@ def generate_and_save_sd_images(
         imgs = model.decode_first_stage(samples_latent)       # [-1, 1]
         imgs = (imgs.clamp(-1, 1) + 1) / 2.0                 # [0, 1]
 
-        out_path = Path(out_dir)
-        out_path.mkdir(exist_ok=True, parents=True)
-        for i, im in enumerate(imgs.cpu()):
-            im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
-            to_pil_image(im_u8).save(out_path / f"{prefix}{i:04d}.png")
+        #out_path = Path(out_dir)
+        #out_path.mkdir(exist_ok=True, parents=True)
+        #for i, im in enumerate(imgs.cpu()):
+        #    im_u8 = (im.clamp(0, 1) * 255).round().to(torch.uint8)  # [3,H,W]
+        #    to_pil_image(im_u8).save(out_path / f"{prefix}{i:04d}.png")
 
         return imgs  # [B,3,H,W] in [0,1]
 
@@ -754,13 +754,18 @@ def main():
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
-                        sampled_list = random.sample(retain_tensors, K)
+                        sampled_list = random.sample(CIFAR100, K)
+                        sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
-                        processed = []
-                        with torch.no_grad():
-                            for rp in sampled_list:
-                                rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
-                                processed.append(rp_proc.detach())
+                        processed = [encode(cifar_100_prompt) for cifar_100_prompt in sampled_list]
+                        #with torch.no_grad():
+                        #    base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
+
+                        #processed = []
+                        #with torch.no_grad():
+                        #    for rp in sampled_list:
+                        #        rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
+                        #        processed.append(rp_proc.detach())
 
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
@@ -939,19 +944,19 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
-                sample_prompt = retain_tensors[idx].to(accelerator.device)
-                with torch.no_grad():
-                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
-                                                                     tokenizer=tokenizer)
-                   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
+                idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
+                sample_ = encode(f"a photo of the {CIFAR100[idx]}")
+                #sample_prompt = retain_tensors[idx].to(accelerator.device)
+                #with torch.no_grad():
+                #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                #                                                     tokenizer=tokenizer)
+                #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=None,
-                    cond=sample_prompt,
+                    prompt=f"a photo of the {CIFAR100[idx]}",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
