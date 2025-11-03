@@ -769,6 +769,7 @@ def main():
 
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
+                    print('!!!! ', retain_prompts.shape)
 
                     hyper = accelerator.unwrap_model(model).hyper
                     batch_prompts = retain_prompts.repeat(5, 1)  # (10*K, D)
@@ -951,7 +952,6 @@ def main():
                 #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                 #                                                     tokenizer=tokenizer)
                 #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
-                sample_ = sample_.unsqueeze(0)
                 print('!!!! ', sample_.shape)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
