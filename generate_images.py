@@ -337,7 +337,7 @@ if __name__ == "__main__":
                 inputs_target = clip_text_encoder(inputs_empty).pooler_output.detach()
 
                 model_unl.hyper.set_context(t_prompt, torch.tensor([150]).to(model_unl.device))
-                model_unl.compute_and_cache_loras(cond_target, torch.tensor([150]).to(model_unl.device))
+                model_unl.hyper.compute_and_cache_loras(cond_target, torch.tensor([150]).to(model_unl.device))
 
                 z = quick_sampler(cond, args.start_guidance, start_code, int(t_enc))
                 _ = model_unl.apply_model(z, t_enc_ddpm, cond)
