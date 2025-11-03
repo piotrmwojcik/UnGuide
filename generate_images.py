@@ -255,8 +255,8 @@ if __name__ == "__main__":
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
         )
-        for layer in hyper_lora_layers:
-            layer.set_parent_model(model_unl)
+        for layer_name, layer in hyper_lora_layers:
+            layer.set_parent_model(model)
 
         updated = 0
         skipped = []
