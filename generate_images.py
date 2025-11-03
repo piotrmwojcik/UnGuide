@@ -257,6 +257,7 @@ if __name__ == "__main__":
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
         )
         for layer_name, layer in hyper_lora_layers:
+            model_unl.hyper.add_hyperlora(layer_name, layer.hyper_lora)
             layer.set_parent_model(model_unl)
 
         updated = 0
@@ -331,7 +332,6 @@ if __name__ == "__main__":
                 t_prompt = clip_text_encoder(inputs).pooler_output.detach()
                 empty_prompt = clip_text_encoder(inputs_empty).pooler_output.detach()
                 inputs_target = clip_text_encoder(inputs_empty).pooler_output.detach()
-
 
                 model_unl.hyper.set_context(t_prompt, torch.tensor([150]).to(accelerator.device))
                 model_unl.compute_and_cache_loras(cond_target, torch.tensor([150]).to(accelerator.device))
