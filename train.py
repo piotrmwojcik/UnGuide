@@ -769,7 +769,6 @@ def main():
 
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
-                    print('!!!! ', retain_prompts.shape)
 
                     hyper = accelerator.unwrap_model(model).hyper
                     batch_prompts = retain_prompts.repeat(5, 1)  # (10*K, D)
