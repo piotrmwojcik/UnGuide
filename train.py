@@ -616,7 +616,6 @@ def main():
     is_main = accelerator.is_main_process
     if is_main:
         print(remove_paths[:30])
-        print('!!!')
         print(retain_paths)
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
@@ -757,7 +756,7 @@ def main():
                         sampled_list = random.sample(CIFAR100, K)
                         sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
-                        processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.squeeze() for cifar_100_prompt in sampled_list]
+                        processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.detach().squeeze() for cifar_100_prompt in sampled_list]
                         #with torch.no_grad():
                         #    base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
@@ -777,6 +776,7 @@ def main():
                     batch_prompts = batch_prompts[perm]
 
                     hyper.compute_and_cache_loras(
+                        batch_prompts,
                         batch_prompts,
                         torch.zeros(B, device=accelerator.device)
                     )
