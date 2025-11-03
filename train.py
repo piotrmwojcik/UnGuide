@@ -749,8 +749,8 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                #if False:
-                if 'neutral.json' in sample['file']:
+                if False:
+                #if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         sampled_list = random.sample(CIFAR100, K)
