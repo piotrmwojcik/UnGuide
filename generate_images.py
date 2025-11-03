@@ -6,6 +6,8 @@ import torch.nn as nn
 from train import create_quick_sampler, _iter_hyperlora_layers
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer
+from hyper_lora import (HyperLoRALinear, HypernetworkManager, inject_hyper_lora,
+                        inject_hyper_lora_nsfw)
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from utils import load_model_from_config, apply_lora_to_model, set_seed
 from torchvision.transforms.functional import to_pil_image
