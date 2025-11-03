@@ -971,7 +971,7 @@ def main():
                 #base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 #base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
-                    model=model_orig,
+                    model=model,
                     sampler=sampler,
                     prompt=None,
                     cond=sample_prompt,
