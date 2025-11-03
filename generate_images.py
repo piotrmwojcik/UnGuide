@@ -246,11 +246,12 @@ if __name__ == "__main__":
 
         # Apply LoRA to unlearned model
         lora_sd = torch.load(lora_filepath, map_location=device)
+        use_hyper = True  # your script forces hypernetwork on; keep same behavior
         hyper_lora_factory = partial(
             HyperLoRALinear,
-            clip_size=768,
-            rank=1,
-            alpha=0.00001,
+            clip_size=args.clip_size,
+            rank=args.lora_rank,
+            alpha=args.lora_alpha,
         )
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
