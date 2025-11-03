@@ -952,6 +952,7 @@ def main():
                 #                                                     tokenizer=tokenizer)
                 #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
                 sample_ = sample_.unsqueeze(0)
+                print('!!!! ', sample_.shape)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
