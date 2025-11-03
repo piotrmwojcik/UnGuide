@@ -669,7 +669,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[1000], gamma=0.5
+        optimizer, milestones=[300], gamma=1.0
     )
 
     # Prepare for DDP / Mixed precision
@@ -749,8 +749,7 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         sampled_list = random.sample(CIFAR100, K)
@@ -797,10 +796,6 @@ def main():
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
-                    rem, current_timestep = base.hyper.get_context()
-                    base.hyper.compute_and_cache_loras(
-                        remove_prompt, current_timestep
-                    )
                     with torch.no_grad():
                         z = quick_sampler(emb_p, args.start_guidance, start_code, int(t_enc))
                         e_0 = model_orig.apply_model(z, t_enc_ddpm, emb_0)  # reference (stopgrad)
@@ -962,7 +957,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"retain prompt"
+                    caption = f"retain prompt; a photo of the {CIFAR100[idx]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
