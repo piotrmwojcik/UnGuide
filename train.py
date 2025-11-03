@@ -777,7 +777,6 @@ def main():
 
                     hyper.compute_and_cache_loras(
                         batch_prompts,
-                        batch_prompts,
                         torch.zeros(B, device=accelerator.device)
                     )
 
