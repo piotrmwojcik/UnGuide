@@ -249,9 +249,9 @@ if __name__ == "__main__":
         use_hyper = True  # your script forces hypernetwork on; keep same behavior
         hyper_lora_factory = partial(
             HyperLoRALinear,
-            clip_size=args.clip_size,
-            rank=args.lora_rank,
-            alpha=args.lora_alpha,
+            clip_size=768,
+            rank=1,
+            alpha=0.00001,
         )
         hyper_lora_layers = inject_hyper_lora(
             model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
