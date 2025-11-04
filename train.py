@@ -749,8 +749,7 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         sampled_list = random.sample(CIFAR100, K)
@@ -788,7 +787,7 @@ def main():
 
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 10 * delta_live.pow(2).mean()
+                    loss = 5 * delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_retain = loss.clone().detach()
@@ -846,7 +845,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    loss = 80.0 * criterion(delta_live, grads_flat_t)
+                    loss = 100.0 * criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
