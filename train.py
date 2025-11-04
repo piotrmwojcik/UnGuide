@@ -615,7 +615,7 @@ def main():
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
     if is_main:
-        print(remove_paths[:30])
+        print(remove_paths[:45])
         print(retain_paths)
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
