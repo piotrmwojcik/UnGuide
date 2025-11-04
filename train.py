@@ -838,7 +838,7 @@ def main():
                     base.hyper.compute_and_cache_loras(
                         remove_prompt, current_timestep + 1
                     )
-                    _ = base.apply_model(z, t_enc_ddpm, emb_n)
+                    #_ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
