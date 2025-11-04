@@ -781,8 +781,6 @@ def main():
                     perm = torch.randperm(B, device=batch_prompts.device)
                     batch_prompts = batch_prompts[perm]
 
-                    print('!!! ', batch_prompts.shape, torch.zeros(B, device=accelerator.device).shape)
-
                     hyper.compute_and_cache_loras(
                         batch_prompts,
                         torch.zeros(B, device=accelerator.device)
@@ -843,10 +841,9 @@ def main():
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     all_N = remove_all_prompts.size(0)  # 30
                     ct = current_timestep.repeat(all_N)
-                    print(remove_all_prompts.shape, ct.shape)
                     base.hyper.set_context(remove_all_prompts, ct)
                     base.hyper.compute_and_cache_loras(
-                        remove_all_prompts, current_timestep + 1
+                        remove_all_prompts, ct
                     )
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
 
