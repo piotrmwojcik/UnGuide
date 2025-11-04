@@ -781,6 +781,8 @@ def main():
                     perm = torch.randperm(B, device=batch_prompts.device)
                     batch_prompts = batch_prompts[perm]
 
+                    print('!!! ', batch_prompts.shape, torch.zeros(B, device=accelerator.device).shape)
+
                     hyper.compute_and_cache_loras(
                         batch_prompts,
                         torch.zeros(B, device=accelerator.device)
