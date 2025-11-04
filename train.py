@@ -144,7 +144,7 @@ CIFAR100 = [
     'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pine tree',
     'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
     'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
-    'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
+    'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger',
     'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
 
