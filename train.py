@@ -839,9 +839,8 @@ def main():
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
 
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-                    all_N = remove_all_prompts.shape[0]
-                    ct = current_timestep.repeat(all_N, 1)
-                    print('!!!! ', remove_all_prompts.shape, current_timestep.shape, ct.shape)
+                    all_N = remove_all_prompts.size(0)  # 30
+                    ct = current_timestep.repeat(all_N)
                     base.hyper.set_context(remove_all_prompts, ct)
                     base.hyper.compute_and_cache_loras(
                         remove_all_prompts, current_timestep + 1
@@ -857,7 +856,7 @@ def main():
 
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-
+                    print('!!!! ', delta_live.shape, grads_flat_t.shape)
                     # e.g., MSE to the target step
                     loss = 120.0 * criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
