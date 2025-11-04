@@ -713,7 +713,7 @@ def main():
         transformed_list.append(rp_proc)
 
     # (N, D) tensor of all transformed remove prompts
-    remove_all_prompts = torch.stack(transformed_list, dim=0).to(base.device).detach()
+    remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
