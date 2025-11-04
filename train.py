@@ -733,7 +733,7 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            inputs_other = encode("a photo of the bird")
+            inputs_other = encode("a photo of the hauler")
             inputs_other2 = encode("a photo of the dog")
             inputs_other3 = encode("a photo of the rig")
             inputs_target = encode(target_text)
@@ -911,7 +911,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the bird",
+                    prompt="a photo of the hauler",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
