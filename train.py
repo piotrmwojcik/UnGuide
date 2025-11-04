@@ -557,7 +557,7 @@ def main():
 
     df = pd.read_csv(args.csv_path)
     THRESHOLD_RETAIN = 0.035
-    THRESHOLD_REMOVE = 0.015
+    THRESHOLD_REMOVE = 0.025
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -601,7 +601,7 @@ def main():
         retain_tensors, _ = load_tensors(retain_paths)
         remove_tensors, _ = load_tensors(remove_paths)
 
-        remove_tensors = remove_tensors[:20]
+        remove_tensors = remove_tensors[:30]
 
         if not retain_tensors or not remove_tensors:
             raise ValueError(
@@ -845,7 +845,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    loss = 100.0 * criterion(delta_live, grads_flat_t)
+                    loss = 120.0 * criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
