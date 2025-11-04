@@ -706,6 +706,14 @@ def main():
     losses = []
 
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
+    transformed_list = []
+    for rp in src_list:
+        rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
+        transformed_list.append(rp_proc)
+
+    # (N, D) tensor of all transformed remove prompts
+    remove_all_prompts = torch.stack(transformed_list, dim=0).to(base.device).detach()
+
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             base = accelerator.unwrap_model(model)
@@ -831,12 +839,17 @@ def main():
                     # Target step: Δθ ≈ -lr * g_t  (keep target detached)
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
 
+                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
+                    all_N = remove_all_prompts.shape[0]
+                    base.hyper.set_context(remove_all_prompts, current_timestep.repeat(all_N, 1))
+                    base.hyper.compute_and_cache_loras(
+                        remove_all_prompts, current_timestep + 1
+                    )
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
 
-                    _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-                    base.hyper.set_context(remove_prompt, current_timestep + 1)
+                    base.hyper.set_context(remove_all_prompts, (current_timestep + 1).repeat(all_N, 1))
                     base.hyper.compute_and_cache_loras(
-                        remove_prompt, current_timestep + 1
+                        remove_all_prompts, (current_timestep + 1).repeat(all_N, 1)
                     )
                     #_ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
