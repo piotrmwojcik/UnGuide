@@ -841,6 +841,7 @@ def main():
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     all_N = remove_all_prompts.size(0)  # 30
                     ct = current_timestep.repeat(all_N)
+                    print(remove_all_prompts.shape, ct.shape)
                     base.hyper.set_context(remove_all_prompts, ct)
                     base.hyper.compute_and_cache_loras(
                         remove_all_prompts, current_timestep + 1
