@@ -615,7 +615,7 @@ def main():
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
     if is_main:
-        print(remove_paths[:45])
+        print(remove_paths[:30])
         print(retain_paths)
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
@@ -845,7 +845,7 @@ def main():
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
 
                     # e.g., MSE to the target step
-                    loss = 10.0 * criterion(delta_live, grads_flat_t)
+                    loss = 15.0 * criterion(delta_live, grads_flat_t)
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
