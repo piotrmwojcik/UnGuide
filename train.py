@@ -140,12 +140,12 @@ CIFAR100 = [
     'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
     'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
     'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
-    'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','mountain',
+    'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','pickup truck','mountain',
     'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pine tree',
     'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
     'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
     'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger',
-    'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
+    'train','trout','tulip','tractor','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
 
 def prompt_augmentation(content, augment=True):
@@ -734,7 +734,7 @@ def main():
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
             inputs_other = encode("a photo of the hauler")
-            inputs_other2 = encode("a photo of the dog")
+            inputs_other2 = encode("a photo of the automobile")
             inputs_other3 = encode("a photo of the rig")
             inputs_target = encode(target_text)
             with torch.no_grad():
@@ -927,7 +927,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the dog",
+                    prompt="a photo of the automobile",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
