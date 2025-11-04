@@ -840,15 +840,17 @@ def main():
 
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
                     all_N = remove_all_prompts.shape[0]
-                    base.hyper.set_context(remove_all_prompts, current_timestep.repeat(all_N, 1))
+                    ct = current_timestep.repeat(all_N, 1)
+                    print('!!!! ', remove_all_prompts.shape, ct.shape)
+                    base.hyper.set_context(remove_all_prompts, ct)
                     base.hyper.compute_and_cache_loras(
                         remove_all_prompts, current_timestep + 1
                     )
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
 
-                    base.hyper.set_context(remove_all_prompts, (current_timestep + 1).repeat(all_N, 1))
+                    base.hyper.set_context(remove_all_prompts, ct + 1)
                     base.hyper.compute_and_cache_loras(
-                        remove_all_prompts, (current_timestep + 1).repeat(all_N, 1)
+                        remove_all_prompts, ct + 1
                     )
                     #_ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
