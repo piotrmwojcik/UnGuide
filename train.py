@@ -706,8 +706,9 @@ def main():
     losses = []
 
     pbar = tqdm(range(args.iterations), disable=not accelerator.is_local_main_process)
+    target_text = f"a photo of the {args.target_object}"
     transformed_list = []
-    for rp in src_list:
+    for rp in remove_tensors:
         rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
         transformed_list.append(rp_proc)
 
@@ -717,8 +718,6 @@ def main():
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             base = accelerator.unwrap_model(model)
-
-            target_text = f"a photo of the {args.target_object}"
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = accelerator.unwrap_model(model).get_learned_conditioning(sample["reference"])
