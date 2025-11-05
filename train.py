@@ -795,7 +795,7 @@ def main():
 
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 5 * delta_live.pow(2).mean()
+                    loss = 15 * delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_retain = loss.clone().detach()
