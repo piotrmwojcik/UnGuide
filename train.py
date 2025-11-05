@@ -725,7 +725,7 @@ def main():
     inputs_other = encode("a photo of the hauler")
     inputs_other2 = encode("a photo of the automobile")
     inputs_other3 = encode("a photo of the rig")
-    input_others4 = encode("a photo of the cat")
+    inputs_other4 = encode("a photo of the cat")
 
     def _l2(x: torch.Tensor) -> torch.Tensor:
         return x / (x.norm(dim=-1, keepdim=True) + 1e-8)
