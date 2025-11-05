@@ -11,6 +11,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt  # (unused, but kept if you uncomment stats)
 import numpy as np
 import torch
+import os, matplotlib.pyplot as plt
 import wandb
 
 from typing import Iterator, Tuple, Dict, Any, Union, Callable
@@ -806,7 +807,6 @@ def main():
         concept_noisy_2d[name] = noisy_2d
 
     # --- (Optional) Save CSVs and a plot ---
-    import os, pandas as pd, matplotlib.pyplot as plt
 
     out_dir = "embeddings_remove_prompts";
     os.makedirs(out_dir, exist_ok=True)
