@@ -819,6 +819,66 @@ def main():
         "cat": cat_n,
     }
 
+    # 1) Build augmented prompts for the target content
+    content = "truck"
+    templates = [
+        "{} in a photo",
+        "{} in a snapshot",
+        "A snapshot of {}",
+        "A photograph showcasing {}",
+        "An illustration of {}",
+        "A digital rendering of {}",
+        "A visual representation of {}",
+        "A graphic of {}",
+        "A shot of {}",
+        "A photo of {}",
+    ]
+    aug_texts = [t.format(content) for t in templates]
+
+    # 2) Encode target + augmentations
+    with torch.no_grad():
+        inputs_aug = encode(aug_texts)  # assumes your encode() can take a batch
+        aug_embed = clip_text_encoder(inputs_aug).pooler_output.detach()  # (M, D), M=len(aug_texts)
+
+    # 3) Normalize to rows of unit length (numpy) and project with UMAP
+    aug_np = to_rows_np(aug_embed)  # (M, D) np.float32, row-normalized
+    target_np = target_n  # already (1, D) and unit norm from your code
+
+    # Project to 2D using the fitted UMAP
+    aug_2d = um.transform(aug_np)  # (M, 2)
+    target_2d = um.transform(target_np)  # (1, 2)
+
+    # 4) (Optional) sample a small spherical noise halo around the target and project it too
+    noise_np = sample_spherical_noise_around(target_np, K=40, eps=0.03)  # (40, D)
+    noise_2d = um.transform(noise_np)  # (40, 2)
+
+    # 5) Plot: background cloud, target, augmentations, and noise halo
+    plt.figure(figsize=(8, 7))
+
+    # Background cloud from your earlier fit (remove_all_prompts_n -> um_2d)
+    plt.scatter(um_2d[:, 0], um_2d[:, 1], s=6, alpha=0.25, label="prompt cloud")
+
+    # Target point
+    plt.scatter(target_2d[0, 0], target_2d[0, 1], s=80, marker="*", label="target: 'truck'", zorder=5)
+
+    # Augmented prompts
+    plt.scatter(aug_2d[:, 0], aug_2d[:, 1], s=36, alpha=0.9, label="augmentations", zorder=4)
+
+    # Noise halo around target
+    plt.scatter(noise_2d[:, 0], noise_2d[:, 1], s=12, alpha=0.7, label="target noise", zorder=3)
+
+    # Optional: draw faint line from target to each augmentation for visual grouping
+    for x, y in aug_2d:
+        plt.plot([target_2d[0, 0], x], [target_2d[0, 1], y], linewidth=0.5, alpha=0.25)
+
+    # Labels / cosmetics
+    plt.title("UMAP of Prompt Space: target 'truck' with textual augmentations")
+    plt.xlabel("UMAP-1")
+    plt.ylabel("UMAP-2")
+    plt.legend(loc="best")
+    plt.tight_layout()
+    plt.show()
+
     K = 100
     eps = 0.001
     rng = np.random.default_rng(0)
@@ -838,10 +898,6 @@ def main():
     out_dir = "embeddings_remove_prompts"
     os.makedirs(out_dir, exist_ok=True)
 
-    # Save centers
-    for name, c2d in concept_points_2d.items():
-        np.savetxt(os.path.join(out_dir, f"{name}_center_umap2d.csv"), c2d, delimiter=",", header="umap1,umap2",
-                   comments="")
 
     # quick visualization
     plt.figure(figsize=(7, 6))
