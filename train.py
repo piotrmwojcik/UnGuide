@@ -764,6 +764,10 @@ def main():
 # --- Prepare cloud used to fit UMAP ---
     remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
 
+    # Ensure unit-norm (you said they are already unit norm)
+    def to_row_np(x):  # keep your existing helper if you already have it
+        return np.asarray(x, dtype=np.float32).reshape(1, -1)
+
     # --- Concept embeddings (each to (1, D) np, unit norm) ---
     hauler_n = to_row_np(cond_hauler)
     auto_n = to_row_np(cond_auto)  # automobile
@@ -772,18 +776,16 @@ def main():
     target_n = to_row_np(cond_target)
 
     # --- Fit UMAP on the cloud (not on the concepts) ---
-    # pip install umap-learn
     try:
         from umap import UMAP
     except Exception:
         import umap.umap_ as umap
-
         UMAP = umap.UMAP
 
     um = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine", random_state=0)
     um_2d = um.fit_transform(remove_all_prompts_n)  # (N, 2)
 
-    # --- Project each concept and K noisy samples around it ---
+    # --- Project centers; sample noise ONLY around target ---
     concepts = {
         "target": target_n,
         "hauler": hauler_n,
@@ -797,43 +799,53 @@ def main():
     rng = np.random.default_rng(0)
 
     concept_points_2d = {}
-    concept_noisy_2d = {}
+    concept_noisy_2d = {name: np.empty((0, 2), dtype=np.float32) for name in concepts}  # default empty
 
     for name, row in concepts.items():
-        base_2d = um.transform(row)  # (1, 2)
-        noisy_nd = sample_spherical_noise_around(row, K=K, eps=eps, rng=rng)  # (K, D)
-        noisy_2d = um.transform(noisy_nd)  # (K, 2)
+        base_2d = um.transform(row)  # (1, 2) OK for UMAP
         concept_points_2d[name] = base_2d
-        concept_noisy_2d[name] = noisy_2d
+
+    # noisy sampling ONLY around target
+    noisy_nd = sample_spherical_noise_around(target_n, K=K, eps=eps, rng=rng)  # (K, D)
+    concept_noisy_2d["target"] = um.transform(noisy_nd)  # (K, 2)
 
     # --- (Optional) Save CSVs and a plot ---
-
-    out_dir = "embeddings_remove_prompts";
+    out_dir = "embeddings_remove_prompts"
     os.makedirs(out_dir, exist_ok=True)
+
+    # Save centers
+    for name, c2d in concept_points_2d.items():
+        np.savetxt(os.path.join(out_dir, f"{name}_center_umap2d.csv"), c2d, delimiter=",", header="umap1,umap2",
+                   comments="")
 
     # quick visualization
     plt.figure(figsize=(7, 6))
     plt.scatter(um_2d[:, 0], um_2d[:, 1], s=8, alpha=0.25, label="cloud")
+
     markers = {"target": "X", "hauler": "^", "automobile": "*", "rig": "v", "cat": "P"}
     for name in concepts.keys():
-        # noisy
-        nz = concept_noisy_2d[name]
-        plt.scatter(nz[:, 0], nz[:, 1], s=16, alpha=0.7, label=f"{name} noisy")
-        # center
+        # plot noisy only for target
+        if name == "target":
+            nz = concept_noisy_2d[name]
+            if nz.size:
+                plt.scatter(nz[:, 0], nz[:, 1], s=16, alpha=0.7, label=f"{name} noisy")
+        # plot center for all
         c2d = concept_points_2d[name][0]
-        plt.scatter([c2d[0]], [c2d[1]], s=80, marker=markers.get(name, "o"), edgecolors="k", label=f"{name} center")
-    plt.title("UMAP (2D) — concept-centered noisy samples (cosine)")
+        plt.scatter([c2d[0]], [c2d[1]], s=80, marker=markers.get(name, "o"),
+                    edgecolors="k", label=f"{name} center")
+
+    plt.title("UMAP (2D) — noisy samples ONLY around target (cosine)")
     plt.xlabel("UMAP-1");
-    plt.ylabel("UMAP-2");
+    plt.ylabel("UMAP-2")
     plt.legend(fontsize=8, ncol=2)
-    plt.tight_layout();
-    plt.savefig(os.path.join(out_dir, "concept_clusters_umap2d.png"), dpi=220);
+    plt.tight_layout()
+
+    fig_path = os.path.join(out_dir, "umap2d_target_only_noise.png")
+    plt.savefig(fig_path, dpi=220)
     plt.close()
 
-    print("[OK] Saved PCA with automobile prompt overlay to:",
-          os.path.join(out_dir, "remove_prompts_pca2d_with_prompts.png"))
-
-    print('Saved figure!!')
+    print("[OK] Saved UMAP with target-only noisy sampling to:", fig_path)
+    print("Saved figure!!")
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
