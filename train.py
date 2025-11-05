@@ -820,7 +820,7 @@ def main():
     }
 
     K = 100
-    eps = 0.009
+    eps = 0.001
     rng = np.random.default_rng(0)
 
     concept_points_2d = {}
