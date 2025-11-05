@@ -716,10 +716,6 @@ def main():
     remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
 
     import os
-    import math
-    import torch
-    import numpy as np
-    import pandas as pd
     import matplotlib.pyplot as plt
     from sklearn.decomposition import PCA
     from sklearn.manifold import TSNE
