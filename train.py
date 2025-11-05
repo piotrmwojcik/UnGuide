@@ -715,6 +715,41 @@ def main():
     # (N, D) tensor of all transformed remove prompts
     remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
 
+    import os
+    import math
+    import torch
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
+    from sklearn.manifold import TSNE
+
+    # Make sure we’re on CPU NumPy
+    X = remove_all_prompts.detach().float().cpu().numpy()  # shape (N, D)
+    N = X.shape[0]
+    out_dir = "embeddings_remove_prompts"
+    os.makedirs(out_dir, exist_ok=True)
+
+    # ---------- PCA (2D) ----------
+    pca = PCA(n_components=2, random_state=0)
+    pca_2d = pca.fit_transform(X)  # (N, 2)
+
+    # Save PCA coordinates
+    pca_df = pd.DataFrame(pca_2d, columns=["pc1", "pc2"])
+    pca_df.to_csv(os.path.join(out_dir, "remove_prompts_pca2d.csv"), index=False)
+
+    # Plot PCA
+    plt.figure(figsize=(6, 5))
+    plt.scatter(pca_2d[:, 0], pca_2d[:, 1], s=8)
+    plt.title(f"PCA (2D) — var explained: {pca.explained_variance_ratio_.sum():.2%}")
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, "remove_prompts_pca2d.png"), dpi=200)
+    plt.close()
+
+    print('Saved figure!!')
+
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
             base = accelerator.unwrap_model(model)
