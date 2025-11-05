@@ -738,10 +738,34 @@ def main():
         cond_cat = clip_text_encoder(inputs_other4).pooler_output.detach()
         cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
 
-    def to_row_np(t: torch.Tensor) -> np.ndarray:
-        """Torch -> (1, D) numpy row, L2-normalized."""
-        x = _l2(t.float()).detach().cpu().numpy()
-        return np.squeeze(x).reshape(1, -1)
+    def _as_numpy_row(x) -> np.ndarray:
+        """
+        Accepts torch.Tensor | np.ndarray | list and returns (1, D) float32 numpy.
+        - If torch tensor: detach + move to CPU before numpy()
+        - Reshapes to a single row
+        - L2 normalizes (since you said unit norm)
+        """
+        if TORCH_AVAILABLE and isinstance(x, torch.Tensor):
+            x = x.detach().to("cpu").float().numpy()
+        else:
+            x = np.asarray(x, dtype=np.float32)
+        x = x.reshape(1, -1).astype(np.float32, copy=False)
+        # L2 normalize defensively
+        norm = np.linalg.norm(x, axis=1, keepdims=True)
+        norm = np.maximum(norm, 1e-12)
+        return x / norm
+
+
+
+    def to_rows_np(xs) -> np.ndarray:
+        """
+        Stack a list/iterable of vectors into (N, D) float32 numpy on CPU.
+        Each element can be torch tensor, np array, or list.
+        """
+        rows = [_as_numpy_row(x) for x in xs]
+        arr = np.concatenate(rows, axis=0).astype(np.float32, copy=False)
+        # already normalized per row; no extra work
+        return arr
 
     def sample_spherical_noise_around(center_row: np.ndarray, K=20, eps=0.03, rng=None) -> np.ndarray:
         """
@@ -768,9 +792,11 @@ def main():
     def to_row_np(x):  # keep your existing helper if you already have it
         return np.asarray(x, dtype=np.float32).reshape(1, -1)
 
+    # Backward-compatible alias
+    to_row_np = _as_numpy_row
     # --- Concept embeddings (each to (1, D) np, unit norm) ---
     hauler_n = to_row_np(cond_hauler)
-    auto_n = to_row_np(cond_auto)  # automobile
+    auto_n = to_row_np(cond_auto)
     rig_n = to_row_np(cond_rig)
     cat_n = to_row_np(cond_cat)
     target_n = to_row_np(cond_target)
