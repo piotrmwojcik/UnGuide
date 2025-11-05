@@ -630,6 +630,7 @@ def main():
 
     # Models (original + trainable clone)
     if is_main:
+        import os
         os.makedirs(os.path.join(args.output_dir, "tmp"), exist_ok=True)
 
     model_orig, sampler_orig, model, sampler_unused = get_models(
