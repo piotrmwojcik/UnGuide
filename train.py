@@ -819,7 +819,7 @@ def main():
         "cat": cat_n,
     }
 
-    K = 20
+    K = 50
     eps = 0.03
     rng = np.random.default_rng(0)
 
