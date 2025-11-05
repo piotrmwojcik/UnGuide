@@ -721,6 +721,10 @@ def main():
     from sklearn.decomposition import PCA
     from sklearn.manifold import TSNE
     # --- 1) Get CLIP text embeddings (detached) ---
+    inputus_target = encode("a photo of the truck")
+    inputs_other = encode("a photo of the hauler")
+    inputs_other2 = encode("a photo of the automobile")
+    inputs_other3 = encode("a photo of the rig")
     with torch.no_grad():
         cond_hauler = clip_text_encoder(inputs_other).pooler_output.detach()  # "a photo of the hauler"
         cond_auto = clip_text_encoder(inputs_other2).pooler_output.detach()  # "a photo of the automobile"
