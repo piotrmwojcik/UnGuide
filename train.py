@@ -725,6 +725,7 @@ def main():
     inputs_other = encode("a photo of the hauler")
     inputs_other2 = encode("a photo of the automobile")
     inputs_other3 = encode("a photo of the rig")
+    input_others4 = encode("a photo of the cat")
 
     def _l2(x: torch.Tensor) -> torch.Tensor:
         return x / (x.norm(dim=-1, keepdim=True) + 1e-8)
@@ -732,13 +733,15 @@ def main():
     with torch.no_grad():
         cond_hauler = clip_text_encoder(inputs_other).pooler_output.detach()  # "a photo of the hauler"
         cond_auto = clip_text_encoder(inputs_other2).pooler_output.detach()  # "a photo of the automobile"
-        cond_rig = clip_text_encoder(inputs_other3).pooler_output.detach()  # "a photo of the rig"
+        cond_rig = clip_text_encoder(inputs_other3).pooler_output.detach()
+        cond_cat = clip_text_encoder(inputs_other4).pooler_output.detach()
         cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
 
     remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
     hauler_n = _l2(cond_hauler.float()).detach().cpu().numpy().reshape(1, -1)
     auto_n = _l2(cond_auto.float()).detach().cpu().numpy().reshape(1, -1)
     rig_n = _l2(cond_rig.float()).detach().cpu().numpy().reshape(1, -1)
+    cat_n = _l2(cond_cat.float()).detach().cpu().numpy().reshape(1, -1)
     target_n = _l2(cond_target.float()).detach().cpu().numpy().reshape(1, -1)
 
     # --- 2) Fit UMAP on the remove-prompt cloud only ---
@@ -757,6 +760,7 @@ def main():
     hauler_2d = um.transform(hauler_n)  # (1, 2)
     auto_2d = um.transform(auto_n)  # (1, 2)
     rig_2d = um.transform(rig_n)  # (1, 2)
+    cat_2d = um.transform(cat_n)
     target_2d = um.transform(target_n)  # (1, 2)
     # --- 3) Save coordinates to CSV (cloud + special points with labels) ---
     import os
@@ -771,6 +775,7 @@ def main():
     plt.scatter(auto_2d[:, 0], auto_2d[:, 1], s=60, marker="*", label="automobile")
     plt.scatter(hauler_2d[:, 0], hauler_2d[:, 1], s=50, marker="^", label="hauler")
     plt.scatter(rig_2d[:, 0], rig_2d[:, 1], s=50, marker="v", label="rig")
+    plt.scatter(cat_2d[:, 0], cat_2d[:, 1], s=50, marker="+", label="cat")
     plt.scatter(target_2d[:, 0], target_2d[:, 1], s=60, marker="X", label="target")
     plt.title("UMAP (2D) on remove prompts — metric=cosine")
     plt.xlabel("UMAP-1");
