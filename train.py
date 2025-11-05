@@ -745,7 +745,7 @@ def main():
         - Reshapes to a single row
         - L2 normalizes (since you said unit norm)
         """
-        if TORCH_AVAILABLE and isinstance(x, torch.Tensor):
+        if isinstance(x, torch.Tensor):
             x = x.detach().to("cpu").float().numpy()
         else:
             x = np.asarray(x, dtype=np.float32)
@@ -754,7 +754,6 @@ def main():
         norm = np.linalg.norm(x, axis=1, keepdims=True)
         norm = np.maximum(norm, 1e-12)
         return x / norm
-
 
 
     def to_rows_np(xs) -> np.ndarray:
