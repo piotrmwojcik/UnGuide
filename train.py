@@ -735,9 +735,6 @@ def main():
     pca_2d = pca.fit_transform(X)  # (N, 2)
 
     # Save PCA coordinates
-    pca_df = pd.DataFrame(pca_2d, columns=["pc1", "pc2"])
-    pca_df.to_csv(os.path.join(out_dir, "remove_prompts_pca2d.csv"), index=False)
-
     # Plot PCA
     plt.figure(figsize=(6, 5))
     plt.scatter(pca_2d[:, 0], pca_2d[:, 1], s=8)
