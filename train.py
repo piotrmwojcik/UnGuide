@@ -879,6 +879,10 @@ def main():
     plt.tight_layout()
     plt.show()
 
+    fig_path = os.path.join(out_dir, "umap2d_augment.png")
+    plt.savefig(fig_path, dpi=220)
+    plt.close()
+
     K = 100
     eps = 0.001
     rng = np.random.default_rng(0)
