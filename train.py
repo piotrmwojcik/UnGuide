@@ -885,7 +885,7 @@ def main():
     plt.close()
 
     K = 100
-    eps = 0.0001
+    eps = 0.00001
     rng = np.random.default_rng(0)
 
     concept_points_2d = {}
@@ -902,7 +902,6 @@ def main():
     # --- (Optional) Save CSVs and a plot ---
     out_dir = "embeddings_remove_prompts"
     os.makedirs(out_dir, exist_ok=True)
-
 
     # quick visualization
     plt.figure(figsize=(7, 6))
