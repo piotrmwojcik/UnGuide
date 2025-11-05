@@ -857,7 +857,7 @@ def main():
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     # e.g., MSE to the target step
-                    loss = 10.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
+                    loss = 2.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
@@ -934,7 +934,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: dog"
+                    caption = f"target: car"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
