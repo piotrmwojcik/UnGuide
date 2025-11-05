@@ -749,7 +749,7 @@ def main():
     target_2d = pca.transform(target_n)  # (1,2)
 
     # --- 3) Save coordinates to CSV (cloud + special points with labels) ---
-    import pandas as pd, os
+    import os
     out_dir = "embeddings_remove_prompts"
     os.makedirs(out_dir, exist_ok=True)
 
