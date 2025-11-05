@@ -736,10 +736,10 @@ def main():
         return x / (x.norm(dim=-1, keepdim=True) + 1e-8)
 
     remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N,D)
-    hauler_n = _l2(cond_hauler.float()).cpu().numpy()[None, :]
-    auto_n = _l2(cond_auto.float()).cpu().numpy()[None, :]
-    rig_n = _l2(cond_rig.float()).cpu().numpy()[None, :]
-    target_n = _l2(cond_target.float()).cpu().numpy()[None, :]
+    hauler_n = _l2(cond_hauler.float()).cpu().numpy()
+    auto_n = _l2(cond_auto.float()).cpu().numpy()
+    rig_n = _l2(cond_rig.float()).cpu().numpy()
+    target_n = _l2(cond_target.float()).cpu().numpy()
 
     # --- 2) Fit PCA on the remove prompt cloud only ---
     from sklearn.decomposition import PCA
@@ -756,7 +756,6 @@ def main():
     import os
     out_dir = "embeddings_remove_prompts"
     os.makedirs(out_dir, exist_ok=True)
-
 
     # --- 4) Plot and save (points + highlighted automobile) ---
     import matplotlib.pyplot as plt
