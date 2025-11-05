@@ -721,7 +721,7 @@ def main():
     from sklearn.decomposition import PCA
     from sklearn.manifold import TSNE
     # --- 1) Get CLIP text embeddings (detached) ---
-    inputus_target = encode("a photo of the truck")
+    inputs_target = encode("a photo of the truck")
     inputs_other = encode("a photo of the hauler")
     inputs_other2 = encode("a photo of the automobile")
     inputs_other3 = encode("a photo of the rig")
