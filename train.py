@@ -738,6 +738,13 @@ def main():
         cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
 
     remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
+
+    eps = 1e-2  # noise scale; tweak if you want more/less perturbation
+    rng = np.random.default_rng(0)
+    noise = rng.normal(size=remove_all_prompts_n.shape).astype(np.float32)
+    remove_all_prompts_noisy = remove_all_prompts_n + eps * noise
+    remove_all_prompts_noisy /= (np.linalg.norm(remove_all_prompts_noisy, axis=1, keepdims=True) + 1e-8)
+
     hauler_n = _l2(cond_hauler.float()).detach().cpu().numpy().reshape(1, -1)
     auto_n = _l2(cond_auto.float()).detach().cpu().numpy().reshape(1, -1)
     rig_n = _l2(cond_rig.float()).detach().cpu().numpy().reshape(1, -1)
@@ -755,6 +762,9 @@ def main():
         random_state=0,
     )
     um_2d = um.fit_transform(remove_all_prompts_n)  # (N, 2)
+
+    # 3) Project the noisy vectors with the same UMAP model
+    um_2d_noisy = um.transform(remove_all_prompts_noisy)  # (N, 2)
 
     # Project the special prompts using the same UMAP model
     hauler_2d = um.transform(hauler_n)  # (1, 2)
@@ -776,6 +786,7 @@ def main():
     plt.scatter(hauler_2d[:, 0], hauler_2d[:, 1], s=50, marker="^", label="hauler")
     plt.scatter(rig_2d[:, 0], rig_2d[:, 1], s=50, marker="v", label="rig")
     plt.scatter(cat_2d[:, 0], cat_2d[:, 1], s=50, marker="+", label="cat")
+    plt.scatter(um_2d_noisy[:, 0], um_2d_noisy[:, 1], s=8, alpha=0.6, label="noisy")
     plt.scatter(target_2d[:, 0], target_2d[:, 1], s=60, marker="X", label="target")
     plt.title("UMAP (2D) on remove prompts — metric=cosine")
     plt.xlabel("UMAP-1");
