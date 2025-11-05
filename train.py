@@ -759,18 +759,19 @@ def main():
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
-                        sampled_list = random.sample(CIFAR100, K)
-                        sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
+                        #sampled_list = random.sample(CIFAR100, K)
+                        #sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
-                        processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.detach().squeeze() for cifar_100_prompt in sampled_list]
+                        #processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.detach().squeeze() for cifar_100_prompt in sampled_list]
                         #with torch.no_grad():
                         #    base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
-                        #processed = []
-                        #with torch.no_grad():
-                        #    for rp in sampled_list:
-                        #        rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
-                        #        processed.append(rp_proc.detach())
+                        processed = []
+                        sampled_list = random.sample(retain_tensors, K)
+                        with torch.no_grad():
+                            for rp in sampled_list:
+                                rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
+                                processed.append(rp_proc.detach())
 
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
