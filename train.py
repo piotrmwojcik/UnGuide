@@ -955,26 +955,28 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
-                sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
-                #sample_prompt = retain_tensors[idx].to(accelerator.device)
-                #with torch.no_grad():
-                #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
-                #                                                     tokenizer=tokenizer)
-                #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
+                #idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
+                #sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
+                sample_prompt = retain_tensors[idx].to(accelerator.device)
+                with torch.no_grad():
+                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                                                                     tokenizer=tokenizer)
+                   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=f"a photo of the {CIFAR100[idx]}",
+                    prompt=None,
+                    #prompt=f"a photo of the {CIFAR100[idx]}",
+                    cond=sample_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"retain prompt; a photo of the {CIFAR100[idx]}"
+                    caption = f"retain prompt"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
