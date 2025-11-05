@@ -886,7 +886,7 @@ def main():
     plt.close()
 
     K = 100
-    eps = 0.01
+    eps = 0.0001
     rng = np.random.default_rng(0)
 
     concept_points_2d = {}
