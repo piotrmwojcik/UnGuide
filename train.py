@@ -737,63 +737,97 @@ def main():
         cond_cat = clip_text_encoder(inputs_other4).pooler_output.detach()
         cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
 
+    def to_row_np(t: torch.Tensor) -> np.ndarray:
+        """Torch -> (1, D) numpy row, L2-normalized."""
+        x = _l2(t.float()).detach().cpu().numpy()
+        return np.squeeze(x).reshape(1, -1)
+
+    def sample_spherical_noise_around(center_row: np.ndarray, K=20, eps=0.03, rng=None) -> np.ndarray:
+        """
+        center_row: (1, D) unit vector (numpy)
+        Returns (K, D) unit vectors: small tangent noise around 'center_row'.
+        """
+        assert center_row.ndim == 2 and center_row.shape[0] == 1
+        c = center_row[0]  # (D,)
+        c = c / (np.linalg.norm(c) + 1e-8)
+        D = c.shape[0]
+
+        rng = np.random.default_rng(0) if rng is None else rng
+        g = rng.normal(size=(K, D)).astype(np.float32)  # (K, D)
+        # remove parallel component -> stay in tangent space of the sphere at c
+        g -= (g @ c)[:, None] * c
+        noisy = c[None, :] + eps * g  # (K, D)
+        noisy /= (np.linalg.norm(noisy, axis=1, keepdims=True) + 1e-8)
+        return noisy
+
+# --- Prepare cloud used to fit UMAP ---
     remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
 
-    eps = 1e-2  # noise scale; tweak if you want more/less perturbation
-    rng = np.random.default_rng(0)
-    noise = rng.normal(size=remove_all_prompts_n.shape).astype(np.float32)
-    remove_all_prompts_noisy = remove_all_prompts_n + eps * noise
-    remove_all_prompts_noisy /= (np.linalg.norm(remove_all_prompts_noisy, axis=1, keepdims=True) + 1e-8)
+    # --- Concept embeddings (each to (1, D) np, unit norm) ---
+    hauler_n = to_row_np(cond_hauler)
+    auto_n = to_row_np(cond_auto)  # automobile
+    rig_n = to_row_np(cond_rig)
+    cat_n = to_row_np(cond_cat)
+    target_n = to_row_np(cond_target)
 
-    hauler_n = _l2(cond_hauler.float()).detach().cpu().numpy().reshape(1, -1)
-    auto_n = _l2(cond_auto.float()).detach().cpu().numpy().reshape(1, -1)
-    rig_n = _l2(cond_rig.float()).detach().cpu().numpy().reshape(1, -1)
-    cat_n = _l2(cond_cat.float()).detach().cpu().numpy().reshape(1, -1)
-    target_n = _l2(cond_target.float()).detach().cpu().numpy().reshape(1, -1)
-
-    # --- 2) Fit UMAP on the remove-prompt cloud only ---
+    # --- Fit UMAP on the cloud (not on the concepts) ---
     # pip install umap-learn
-    import umap
-    um = umap.UMAP(
-        n_components=2,
-        n_neighbors=15,  # tune: larger -> more global, smaller -> more local
-        min_dist=0.1,  # tune: smaller -> tighter clusters
-        metric="cosine",
-        random_state=0,
-    )
+    try:
+        from umap import UMAP
+    except Exception:
+        import umap.umap_ as umap
+
+        UMAP = umap.UMAP
+
+    um = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine", random_state=0)
     um_2d = um.fit_transform(remove_all_prompts_n)  # (N, 2)
 
-    # 3) Project the noisy vectors with the same UMAP model
-    um_2d_noisy = um.transform(remove_all_prompts_noisy)  # (N, 2)
+    # --- Project each concept and K noisy samples around it ---
+    concepts = {
+        "target": target_n,
+        "hauler": hauler_n,
+        "automobile": auto_n,
+        "rig": rig_n,
+        "cat": cat_n,
+    }
 
-    # Project the special prompts using the same UMAP model
-    hauler_2d = um.transform(hauler_n)  # (1, 2)
-    auto_2d = um.transform(auto_n)  # (1, 2)
-    rig_2d = um.transform(rig_n)  # (1, 2)
-    cat_2d = um.transform(cat_n)
-    target_2d = um.transform(target_n)  # (1, 2)
-    # --- 3) Save coordinates to CSV (cloud + special points with labels) ---
-    import os
-    out_dir = "embeddings_remove_prompts"
+    K = 20
+    eps = 0.03
+    rng = np.random.default_rng(0)
+
+    concept_points_2d = {}
+    concept_noisy_2d = {}
+
+    for name, row in concepts.items():
+        base_2d = um.transform(row)  # (1, 2)
+        noisy_nd = sample_spherical_noise_around(row, K=K, eps=eps, rng=rng)  # (K, D)
+        noisy_2d = um.transform(noisy_nd)  # (K, 2)
+        concept_points_2d[name] = base_2d
+        concept_noisy_2d[name] = noisy_2d
+
+    # --- (Optional) Save CSVs and a plot ---
+    import os, pandas as pd, matplotlib.pyplot as plt
+
+    out_dir = "embeddings_remove_prompts";
     os.makedirs(out_dir, exist_ok=True)
 
-    # --- 4) Plot and save (points + highlighted automobile) ---
-    import matplotlib.pyplot as plt
-
-    plt.figure(figsize=(6, 5))
-    plt.scatter(um_2d[:, 0], um_2d[:, 1], s=8, alpha=0.6, label="remove prompts")
-    plt.scatter(auto_2d[:, 0], auto_2d[:, 1], s=60, marker="*", label="automobile")
-    plt.scatter(hauler_2d[:, 0], hauler_2d[:, 1], s=50, marker="^", label="hauler")
-    plt.scatter(rig_2d[:, 0], rig_2d[:, 1], s=50, marker="v", label="rig")
-    plt.scatter(cat_2d[:, 0], cat_2d[:, 1], s=50, marker="+", label="cat")
-    plt.scatter(um_2d_noisy[:, 0], um_2d_noisy[:, 1], s=8, alpha=0.6, label="noisy")
-    plt.scatter(target_2d[:, 0], target_2d[:, 1], s=60, marker="X", label="target")
-    plt.title("UMAP (2D) on remove prompts — metric=cosine")
+    # quick visualization
+    plt.figure(figsize=(7, 6))
+    plt.scatter(um_2d[:, 0], um_2d[:, 1], s=8, alpha=0.25, label="cloud")
+    markers = {"target": "X", "hauler": "^", "automobile": "*", "rig": "v", "cat": "P"}
+    for name in concepts.keys():
+        # noisy
+        nz = concept_noisy_2d[name]
+        plt.scatter(nz[:, 0], nz[:, 1], s=16, alpha=0.7, label=f"{name} noisy")
+        # center
+        c2d = concept_points_2d[name][0]
+        plt.scatter([c2d[0]], [c2d[1]], s=80, marker=markers.get(name, "o"), edgecolors="k", label=f"{name} center")
+    plt.title("UMAP (2D) — concept-centered noisy samples (cosine)")
     plt.xlabel("UMAP-1");
-    plt.ylabel("UMAP-2")
-    plt.legend(loc="best", fontsize=9)
-    plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "remove_prompts_umap2d_with_prompts.png"), dpi=200)
+    plt.ylabel("UMAP-2");
+    plt.legend(fontsize=8, ncol=2)
+    plt.tight_layout();
+    plt.savefig(os.path.join(out_dir, "concept_clusters_umap2d.png"), dpi=220);
     plt.close()
 
     print("[OK] Saved PCA with automobile prompt overlay to:",
