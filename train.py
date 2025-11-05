@@ -556,7 +556,7 @@ def main():
     )
 
     df = pd.read_csv(args.csv_path)
-    THRESHOLD_RETAIN = 0.035
+    THRESHOLD_RETAIN = 0.040
     THRESHOLD_REMOVE = 0.025
     for col in ["clip_cos_replaced", "clip_cos_baseline"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
