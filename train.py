@@ -819,8 +819,8 @@ def main():
         "cat": cat_n,
     }
 
-    K = 50
-    eps = 0.03
+    K = 100
+    eps = 0.009
     rng = np.random.default_rng(0)
 
     concept_points_2d = {}
