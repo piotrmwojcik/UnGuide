@@ -880,6 +880,7 @@ def main():
     plt.show()
 
     out_dir = "embeddings_remove_prompts"
+    os.makedirs(out_dir, exist_ok=True)
     fig_path = os.path.join(out_dir, "umap2d_augment.png")
     plt.savefig(fig_path, dpi=220)
     plt.close()
