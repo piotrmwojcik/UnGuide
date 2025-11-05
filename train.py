@@ -731,27 +731,29 @@ def main():
         cond_rig = clip_text_encoder(inputs_other3).pooler_output.detach()  # "a photo of the rig"
         cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
 
-    # Optional: L2-normalize (helps PCA stability a bit; CLIP uses cosine space)
-    def _l2(x):
-        return x / (x.norm(dim=-1, keepdim=True) + 1e-8)
+    remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
+    hauler_n = _l2(cond_hauler.float()).detach().cpu().numpy().reshape(1, -1)
+    auto_n = _l2(cond_auto.float()).detach().cpu().numpy().reshape(1, -1)
+    rig_n = _l2(cond_rig.float()).detach().cpu().numpy().reshape(1, -1)
+    target_n = _l2(cond_target.float()).detach().cpu().numpy().reshape(1, -1)
 
-    remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N,D)
-    hauler_n = _l2(cond_hauler.float()).cpu().numpy()
-    auto_n = _l2(cond_auto.float()).cpu().numpy()
-    rig_n = _l2(cond_rig.float()).cpu().numpy()
-    target_n = _l2(cond_target.float()).cpu().numpy()
+    # --- 2) Fit UMAP on the remove-prompt cloud only ---
+    # pip install umap-learn
+    import umap
+    um = umap.UMAP(
+        n_components=2,
+        n_neighbors=15,  # tune: larger -> more global, smaller -> more local
+        min_dist=0.1,  # tune: smaller -> tighter clusters
+        metric="cosine",
+        random_state=0,
+    )
+    um_2d = um.fit_transform(remove_all_prompts_n)  # (N, 2)
 
-    # --- 2) Fit PCA on the remove prompt cloud only ---
-    from sklearn.decomposition import PCA
-    pca = PCA(n_components=2, random_state=0)
-    pca_2d = pca.fit_transform(remove_all_prompts_n)  # (N,2)
-
-    # Project the special prompts using the same PCA
-    hauler_2d = pca.transform(hauler_n)  # (1,2)
-    auto_2d = pca.transform(auto_n)  # (1,2)  <-- automobile
-    rig_2d = pca.transform(rig_n)  # (1,2)
-    target_2d = pca.transform(target_n)  # (1,2)
-
+    # Project the special prompts using the same UMAP model
+    hauler_2d = um.transform(hauler_n)  # (1, 2)
+    auto_2d = um.transform(auto_n)  # (1, 2)
+    rig_2d = um.transform(rig_n)  # (1, 2)
+    target_2d = um.transform(target_n)  # (1, 2)
     # --- 3) Save coordinates to CSV (cloud + special points with labels) ---
     import os
     out_dir = "embeddings_remove_prompts"
@@ -761,19 +763,17 @@ def main():
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=(6, 5))
-    plt.scatter(pca_2d[:, 0], pca_2d[:, 1], s=8, alpha=0.6, label="remove prompts")
-
+    plt.scatter(um_2d[:, 0], um_2d[:, 1], s=8, alpha=0.6, label="remove prompts")
     plt.scatter(auto_2d[:, 0], auto_2d[:, 1], s=60, marker="*", label="automobile")
     plt.scatter(hauler_2d[:, 0], hauler_2d[:, 1], s=50, marker="^", label="hauler")
     plt.scatter(rig_2d[:, 0], rig_2d[:, 1], s=50, marker="v", label="rig")
     plt.scatter(target_2d[:, 0], target_2d[:, 1], s=60, marker="X", label="target")
-
-    plt.title(f"PCA (2D) on remove prompts — var explained: {pca.explained_variance_ratio_.sum():.2%}")
-    plt.xlabel("PC1");
-    plt.ylabel("PC2")
+    plt.title("UMAP (2D) on remove prompts — metric=cosine")
+    plt.xlabel("UMAP-1");
+    plt.ylabel("UMAP-2")
     plt.legend(loc="best", fontsize=9)
     plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "remove_prompts_pca2d_with_prompts.png"), dpi=200)
+    plt.savefig(os.path.join(out_dir, "remove_prompts_umap2d_with_prompts.png"), dpi=200)
     plt.close()
 
     print("[OK] Saved PCA with automobile prompt overlay to:",
