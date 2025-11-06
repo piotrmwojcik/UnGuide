@@ -715,166 +715,8 @@ def main():
         transformed_list.append(rp_proc)
 
     # (N, D) tensor of all transformed remove prompts
-    remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
-
-    import os
-    import matplotlib.pyplot as plt
-    from sklearn.decomposition import PCA
-    from sklearn.manifold import TSNE
-    # --- 1) Get CLIP text embeddings (detached) ---
-    inputs_target = encode("a photo of the truck")
-    inputs_other = encode("a photo of the hauler")
-    inputs_other2 = encode("a photo of the automobile")
-    inputs_other3 = encode("a photo of the rig")
-    inputs_other4 = encode("a photo of the cat")
-
-    def _l2(x: torch.Tensor) -> torch.Tensor:
-        return x / (x.norm(dim=-1, keepdim=True) + 1e-8)
-
-    with torch.no_grad():
-        cond_hauler = clip_text_encoder(inputs_other).pooler_output.detach()  # "a photo of the hauler"
-        cond_auto = clip_text_encoder(inputs_other2).pooler_output.detach()  # "a photo of the automobile"
-        cond_rig = clip_text_encoder(inputs_other3).pooler_output.detach()
-        cond_cat = clip_text_encoder(inputs_other4).pooler_output.detach()
-        cond_target = clip_text_encoder(inputs_target).pooler_output.detach()  # your target text
-
-    def _as_numpy_row(x) -> np.ndarray:
-        """
-        Accepts torch.Tensor | np.ndarray | list and returns (1, D) float32 numpy.
-        - If torch tensor: detach + move to CPU before numpy()
-        - Reshapes to a single row
-        - L2 normalizes (since you said unit norm)
-        """
-        if isinstance(x, torch.Tensor):
-            x = x.detach().to("cpu").float().numpy()
-        else:
-            x = np.asarray(x, dtype=np.float32)
-        x = x.reshape(1, -1).astype(np.float32, copy=False)
-        # L2 normalize defensively
-        norm = np.linalg.norm(x, axis=1, keepdims=True)
-        norm = np.maximum(norm, 1e-12)
-        return x / norm
-
-
-    def to_rows_np(xs) -> np.ndarray:
-        """
-        Stack a list/iterable of vectors into (N, D) float32 numpy on CPU.
-        Each element can be torch tensor, np array, or list.
-        """
-        rows = [_as_numpy_row(x) for x in xs]
-        arr = np.concatenate(rows, axis=0).astype(np.float32, copy=False)
-        # already normalized per row; no extra work
-        return arr
-
-    def sample_spherical_noise_around(center_row: np.ndarray, K=20, eps=0.03, rng=None) -> np.ndarray:
-        """
-        center_row: (1, D) unit vector (numpy)
-        Returns (K, D) unit vectors: small tangent noise around 'center_row'.
-        """
-        assert center_row.ndim == 2 and center_row.shape[0] == 1
-        c = center_row[0]  # (D,)
-        c = c / (np.linalg.norm(c) + 1e-8)
-        D = c.shape[0]
-
-        rng = np.random.default_rng(0) if rng is None else rng
-        g = rng.normal(size=(K, D)).astype(np.float32)  # (K, D)
-        # remove parallel component -> stay in tangent space of the sphere at c
-        g -= (g @ c)[:, None] * c
-        noisy = c[None, :] + eps * g  # (K, D)
-        noisy /= (np.linalg.norm(noisy, axis=1, keepdims=True) + 1e-8)
-        return noisy
-
-# --- Prepare cloud used to fit UMAP ---
-    remove_all_prompts_n = _l2(remove_all_prompts.float()).cpu().numpy()  # (N, D)
-
-    # Ensure unit-norm (you said they are already unit norm)
-    def to_row_np(x):  # keep your existing helper if you already have it
-        return np.asarray(x, dtype=np.float32).reshape(1, -1)
-
-    # Backward-compatible alias
-    to_row_np = _as_numpy_row
-    # --- Concept embeddings (each to (1, D) np, unit norm) ---
-    hauler_n = to_row_np(cond_hauler)
-    auto_n = to_row_np(cond_auto)
-    rig_n = to_row_np(cond_rig)
-    cat_n = to_row_np(cond_cat)
-    target_n = to_row_np(cond_target)
-
-    # --- Fit UMAP on the cloud (not on the concepts) ---
-    try:
-        from umap import UMAP
-    except Exception:
-        import umap.umap_ as umap
-        UMAP = umap.UMAP
-
-    um = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine", random_state=0)
-    um_2d = um.fit_transform(remove_all_prompts_n)  # (N, 2)
-
-    # --- Project centers; sample noise ONLY around target ---
-    concepts = {
-        "target": target_n,
-        "hauler": hauler_n,
-        "automobile": auto_n,
-        "rig": rig_n,
-        "cat": cat_n,
-    }
-
-    # 1) Build augmented prompts for the target content
-
-
-    out_dir = "embeddings_remove_prompts"
-    os.makedirs(out_dir, exist_ok=True)
-    fig_path = os.path.join(out_dir, "umap2d_augment.png")
-    plt.savefig(fig_path, dpi=220)
-    plt.close()
-
-    K = 100
-    eps = 0.000001
-    rng = np.random.default_rng(0)
-
-    concept_points_2d = {}
-    concept_noisy_2d = {name: np.empty((0, 2), dtype=np.float32) for name in concepts}  # default empty
-
-    for name, row in concepts.items():
-        base_2d = um.transform(row)  # (1, 2) OK for UMAP
-        concept_points_2d[name] = base_2d
-
-    # noisy sampling ONLY around target
-    noisy_nd = sample_spherical_noise_around(target_n, K=K, eps=eps, rng=rng)  # (K, D)
-    concept_noisy_2d["target"] = um.transform(noisy_nd)  # (K, 2)
-
-    # --- (Optional) Save CSVs and a plot ---
-    out_dir = "embeddings_remove_prompts"
-    os.makedirs(out_dir, exist_ok=True)
-
-    # quick visualization
-    plt.figure(figsize=(7, 6))
-    plt.scatter(um_2d[:, 0], um_2d[:, 1], s=8, alpha=0.25, label="cloud")
-
-    markers = {"target": "X", "hauler": "^", "automobile": "*", "rig": "v", "cat": "P"}
-    for name in concepts.keys():
-        # plot noisy only for target
-        if name == "target":
-            nz = concept_noisy_2d[name]
-            if nz.size:
-                plt.scatter(nz[:, 0], nz[:, 1], s=16, alpha=0.7, label=f"{name} noisy")
-        # plot center for all
-        c2d = concept_points_2d[name][0]
-        plt.scatter([c2d[0]], [c2d[1]], s=80, marker=markers.get(name, "o"),
-                    edgecolors="k", label=f"{name} center")
-
-    plt.title("UMAP (2D) — dupa noisy samples ONLY around target (cosine)")
-    plt.xlabel("UMAP-1");
-    plt.ylabel("UMAP-2")
-    plt.legend(fontsize=8, ncol=2)
-    plt.tight_layout()
-
-    fig_path = os.path.join(out_dir, "umap2d_target_only_noise.png")
-    plt.savefig(fig_path, dpi=220)
-    plt.close()
-
-    print("[OK] Saved UMAP with target-only noisy sampling to:", fig_path)
-    print("Saved figure!!")
+    #remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
+    remove_all_prompts = torch.load('truck_samples/X_samp_64x768.pt').to(accelerator.device)
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
@@ -905,11 +747,11 @@ def main():
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
             with torch.no_grad():
-                remove_prompt = random.choice(remove_tensors).detach()
-                remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
-                                                                tokenizer=tokenizer)
-                remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
-                #remove_prompt = cond_target
+                #remove_prompt = random.choice(remove_tensors).detach()
+                #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
+                #                                                tokenizer=tokenizer)
+                #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
+                remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -917,7 +759,8 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                if 'neutral.json' in sample['file']:
+                if False:
+                #if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         #sampled_list = random.sample(CIFAR100, K)
