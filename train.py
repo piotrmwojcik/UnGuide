@@ -759,16 +759,16 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                #if False:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
-                        #sampled_list = random.sample(CIFAR100, K)
-                        #sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
+                        sampled_list = random.sample(CIFAR100, K)
+                        sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
                         #processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.detach().squeeze() for cifar_100_prompt in sampled_list]
-                        #with torch.no_grad():
-                        #    base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
+                        with torch.no_grad():
+                            base.current_conditioning = clip_text_encoder(inputs_cifar_100).pooler_output.detach()
 
                         processed = []
                         sampled_list = random.sample(retain_tensors, K)
