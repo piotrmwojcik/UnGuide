@@ -716,7 +716,7 @@ def main():
 
     # (N, D) tensor of all transformed remove prompts
     #remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
-    remove_all_prompts = torch.load('truck_samples/X_samp_64x768.pt').to(accelerator.device)
+    remove_all_prompts = torch.load('deer_samples/X_samp_64x768.pt').to(accelerator.device)
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
@@ -736,9 +736,9 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            inputs_other = encode("a photo of the hauler")
-            inputs_other2 = encode("a photo of the automobile")
-            inputs_other3 = encode("a photo of the rig")
+            inputs_other = encode("a photo of the hart")
+            inputs_other2 = encode("a photo of the dog")
+            inputs_other3 = encode("a photo of the doe")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
@@ -806,6 +806,7 @@ def main():
                     print('loss neutral ', loss_retain)
                 else:
                     rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
+                    #remove_prompt =
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
                     rem, current_timestep = base.hyper.get_context()
@@ -916,14 +917,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the hauler",
+                    prompt="a photo of the hart",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: hauler"
+                    caption = f"target: hart"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -932,14 +933,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the automobile",
+                    prompt="a photo of the dog",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: car"
+                    caption = f"target: dog"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -948,14 +949,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the rig",
+                    prompt="a photo of the doe",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: rig"
+                    caption = f"target: doe"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -985,28 +986,28 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, len(remove_tensors), (1,), device=accelerator.device).item()
-                sample_prompt = remove_tensors[idx].to(accelerator.device)
-                with torch.no_grad():
-                    sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
-                                                               tokenizer=tokenizer)
-                    sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
-                base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt=None,
-                    cond=sample_prompt,
-                    device=accelerator.device,
-                    steps=50,
-                    out_dir=os.path.join(args.output_dir, "tmp"),
-                    prefix=f"unl_{i}_",
-                )
-                if imgs is not None:
-                    caption = f"remove prompt"
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({"remove": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
+                #idx = torch.randint(0, len(remove_tensors), (1,), device=accelerator.device).item()
+                #sample_prompt = remove_tensors[idx].to(accelerator.device)
+                # with torch.no_grad():
+                #     sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                #                                                tokenizer=tokenizer)
+                #     sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
+                # base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
+                # base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
+                # imgs = generate_and_save_sd_images(
+                #     model=base,
+                #     sampler=sampler,
+                #     prompt=None,
+                #     cond=sample_prompt,
+                #     device=accelerator.device,
+                #     steps=50,
+                #     out_dir=os.path.join(args.output_dir, "tmp"),
+                #     prefix=f"unl_{i}_",
+                # )
+                # if imgs is not None:
+                #     caption = f"remove prompt"
+                #     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
+                #     wandb.log({"remove": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
             with torch.no_grad():
                 loss_reduced = accelerator.gather(loss.detach()).mean()
                 if loss_retain is not None:
