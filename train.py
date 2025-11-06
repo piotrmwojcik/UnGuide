@@ -772,10 +772,10 @@ def main():
 
                         #processed = []
                         #sampled_list = random.sample(retain_tensors, K)
-                        with torch.no_grad():
-                            for rp in sampled_list:
-                                rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
-                                processed.append(rp_proc.detach())
+                        #with torch.no_grad():
+                        #    for rp in sampled_list:
+                        #        rp_proc, _ = pooled_from_hidden_and_prompt(rp, target_text, tokenizer=tokenizer)
+                        #        processed.append(rp_proc.detach())
 
                         # (K, D) tensor on the correct device
                         retain_prompts = torch.stack(processed, dim=0).to(base.device)
@@ -959,14 +959,14 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                #idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
-                idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
-                #sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
-                sample_prompt = retain_tensors[idx].to(accelerator.device)
-                with torch.no_grad():
-                   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
-                                                                     tokenizer=tokenizer)
-                   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
+                idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
+                #idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
+                sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
+                #sample_prompt = retain_tensors[idx].to(accelerator.device)
+                #with torch.no_grad():
+                #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
+                #                                                     tokenizer=tokenizer)
+                #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
                 base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
                 base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
