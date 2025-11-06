@@ -716,7 +716,7 @@ def main():
 
     # (N, D) tensor of all transformed remove prompts
     #remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
-    remove_all_prompts = torch.load('truck_samples/X_samsp_64x768.pt').to(accelerator.device)
+    remove_all_prompts = torch.load('truck_samples/X_samp_64x768.pt').to(accelerator.device)
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
