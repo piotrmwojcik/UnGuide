@@ -972,16 +972,16 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=None,
+                    prompt=f"a photo of the {CIFAR100[idx]}",
                     #prompt=f"a photo of the {CIFAR100[idx]}",
-                    cond=sample_prompt,
+                    #cond=sample_prompt,
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"retain prompt"
+                    caption = f"a photo of the {CIFAR100[idx]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
