@@ -853,13 +853,13 @@ def main():
                     #ct = current_timestep.repeat(all_N)
                     base.hyper.set_context(remove_prompt, current_timestep)
                     base.hyper.compute_and_cache_loras(
-                        remove_all_prompts, current_timestep
+                        remove_prompt, current_timestep
                     )
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
 
                     base.hyper.set_context(remove_prompt, current_timestep + 1)
                     base.hyper.compute_and_cache_loras(
-                        remove_all_prompts, current_timestep + 1
+                        remove_prompt, current_timestep + 1
                     )
                     #_ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
