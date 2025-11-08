@@ -755,19 +755,7 @@ def main():
                 "red": "a photo of a red deer",
             }
 
-            # Batch encode all phrases
-            texts = list(phrases.values())
-            tok = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
-
-            with torch.no_grad():
-                # For CLIPTextModel outputs, use .pooler_output (or .text_embeds for CLIPModel)
-                remove_prompts = clip_text_encoder(**tok).pooler_output.detach()
-                # remove_prompts: shape [num_texts, hidden_dim]
-
-            # If you prefer a dict keyed like 'target', 'buck', ...:
-            with torch.no_grad():
-                emb = clip_text_encoder(**tok).pooler_output.detach()
-            remove_prompts = {k: emb[i] for i, k in enumerate(phrases.keys())}
+            remove_prompts = [clip_text_encoder(encode(phrases[k])).pooler_output.detach() for k in phrases.keys()]
             with torch.no_grad():
                 remove_prompt = random.choice(remove_prompts).to(accelerator.device).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
