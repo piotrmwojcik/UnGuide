@@ -147,7 +147,8 @@ CIFAR100 = [
     'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
     'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger',
     'train','trout','tulip','tractor','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
-].extend(["moose", "boar", "squirrel", "bear"])
+]
+CIFAR100.extend(["moose", "boar", "squirrel", "bear"])
 
 def prompt_augmentation(content, augment=True):
     if augment:
