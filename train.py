@@ -671,7 +671,7 @@ def main():
     optimizer = torch.optim.Adam(trainable_params, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[30000], gamma=0.5
+        optimizer, milestones=[300], gamma=0.5
     )
 
     # Prepare for DDP / Mixed precision
@@ -738,7 +738,7 @@ def main():
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
             inputs_other = encode("a photo of the hart")
             inputs_other2 = encode("a photo of the stag")
-            inputs_other3 = encode("a photo of the doe")
+            inputs_other3 = encode("a photo of the dog")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
@@ -949,7 +949,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the doe",
+                    prompt="a photo of the dog",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
