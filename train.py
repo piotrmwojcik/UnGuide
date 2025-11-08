@@ -147,7 +147,7 @@ CIFAR100 = [
     'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
     'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger',
     'train','trout','tulip','tractor','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
-]
+].extend(["moose", "boar", "squirrel", "bear"])
 
 def prompt_augmentation(content, augment=True):
     if augment:
@@ -799,7 +799,7 @@ def main():
 
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 10 * delta_live.pow(2).mean()
+                    loss = 30 * delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_retain = loss.clone().detach()
@@ -863,7 +863,7 @@ def main():
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     # e.g., MSE to the target step
-                    loss = 10.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
+                    loss = 2.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
