@@ -769,7 +769,7 @@ def main():
                 emb = clip_text_encoder(**tok).pooler_output.detach()
             remove_prompts = {k: emb[i] for i, k in enumerate(phrases.keys())}
             with torch.no_grad():
-                remove_prompt = random.choice(remove_prompts).detach()
+                remove_prompt = random.choice(remove_prompts).to(accelerator.device).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
