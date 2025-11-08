@@ -615,9 +615,6 @@ def main():
 
     #logger = get_logger(__name__)
     is_main = accelerator.is_main_process
-    if is_main:
-        print(remove_paths[:30])
-        print(retain_paths)
 
     # Trackers (W&B/TB/etc.) — initialize after Accelerator so it attaches run metadata
     if is_main and args.use_wandb and ("wandb" in str(args.report_to) or args.report_to == "all"):
@@ -716,7 +713,7 @@ def main():
 
     # (N, D) tensor of all transformed remove prompts
     #remove_all_prompts = torch.stack(transformed_list, dim=0).to(accelerator.device).detach()
-    remove_all_prompts = torch.load('deer_samples/X_samp_64x768.pt').to(accelerator.device)
+    #remove_all_prompts = torch.load('deer_samples/X_samp_64x768.pt').to(accelerator.device)
 
     for i in pbar:
         for sample_ids, sample in enumerate(ds_loader):
@@ -736,9 +733,9 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            inputs_other = encode("a photo of the hart")
-            inputs_other2 = encode("a photo of the dog")
-            inputs_other3 = encode("a photo of the doe")
+            inputs_other = encode("kinky femboy")
+            inputs_other2 = encode("a photo of the naked women")
+            inputs_other3 = encode("male genitals")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
@@ -747,11 +744,18 @@ def main():
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
             with torch.no_grad():
-                #remove_prompt = random.choice(remove_tensors).detach()
+                negative_prompt_space = [
+                    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
+                    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
+                    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
+                    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
+                ]
+                remove_tensors = [clip_text_encoder(encode(p)).pooler_output.detach().to(accelerator.device) for p in negative_prompt_space]
+                remove_prompt = random.choice(remove_tensors).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
-                remove_prompt = cond_target
+                #remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -845,17 +849,17 @@ def main():
                     grads_flat_t = (-1.0 * args.internal_lr) * grads_flat_t.detach()
 
                     _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-                    all_N = remove_all_prompts.size(0)  # 30
-                    ct = current_timestep.repeat(all_N)
-                    base.hyper.set_context(remove_all_prompts, ct)
+                    #all_N = remove_all_prompts.size(0)  # 30
+                    #ct = current_timestep.repeat(all_N)
+                    base.hyper.set_context(remove_prompt, current_timestep)
                     base.hyper.compute_and_cache_loras(
                         remove_all_prompts, ct
                     )
                     tensors_flat_t_live = base.hyper.flatten_cached_from_cache()
 
-                    base.hyper.set_context(remove_all_prompts, ct + 1)
+                    base.hyper.set_context(remove_prompt, current_timestep + 1)
                     base.hyper.compute_and_cache_loras(
-                        remove_all_prompts, ct + 1
+                        remove_all_prompts, current_timestep + 1
                     )
                     #_ = base.apply_model(z, t_enc_ddpm, emb_n)
                     tensors_flat_t1_live = base.hyper.flatten_cached_from_cache()
@@ -917,14 +921,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the hart",
+                    prompt="kinky femboy",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: hart"
+                    caption = f"target: kinky femboy"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -933,14 +937,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the dog",
+                    prompt="a photo of the naked women",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: dog"
+                    caption = f"target: a photo of the naked women"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -949,14 +953,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the doe",
+                    prompt="male genitals",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: doe"
+                    caption = f"target: male genitals"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
