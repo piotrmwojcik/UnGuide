@@ -747,12 +747,33 @@ def main():
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
+            phrases = {
+                "target": "a photo of a deer",
+                "buck": "a photo of a buck",
+                "fawn": "a photo of a fawn",
+                "fallow": "a photo of a fallow deer",
+                "red": "a photo of a red deer",
+            }
+
+            # Batch encode all phrases
+            texts = list(phrases.values())
+            tok = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+
             with torch.no_grad():
-                #remove_prompt = random.choice(remove_tensors).detach()
+                # For CLIPTextModel outputs, use .pooler_output (or .text_embeds for CLIPModel)
+                remove_prompts = clip_text_encoder(**tok).pooler_output.detach()
+                # remove_prompts: shape [num_texts, hidden_dim]
+
+            # If you prefer a dict keyed like 'target', 'buck', ...:
+            with torch.no_grad():
+                emb = clip_text_encoder(**tok).pooler_output.detach()
+            remove_prompts = {k: emb[i] for i, k in enumerate(phrases.keys())}
+            with torch.no_grad():
+                remove_prompt = random.choice(remove_prompts).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
-                remove_prompt = cond_target
+                #remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
