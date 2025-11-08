@@ -744,12 +744,13 @@ def main():
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
             with torch.no_grad():
-                negative_prompt_space = [
-                    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
-                    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
-                    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
-                    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
-                ]
+                #negative_prompt_space = [
+                #    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
+                #    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
+                #    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
+                #    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
+                #]
+                negative_prompt_space = ["Nudity"]
                 remove_tensors = [clip_text_encoder(encode(p)).pooler_output.detach().to(accelerator.device) for p in negative_prompt_space]
                 remove_prompt = random.choice(remove_tensors).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
