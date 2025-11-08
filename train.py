@@ -148,7 +148,6 @@ CIFAR100 = [
     'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger',
     'train','trout','tulip','tractor','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
-CIFAR100.extend(["moose", "boar", "squirrel", "bear"])
 
 def prompt_augmentation(content, augment=True):
     if augment:
@@ -738,8 +737,8 @@ def main():
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
             inputs_other = encode("a photo of the hart")
-            inputs_other2 = encode("a photo of the stag")
-            inputs_other3 = encode("a photo of the dog")
+            inputs_other2 = encode("a photo of the dog")
+            inputs_other3 = encode("a photo of the doe")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
@@ -747,21 +746,12 @@ def main():
                 cond_other3 = clip_text_encoder(inputs_other3).pooler_output.detach()
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
-            phrases = {
-                "target": "a photo of a deer",
-                "buck": "a photo of a buck",
-                "fawn": "a photo of a fawn",
-                "fallow": "a photo of a fallow deer",
-                "red": "a photo of a red deer",
-            }
-
-            remove_prompts = [clip_text_encoder(encode(phrases[k])).pooler_output.detach() for k in phrases.keys()]
             with torch.no_grad():
-                remove_prompt = random.choice(remove_prompts).to(accelerator.device).detach()
+                #remove_prompt = random.choice(remove_tensors).detach()
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
-                #remove_prompt = cond_target
+                remove_prompt = cond_target
             # starting latent code
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
@@ -873,7 +863,7 @@ def main():
                     # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
                     # e.g., MSE to the target step
-                    loss = 10.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
+                    loss = 2.0 * criterion(delta_live, grads_flat_t.repeat(all_N))
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_remove = loss.clone().detach()
                     print('loss remove ', loss_remove)
@@ -943,14 +933,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the stag",
+                    prompt="a photo of the dog",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: stag"
+                    caption = f"target: dog"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -959,7 +949,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the dog",
+                    prompt="a photo of the doe",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
