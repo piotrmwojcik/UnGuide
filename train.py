@@ -764,8 +764,8 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                #if False:
-                if 'neutral.json' in sample['file']:
+                if False:
+                #if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         sampled_list = random.sample(CIFAR100, K)
@@ -814,7 +814,7 @@ def main():
                     #remove_prompt =
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
-                    rem, current_timestep = base.hyper.get_context()
+                    _, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
                         remove_prompt, current_timestep
                     )
@@ -824,7 +824,7 @@ def main():
                         e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target   (stopgrad)
 
                     # prediction for trainable model (needs grads)
-                    rem, current_timestep = base.hyper.get_context()
+                    _, current_timestep = base.hyper.get_context()
                     base.hyper.compute_and_cache_loras(
                         remove_prompt, current_timestep
                     )
