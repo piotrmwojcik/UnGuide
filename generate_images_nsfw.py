@@ -240,69 +240,7 @@ if __name__ == "__main__":
             set_seed(seed)
             gen = torch.Generator(device=args.device).manual_seed(seed)
 
-            prompt_diffs_arr = []
-            empty_diffs_arr = []
-            for repeat in range(args.repeats):
-                start_codes = torch.randn(
-                    (args.batch_size, 4, args.image_size // 8, args.image_size // 8),
-                    generator=gen,
-                    device=args.device,
-                )   
-                prompt_diff = compute_latent_diff(
-                    prompt,
-                    model,
-                    model_orig,
-                    sampler_orig,
-                    guidance,
-                    seed,
-                    start_codes=start_codes,
-                    repeats=args.repeats,
-                    batch_size=args.batch_size,
-                    image_size=args.image_size,
-                    t_enc=args.t_enc,
-                    og_num=og_num,
-                    og_num_lim=og_num_lim,
-                    ddim_steps=args.ddim_steps,
-                    ddim_eta=args.ddim_eta,
-                    device=args.device,
-                )
-                empty_diff = compute_latent_diff(
-                    "",
-                    model,
-                    model_orig,
-                    sampler_orig,
-                    guidance,
-                    seed,
-                    start_codes=start_codes,
-                    repeats=args.repeats,
-                    batch_size=args.batch_size,
-                    image_size=args.image_size,
-                    t_enc=args.t_enc,
-                    og_num=og_num,
-                    og_num_lim=og_num_lim,
-                    ddim_steps=args.ddim_steps,
-                    ddim_eta=args.ddim_eta,
-                    device=args.device,
-                )
-                prompt_diffs_arr.append(prompt_diff)
-                empty_diffs_arr.append(empty_diff)
-            prompt_diff = np.mean(prompt_diffs_arr, axis=0) 
-            empty_diff = np.mean(empty_diffs_arr, axis=0)
-            w = decide_w(prompt_diff, empty_diff, w1=args.w1, w2=args.w2)
-            set_seed(seed)
-            gen = torch.Generator(device=args.device).manual_seed(seed)
-            img = generate_with_dynamic_w(
-                prompt=prompt,
-                model=model,
-                model_orig=model_orig,
-                shape=(4, args.image_size // 8, args.image_size // 8),
-                steps=args.ddim_steps,
-                guidance_scale=guidance,
-                w=w,
-                gen=gen,
-                device=args.device,
-            )
-
+            print(prompt)
             
             img.save(image_path)
             end = time.time()
