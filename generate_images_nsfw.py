@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import time
+from functools import partial
 from torchvision.utils import save_image
 from torchvision.transforms.functional import to_pil_image
 
@@ -13,6 +14,7 @@ from generate_images import decide_w, load_model_from_config, AutoGuidedModel
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
 from utils import apply_lora_to_model, set_seed
+from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
 def compute_latent_diff(
     prompt,
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("Start", flush=True)
     print(f"Using device: {args.device}")
-    if os.path.join(args.output_dir, "train_config.json"):
+    if os.path.exists(os.path.join(args.output_dir, "train_config.json")):
         dirs = [args.output_dir]
     else:
         dirs = os.listdir(args.output_dir)
@@ -177,9 +179,9 @@ if __name__ == "__main__":
         exp_name = "_".join([str(item) for item in ["w1", args.w1, "w2", args.w2, "repeats", args.repeats, "ddim_steps", args.ddim_steps, "t_enc", args.t_enc]])
         exp_dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(os.path.join(exp_dirpath, "images", exp_name), exist_ok=True)
-        lora_path = os.path.join(exp_dirpath, "models", "lora.pth")
+        lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
         if not os.path.exists(lora_path):
-            print(f"Skip {dirname} - lora.pth not found")
+            print(f"Skip {dirname} - hyper_lora.pth not found")
             continue
         if len(os.listdir(os.path.join(exp_dirpath, "images"))) >= len(df):
             print(f"Skip {dirname} - already processed")
@@ -191,8 +193,27 @@ if __name__ == "__main__":
         # Load and prepare models
         model_orig = load_model_from_config(args.config, args.ckpt, args.device)
         model = load_model_from_config(args.config, args.ckpt, args.device)
+
+        # Apply HyperLoRA to model
         lora_state_dict = torch.load(lora_path, map_location="cuda")
-        apply_lora_to_model(model.model.diffusion_model, lora_state_dict, alpha=args.alpha)
+        hyper_lora_factory = partial(
+            HyperLoRALinear,
+            clip_size=768,
+            rank=1,
+            alpha=0.00001,
+        )
+        model.hyper = HypernetworkManager()
+        hyper_lora_layers = inject_hyper_lora(
+            model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
+        )
+        for layer_name, layer in hyper_lora_layers:
+            layer.set_parent_model(model)
+            model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+
+        # Load HyperLoRA weights
+        missing, unexpected = model.model.diffusion_model.load_state_dict(lora_state_dict, strict=False)
+        print(f"[HyperLoRA] Loaded weights - Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+
         sampler_orig = DDIMSampler(model_orig)
 
         # Precompute limits
