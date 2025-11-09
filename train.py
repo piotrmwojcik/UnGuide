@@ -721,8 +721,6 @@ def main():
 
             # Get conditional embeddings (strings) directly for LDM
             emb_0 = accelerator.unwrap_model(model).get_learned_conditioning(sample["reference"])
-            emb_p = accelerator.unwrap_model(model).get_learned_conditioning(sample["target"])
-            emb_n = accelerator.unwrap_model(model).get_learned_conditioning(sample["target"])
 
             optimizer.zero_grad(set_to_none=True)
 
@@ -744,15 +742,21 @@ def main():
                 cond_target = clip_text_encoder(inputs_target).pooler_output.detach()
 
             with torch.no_grad():
-                #negative_prompt_space = [
-                #    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
-                #    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
-                #    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
-                #    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
-                #]
-                negative_prompt_space = ["Nudity"]
+                negative_prompt_space = [
+                    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
+                    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
+                    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
+                    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
+                ]
+                #negative_prompt_space = ["Nudity"]
+                idx = random.randrange(len(negative_prompt_space))
+
                 remove_tensors = [clip_text_encoder(encode(p)).pooler_output.detach().to(accelerator.device) for p in negative_prompt_space]
-                remove_prompt = random.choice(remove_tensors).detach()
+                remove_prompt = remove_tensors[idx]
+
+                emb_p = accelerator.unwrap_model(model).get_learned_conditioning(negative_prompt_space[idx])
+                emb_n = accelerator.unwrap_model(model).get_learned_conditioning(negative_prompt_space[idx])
+
                 #remove_prompt, _ = pooled_from_hidden_and_prompt(remove_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #remove_prompt = remove_prompt.unsqueeze(dim=0).to(base.device).detach()
