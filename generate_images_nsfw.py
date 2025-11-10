@@ -12,125 +12,61 @@ from torchvision.transforms.functional import to_pil_image
 
 from generate_images import decide_w, load_model_from_config, AutoGuidedModel
 from ldm.models.diffusion.ddimcopy import DDIMSampler
+from transformers import CLIPTextModel, CLIPTokenizer
 from sampling import sample_model
 from utils import apply_lora_to_model, set_seed
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
-def compute_latent_diff(
-    prompt,
+
+def generate_images(
+    sampler,
     model,
-    model_orig,
-    sampler_orig,
-    guidance,
-    seed,
-    start_codes,
-    batch_size=1,
-    image_size=512,
-    t_enc=40,
-    og_num=None,
-    og_num_lim=None,
-    ddim_steps=50,
-    ddim_eta=0.0,
-    device="cuda",
+    prompt: str,
+    device: torch.device,
+    steps: int = 50,
+    eta: float = 0.0,
+    batch_size: int = 1,
+    start_code: torch.Tensor = None,   # optional noise tensor [B,4,64,64] for 512x512
 ):
-    if og_num is None:
-        og_num = round((t_enc / ddim_steps) * 1000)
-    if og_num_lim is None:
-        og_num_lim = round(((t_enc + 1) / ddim_steps) * 1000)
-    diffs_all = []
+    """
+    Generates images with CFG from a CompVis SD model + DDIMSampler and saves them.
 
-    set_seed(seed)
-    gen = torch.Generator(device=device).manual_seed(seed)
+    - model: Stable Diffusion model (CompVis LDM style)
+    - sampler: DDIMSampler(model)
+    - prompt: text prompt
+    - device: torch.device("cuda") or torch.device("cpu")
+    - steps: DDIM steps
+    - eta: DDIM eta (0.0 => deterministic)
+    - batch_size: number of samples to generate
+    - out_dir: folder to save into
+    - prefix: file prefix, e.g., 'unl_'
+    - start_code: optional start noise shape [B, 4, H/8, W/8]; if None, sampled internally.
+                  For 512×512 set shape to [B, 4, 64, 64].
+    """
+    if start_code is None:
+        start_code = torch.randn(batch_size, 4, 64, 64, device=device)  # 512x512
 
-    cond = model.get_learned_conditioning([prompt] * batch_size)
-    cond_orig = model_orig.get_learned_conditioning([prompt] * batch_size)
-    
-        
-    t_enc_ddpm = torch.randint(
-        og_num, og_num_lim, (batch_size,), generator=gen, device=device
-    )
+    model.eval()
+    with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
+        cond   = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
-    with torch.no_grad():
-        z_batch = sample_model(
-            model_orig,
-            sampler_orig,
-            cond_orig,
-            image_size,
-            image_size,
-            ddim_steps,
-            guidance,
-            ddim_eta,
-            start_code=start_codes,
-            n_samples=batch_size,
-            till_T=t_enc,
+        samples, _ = sampler.sample(
+            S=steps,
+            conditioning={"c_crossattn": [cond]},
+            batch_size=start_code.shape[0],
+            shape=start_code.shape[1:],  # (4, H/8, W/8)
             verbose=False,
+            unconditional_guidance_scale=7.5,
+            unconditional_conditioning={"c_crossattn": [uncond]},
+            eta=eta,
+            x_T=start_code,
         )
+        decoded = model.decode_first_stage(samples)
+        decoded = (decoded + 1.0) / 2.0
+        decoded = torch.clamp(decoded, 0.0, 1.0)
+        return decoded  # [B,3,H,W] in [0,1]
 
-        eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
-        eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
-        diffs = (
-            (eps_lora - eps_orig)
-            .view(batch_size, -1)
-            .norm(dim=1)
-            .cpu()
-            .numpy()
-            .tolist()
-        )
-        #diffs_all.extend(diffs)
-
-    return diffs
-
-
-def generate_image_cfg_auto(
-    model, start_code, prompt, steps=50, guidance_scale=7.5, device="cuda"
-):
-    model = model.eval()
-    cond = model.get_learned_conditioning([prompt])
-    uncond = model.get_learned_conditioning([""])
-    sampler = DDIMSampler(model=model)
-
-    with torch.no_grad():
-        with torch.autocast(device_type="cuda", dtype=torch.float16):
-            samples, _ = sampler.sample(
-                S=steps,
-                conditioning=cond,
-                unconditional_conditioning=uncond,
-                batch_size=start_code.shape[0],
-                shape=start_code.shape[1:],
-                verbose=False,
-                eta=0.0,
-                x_T=start_code,
-                mode="auto",
-            )
-
-            decoded = model.decode_first_stage(samples)
-            decoded = (decoded + 1.0) / 2.0
-            decoded = torch.clamp(decoded, 0.0, 1.0)
-
-    return decoded
-
-
-def generate_with_dynamic_w(
-    prompt,
-    model,
-    model_orig,
-    shape=(4, 64, 64),
-    steps=50,
-    guidance_scale=7.5,
-    w=0,
-    gen=None,
-    device="cuda",
-):
-    start_code = torch.randn(1, *shape, generator=gen, device=device)
-    auto_model = AutoGuidedModel(
-        model_full=model_orig, model_unlearned=model, w=w, cfg_scale=guidance_scale
-    )
-    img = generate_image_cfg_auto(
-        auto_model, start_code, prompt, steps, guidance_scale, device
-    )
-    img_np = img[0].detach().cpu().permute(1, 2, 0).numpy()
-    img_pil = to_pil_image((img_np * 255).astype(np.uint8))
-    return img_pil
 
 
 if __name__ == "__main__":
@@ -165,6 +101,9 @@ if __name__ == "__main__":
         dirs = [args.output_dir]
     else:
         dirs = os.listdir(args.output_dir)
+
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
     for dirname in dirs:
         # Load prompts
@@ -232,7 +171,33 @@ if __name__ == "__main__":
             gen = torch.Generator(device=args.device).manual_seed(seed)
 
             print(prompt)
-            
+
+            start_code = torch.randn(
+                (1, 4, args.image_size // 8, args.image_size // 8),
+                device=model_unl.device
+            )
+
+            inputs = tokenizer(
+                prompt,
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(device).input_ids
+
+            t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+
+            model.hyper.set_context(t_prompt, torch.tensor([150]).to(model_unl.device))
+            model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model_unl.device))
+
+            img = generate_images(
+                sampler=sampler, model=model,
+                start_code=start_code, prompt=prompt, device=model_unl.device,
+                steps=args.steps
+            )
+            img_np = img[0].cpu().permute(1, 2, 0).numpy()
+            img_pil = to_pil_image((img_np * 255).astype(np.uint8))
+
             img.save(image_path)
             end = time.time()
-            print(f"Prompt [{image_id}] processed in {end - start:.2f}) seconds. Saved to {image_path}", flush=True)
+            print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds. Saved to {image_path}", flush=True)
