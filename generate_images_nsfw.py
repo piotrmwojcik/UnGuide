@@ -195,6 +195,8 @@ if __name__ == "__main__":
                 start_code=start_code, prompt=prompt, device=model.device,
                 steps=args.steps
             )
+
+            sampler = DDIMSampler(model=model)
             img_np = img[0].cpu().permute(1, 2, 0).numpy()
             img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
