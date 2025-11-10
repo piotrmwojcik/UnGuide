@@ -125,7 +125,7 @@ if __name__ == "__main__":
         model = load_model_from_config(args.config, args.ckpt, args.device)
 
         # Apply HyperLoRA to model
-        lora_state_dict = torch.load(lora_path, map_location="cuda")
+        lora_sd = torch.load(lora_path, map_location=device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=768,
@@ -139,6 +139,26 @@ if __name__ == "__main__":
         for layer_name, layer in hyper_lora_layers:
             layer.set_parent_model(model)
             model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+
+        updated = 0
+        skipped = []
+
+        sd = model.model.diffusion_model.state_dict()
+
+        with torch.no_grad():
+            for k, v in lora_sd.items():
+                if k in sd:
+                    if torch.is_tensor(lora_sd[k]) and torch.is_tensor(v) and lora_sd[k].shape == v.shape:
+                        # match dtype/device of target param/buffer
+                        sd[k].copy_(v.to(sd[k].dtype))
+                        updated += 1
+                        print("updated:", k)
+                    else:
+                        skipped.append((k, "shape/dtype mismatch"))
+                else:
+                    skipped.append((k, "no such key in model"))
+
+        print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
         # Load HyperLoRA weights
         missing, unexpected = model.model.diffusion_model.load_state_dict(lora_state_dict, strict=False)
