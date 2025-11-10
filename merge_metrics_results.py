@@ -50,6 +50,7 @@ if __name__ == "__main__":
         results = dict.fromkeys(next(iter(merged_data.values())).keys(), 0)
 
         for file_name, scores in merged_data.items():
+            print(file_name, scores)
             for k, detection in dict(scores):
                 results[k] += detection
 
