@@ -50,8 +50,7 @@ if __name__ == "__main__":
         results = dict.fromkeys(next(iter(merged_data.values())).keys(), 0)
 
         for file_name, scores in merged_data.items():
-            print('!!! ', scores)
-            for k, detection in scores:
+            for k, detection in dict(scores):
                 results[k] += detection
 
         results["ALL"] = sum(results.values())
