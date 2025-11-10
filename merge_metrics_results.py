@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
         for file_name, scores in merged_data.items():
             print(file_name, scores)
-            for k, detection in dict(scores):
+            for k, detection in list(scores.items()):
                 results[k] += detection
 
         results["ALL"] = sum(results.values())
