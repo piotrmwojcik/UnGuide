@@ -195,7 +195,7 @@ if __name__ == "__main__":
             img = generate_images(
                 sampler=sampler, model=model,
                 start_code=start_code, prompt=prompt, device=model.device,
-                steps=args.steps
+                steps=args.ddim_steps
             )
 
             img_np = img[0].cpu().permute(1, 2, 0).numpy()
