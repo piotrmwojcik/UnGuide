@@ -160,10 +160,6 @@ if __name__ == "__main__":
 
         print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
-        # Load HyperLoRA weights
-        missing, unexpected = model.model.diffusion_model.load_state_dict(lora_sd, strict=False)
-        print(f"[HyperLoRA] Loaded weights - Missing: {len(missing)}, Unexpected: {len(unexpected)}")
-        print(missing)
 
         sampler_orig = DDIMSampler(model_orig)
 
