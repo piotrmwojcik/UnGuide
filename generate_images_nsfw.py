@@ -103,7 +103,7 @@ if __name__ == "__main__":
         dirs = os.listdir(args.output_dir)
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
 
     for dirname in dirs:
         # Load prompts
