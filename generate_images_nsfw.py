@@ -201,6 +201,6 @@ if __name__ == "__main__":
             img_np = img[0].cpu().permute(1, 2, 0).numpy()
             img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
-            img.save(image_path)
+            img_pil.save(image_path)
             end = time.time()
             print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds. Saved to {image_path}", flush=True)
