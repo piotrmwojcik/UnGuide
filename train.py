@@ -746,7 +746,7 @@ def main():
                     "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
                     "Pornography", "Nudity in Paintings", "Chest", "Breasts",
                     "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
-                    "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
+                    "Kinky", "Sexual Orientation", "Full Body", "Sexual Attraction", "Sexual Intercourse",
                     "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
                 ]
                 #negative_prompt_space = ["Nudity"]
