@@ -149,6 +149,26 @@ CIFAR100 = [
     'train','trout','tulip','tractor','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
 
+CELEBRITY_RETAIN = [
+    "Aaron Paul", "Alec Baldwin", "Amanda Seyfried", "Amy Poehler", "Amy Schumer", "Amy Winehouse",
+    "Andy Samberg", "Aretha Franklin", "Avril Lavigne", "Aziz Ansari", "Barry Manilow", "Ben Affleck",
+    "Ben Stiller", "Benicio Del Toro", "Bette Midler", "Betty White", "Bill Murray", "Bill Nye", "Britney Spears",
+    "Brittany Snow", "Bruce Lee", "Burt Reynolds", "Charles Manson", "Christie Brinkley",
+    "Christina Hendricks", "Clint Eastwood", "Countess Vaughn", "Dakota Johnson", "Dane Dehaan",
+    "David Bowie", "David Tennant", "Denise Richards", "Doris Day", "Dr Dre", "Elizabeth Taylor",
+    "Emma Roberts", "Fred Rogers", "Gal Gadot", "George Bush", "George Takei", "Gillian Anderson",
+    "Gordon Ramsey", "Halle Berry", "Harry Dean Stanton", "Harry Styles", "Hayley Atwell", "Heath Ledger",
+    "Henry Cavill", "Jackie Chan", "Jada Pinkett Smith", "James Garner", "Jason Statham",
+    "Jeff Bridges", "Jennifer Connelly", "Jensen Ackles", "Jim Morrison", "Jimmy Carter", "Joan Rivers",
+    "John Lennon", "Johnny Cash", "Jon Hamm", "Judy Garland", "Julianne Moore", "Justin Bieber",
+    "Kaley Cuoco", "Kate Upton", "Keanu Reeves", "Kim Jong Un", "Kirsten Dunst", "Kristen Stewart",
+    "Krysten Ritter", "Lana Del Rey", "Leslie Jones", "Lily Collins", "Lindsay Lohan", "Liv Tyler", "Lizzy Caplan",
+    "Maggie Gyllenhaal", "Matt Damon", "Matt Smith", "Matthew Mcconaughey", "Maya Angelou", "Megan Fox", "Mel Gibson", 
+    "Melanie Griffith", "Michael Cera", "Michael Ealy", "Natalie Portman", "Neil Degrasse Tyson", "Niall Horan",
+    "Patrick Stewart", "Paul Rudd", "Paul Wesley", "Pierce Brosnan", "Prince", "Queen Elizabeth", "Rachel Dratch",
+    "Rachel Mcadams", "Reba Mcentire", "Robert De Niro"
+]
+
 def prompt_augmentation(content, augment=True):
     if augment:
         prompts = [
@@ -731,9 +751,9 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            inputs_other = encode("hyperrealism, woman in white sheets, soft light, in style of classicism")
-            inputs_other2 = encode("a painting of the naked woman")
-            inputs_other3 = encode("male genitals")
+            inputs_other = encode("a photo of Adam Driver")
+            inputs_other2 = encode("A photograph showcasing Anna Kendrick")
+            inputs_other3 = encode("An official photograph featuring Andrew Garfield")
             inputs_target = encode(target_text)
             with torch.no_grad():
                 cond_other = clip_text_encoder(inputs_other).pooler_output.detach()
@@ -743,11 +763,8 @@ def main():
 
             with torch.no_grad():
                 negative_prompt_space = [
-                    "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
-                    "Pornography", "Nudity in Paintings", "Chest", "Breasts",
-                    "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido", "Feet", "Belly",
-                    "Kinky", "Sexual Orientation", "Full Body", "Sexual Attraction", "Sexual Intercourse",
-                    "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
+                    "Adam Driver", "Adriana Lima", "Amber Heard", "Amy Adams", "Andrew Garfield", "Angelina Jolie",
+                    "Anjelica Huston", "Anna Faris", "Anna Kendrick", "Anne Hathaway"
                 ]
                 #negative_prompt_space = ["Nudity"]
                 idx = random.randrange(len(negative_prompt_space))
@@ -773,7 +790,7 @@ def main():
                 if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
-                        sampled_list = random.sample(CIFAR100, K)
+                        sampled_list = random.sample(CELEBRITY_RETAIN, K)
                         sampled_list = [f"A photo of the {cifar_100_category}." for cifar_100_category in sampled_list]
 
                         processed = [clip_text_encoder(encode(cifar_100_prompt)).pooler_output.detach().squeeze() for cifar_100_prompt in sampled_list]
@@ -927,14 +944,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="hyperrealism, woman in white sheets, soft light, in style of classicism",
+                    prompt=f"a photo of Adam Driver",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: hyperrealism, woman in white sheets, soft light, in style of classicism"
+                    caption = f"target: a photo of Adam Driver"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -943,14 +960,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="a photo of the naked women",
+                    prompt="A photograph showcasing Anna Kendrick",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: a painting of the naked women"
+                    caption = f"A photograph showcasing Anna Kendrick"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
@@ -959,20 +976,20 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="male genitals",
+                    prompt="An official photograph featuring Andrew Garfield",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: male genitals"
+                    caption = f"target: An official photograph featuring Andrew Garfield"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 3": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                idx = torch.randint(0, len(CIFAR100), (1,), device=accelerator.device).item()
+                idx = torch.randint(0, len(CELEBRITY_RETAIN), (1,), device=accelerator.device).item()
                 #idx = torch.randint(0, len(retain_tensors), (1,), device=accelerator.device).item()
-                sample_ = clip_text_encoder(encode(f"a photo of the {CIFAR100[idx]}")).pooler_output.detach()
+                sample_ = clip_text_encoder(encode(f"a photo of the {CELEBRITY_RETAIN[idx]}")).pooler_output.detach()
                 #sample_prompt = retain_tensors[idx].to(accelerator.device)
                 #with torch.no_grad():
                 #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
@@ -983,7 +1000,7 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt=f"a photo of the {CIFAR100[idx]}",
+                    prompt=f"a photo of the {CELEBRITY_RETAIN[idx]}",
                     #prompt=f"a photo of the {CIFAR100[idx]}",
                     #cond=sample_prompt,
                     device=accelerator.device,
@@ -992,7 +1009,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"a photo of the {CIFAR100[idx]}"
+                    caption = f"a photo of the {CELEBRITY_RETAIN[idx]}"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"retain": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
