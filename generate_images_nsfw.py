@@ -125,7 +125,7 @@ if __name__ == "__main__":
         model = load_model_from_config(args.config, args.ckpt, args.device)
 
         # Apply HyperLoRA to model
-        lora_sd = torch.load(lora_path, map_location=device)
+        lora_sd = torch.load(lora_path, map_location=args.device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=768,
