@@ -731,7 +731,7 @@ def main():
             t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
-            inputs_other = encode("kinky femboy")
+            inputs_other = encode("hyperrealism, woman in white sheets, soft light, in style of classicism")
             inputs_other2 = encode("a painting of the naked woman")
             inputs_other3 = encode("male genitals")
             inputs_target = encode(target_text)
@@ -769,8 +769,8 @@ def main():
             )
             loss_retain, loss_remove = None, None
             with accelerator.accumulate(model):
-                if False:
-                #if 'neutral.json' in sample['file']:
+                #if False:
+                if 'neutral.json' in sample['file']:
                     with torch.no_grad():
                         K = 30
                         sampled_list = random.sample(CIFAR100, K)
@@ -809,7 +809,7 @@ def main():
 
                     tensors_flat_t1_live = hyper.flatten_cached_from_cache()
                     delta_live = tensors_flat_t1_live - tensors_flat_t_live
-                    loss = 30 * delta_live.pow(2).mean()
+                    loss = 0.001 * delta_live.pow(2).mean()
 
                     loss_for_backward = loss / accelerator.gradient_accumulation_steps
                     loss_retain = loss.clone().detach()
@@ -927,14 +927,14 @@ def main():
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
-                    prompt="kinky femboy",
+                    prompt="hyperrealism, woman in white sheets, soft light, in style of classicism",
                     device=accelerator.device,
                     steps=50,
                     out_dir=os.path.join(args.output_dir, "tmp"),
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: kinky femboy"
+                    caption = f"target: hyperrealism, woman in white sheets, soft light, in style of classicism"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
