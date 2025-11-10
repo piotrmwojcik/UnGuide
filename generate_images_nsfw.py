@@ -1,39 +1,20 @@
-import argparse
-import json
 import os
+import json
+import argparse
+import torch
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
 import time
 from functools import partial
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import torch
-from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import save_image
-from tqdm import tqdm
-from transformers import CLIPTextModel, CLIPTokenizer
+from torchvision.transforms.functional import to_pil_image
 
-from generate_images import (AutoGuidedModel, decide_w, generate_images,
-                             load_model_from_config)
-from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
+from generate_images import decide_w, load_model_from_config, AutoGuidedModel
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
 from utils import apply_lora_to_model, set_seed
-
-
-def encode(text: str):
-    return (
-        tokenizer(
-            text,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        )
-        .to("cuda")
-        .input_ids
-    )
-
+from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
 def compute_latent_diff(
     prompt,
@@ -43,7 +24,6 @@ def compute_latent_diff(
     guidance,
     seed,
     start_codes,
-    repeats=30,
     batch_size=1,
     image_size=512,
     t_enc=40,
@@ -64,7 +44,8 @@ def compute_latent_diff(
 
     cond = model.get_learned_conditioning([prompt] * batch_size)
     cond_orig = model_orig.get_learned_conditioning([prompt] * batch_size)
-
+    
+        
     t_enc_ddpm = torch.randint(
         og_num, og_num_lim, (batch_size,), generator=gen, device=device
     )
@@ -95,7 +76,7 @@ def compute_latent_diff(
             .numpy()
             .tolist()
         )
-        # diffs_all.extend(diffs)
+        #diffs_all.extend(diffs)
 
     return diffs
 
@@ -173,8 +154,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--t_enc", type=int, default=40, help="Timestep at which to compute latent diff"
     )
-    parser.add_argument("--w1", type=float, default=-1.0, help="W1")
-    parser.add_argument("--w2", type=float, default=2.0, help="W2")
     parser.add_argument("--ddim_eta", type=float, default=0.0)
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--repeats", type=int, default=30)
@@ -182,117 +161,78 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("Start", flush=True)
     print(f"Using device: {args.device}")
+    if os.path.exists(os.path.join(args.output_dir, "train_config.json")):
+        dirs = [args.output_dir]
+    else:
+        dirs = os.listdir(args.output_dir)
 
-    df = pd.read_csv(args.csv_path, index_col=0)
-    exp_name = "_".join(
-        [
-            str(item)
-            for item in [
-                "w1",
-                args.w1,
-                "w2",
-                args.w2,
-                "repeats",
-                args.repeats,
-                "ddim_steps",
-                args.ddim_steps,
-                "t_enc",
-                args.t_enc,
-            ]
-        ]
-    )
-    exp_dirpath = args.output_dir
-    os.makedirs(os.path.join(exp_dirpath, "images", exp_name), exist_ok=True)
-    lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
-    print(
-        "images",
-        len(os.listdir(os.path.join(exp_dirpath, "images", exp_name))),
-        flush=True,
-    )
-
-    # Load and prepare models
-    model_orig = load_model_from_config(args.config, args.ckpt, args.device)
-    model = load_model_from_config(args.config, args.ckpt, args.device)
-
-    # Apply HyperLoRA to model
-    lora_state_dict = torch.load(lora_path, map_location="cuda")
-    hyper_lora_factory = partial(
-        HyperLoRALinear,
-        clip_size=768,
-        rank=1,
-        alpha=0.00001,
-    )
-    model.hyper = HypernetworkManager()
-    hyper_lora_layers = inject_hyper_lora(
-        model.model.diffusion_model,
-        ["attn2.to_k", "attn2.to_v"],
-        hyper_lora_factory,
-    )
-    for layer_name, layer in hyper_lora_layers:
-        layer.set_parent_model(model)
-        model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
-
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = (
-        CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
-        .to(model.device)
-        .eval()
-    )
-
-    sample_ = clip_text_encoder(encode("nudity")).pooler_output.detach()
-
-    model.hyper.set_context(sample_, torch.tensor([50]).to(model.device))
-    model.hyper.compute_and_cache_loras(sample_, torch.tensor([50]).to(model.device))
-
-    sampler = DDIMSampler(model=model)
-    # Load HyperLoRA weights
-    missing, unexpected = model.model.diffusion_model.load_state_dict(
-        lora_state_dict, strict=False
-    )
-    print(
-        f"[HyperLoRA] Loaded weights - Missing: {len(missing)}, Unexpected: {len(unexpected)}"
-    )
-
-    sampler_orig = DDIMSampler(model_orig)
-
-    # Precompute limits
-    og_num = round((args.t_enc / args.ddim_steps) * 1000)
-    og_num_lim = round(((args.t_enc + 1) / args.ddim_steps) * 1000)
-
-    # Iterate over prompts
-
-    for image_id, row in df.iterrows():
-        image_path = os.path.join(
-            exp_dirpath, "images", exp_name, f"{image_id:05d}.jpg"
-        )
-        if os.path.exists(image_path):
-            continue  # Skip if image already exists
-
-        if image_id % WORLD_SIZE != RANK:
+    for dirname in dirs:
+        # Load prompts
+        df = pd.read_csv(args.csv_path, index_col=0)
+        exp_dirpath = os.path.join(args.output_dir, dirname)
+        os.makedirs(os.path.join(exp_dirpath, "images", exp_name), exist_ok=True)
+        lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
+        if not os.path.exists(lora_path):
+            print(f"Skip {dirname} - hyper_lora.pth not found")
             continue
-
-        prompt = row.get("prompt", "")
-        if not isinstance(prompt, str) or not prompt.strip():
-            print(f"Skip [{image_id}] empty prompt")
+        if len(os.listdir(os.path.join(exp_dirpath, "images"))) >= len(df):
+            print(f"Skip {dirname} - already processed")
             continue
-        start = time.time()
-        seed = int(row.get("evaluation_seed", image_id))
-        guidance = float(row.get("evaluation_guidance", 7.5))
-        set_seed(seed)
-        gen = torch.Generator(device=args.device).manual_seed(seed)
+        print(f"Processing experiment: {dirname}.", flush=True)
+        print("images", len(os.listdir(os.path.join(exp_dirpath, "images", exp_name))), flush=True)
 
-        img = generate_images(
-            sampler=sampler,
-            model=model,
-            start_code=start_code,
-            prompt=prompt,
-            device=model_unl.device,
-            steps=args.steps,
-        )
+        # Load and prepare models
+        model_orig = load_model_from_config(args.config, args.ckpt, args.device)
+        model = load_model_from_config(args.config, args.ckpt, args.device)
 
-        img.save(image_path)
-        end = time.time()
-        print(
-            f"Prompt [{image_id}] processed in {end - start:.2f}) seconds. Saved to {image_path}",
-            flush=True,
+        # Apply HyperLoRA to model
+        lora_state_dict = torch.load(lora_path, map_location="cuda")
+        hyper_lora_factory = partial(
+            HyperLoRALinear,
+            clip_size=768,
+            rank=1,
+            alpha=0.00001,
         )
+        model.hyper = HypernetworkManager()
+        hyper_lora_layers = inject_hyper_lora(
+            model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
+        )
+        for layer_name, layer in hyper_lora_layers:
+            layer.set_parent_model(model)
+            model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+
+        # Load HyperLoRA weights
+        missing, unexpected = model.model.diffusion_model.load_state_dict(lora_state_dict, strict=False)
+        print(f"[HyperLoRA] Loaded weights - Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+
+        sampler_orig = DDIMSampler(model_orig)
+
+        # Precompute limits
+        og_num = round((args.t_enc / args.ddim_steps) * 1000)
+        og_num_lim = round(((args.t_enc + 1) / args.ddim_steps) * 1000)
+
+        # Iterate over prompts
+        
+        for image_id, row in df.iterrows():
+            image_path = os.path.join(exp_dirpath, "images", exp_name, f"{image_id:05d}.jpg")
+            if os.path.exists(image_path):
+                continue  # Skip if image already exists
+            
+            if image_id % WORLD_SIZE != RANK:
+                continue
+            
+            prompt = row.get("prompt", "")
+            if not isinstance(prompt, str) or not prompt.strip():
+                print(f"Skip [{image_id}] empty prompt")
+                continue
+            start = time.time()
+            seed = int(row.get("evaluation_seed", image_id))
+            guidance = float(row.get("evaluation_guidance", 7.5))
+            set_seed(seed)
+            gen = torch.Generator(device=args.device).manual_seed(seed)
+
+            print(prompt)
+            
+            img.save(image_path)
+            end = time.time()
+            print(f"Prompt [{image_id}] processed in {end - start:.2f}) seconds. Saved to {image_path}", flush=True)
