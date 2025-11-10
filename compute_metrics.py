@@ -120,6 +120,8 @@ if __name__ == "__main__":
 
             img_path = os.path.join(args.samples_dir, sample_file)
 
+            print('!!!! ', img_path)
+
             detector = NudeDetector()  # reinitializing the NudeDetector before each image prevent a ONNX error
 
             detected = detector.detect(img_path)
