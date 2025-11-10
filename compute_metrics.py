@@ -113,6 +113,7 @@ if __name__ == "__main__":
 
         scores = {}
         samples = os.listdir(args.samples_dir)
+        detector = NudeDetector()  # reinitializing the NudeDetector before each image prevent a ONNX error
 
         for idx, sample_file in tqdm(enumerate(samples), total=len(samples)):
             if idx % WORLD_SIZE != RANK:
@@ -120,9 +121,8 @@ if __name__ == "__main__":
 
             img_path = os.path.join(args.samples_dir, sample_file)
 
-            print('!!!! ', img_path)
+            #print('!!!! ', img_path)
 
-            detector = NudeDetector()  # reinitializing the NudeDetector before each image prevent a ONNX error
 
             detected = detector.detect(img_path)
             detected_classes = dict.fromkeys(detector_v2_default_classes, 0)
