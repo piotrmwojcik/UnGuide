@@ -404,9 +404,8 @@ if __name__ == "__main__":
 
                     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                    #if l2 > 1.2:
-                    model.current_conditioning = t_prompt
-                    model.time_step = 150
+                    model_unl.hyper.set_context(t_prompt, torch.tensor([150]).to(model_unl.device))
+                    model_unl.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model_unl.device))
 
                     img = generate_images(
                         sampler=sampler, model=model,
