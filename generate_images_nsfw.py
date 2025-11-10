@@ -183,16 +183,16 @@ if __name__ == "__main__":
                 padding="max_length",
                 truncation=True,
                 return_tensors="pt",
-            ).to(device).input_ids
+            ).to(model.device).input_ids
 
             t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-            model.hyper.set_context(t_prompt, torch.tensor([150]).to(model_unl.device))
-            model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model_unl.device))
+            model.hyper.set_context(t_prompt, torch.tensor([150]).to(model.device))
+            model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model.device))
 
             img = generate_images(
                 sampler=sampler, model=model,
-                start_code=start_code, prompt=prompt, device=model_unl.device,
+                start_code=start_code, prompt=prompt, device=model.device,
                 steps=args.steps
             )
             img_np = img[0].cpu().permute(1, 2, 0).numpy()
