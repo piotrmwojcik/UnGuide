@@ -179,7 +179,7 @@ if __name__ == "__main__":
             print(f"Skip {dirname} - already processed")
             continue
         print(f"Processing experiment: {dirname}.", flush=True)
-        print("images", len(os.listdir(os.path.join(exp_dirpath, "images", exp_name))), flush=True)
+        print("images", len(os.listdir(os.path.join(exp_dirpath, "images"))), flush=True)
 
         # Load and prepare models
         model_orig = load_model_from_config(args.config, args.ckpt, args.device)
