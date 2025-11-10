@@ -170,7 +170,7 @@ if __name__ == "__main__":
         # Load prompts
         df = pd.read_csv(args.csv_path, index_col=0)
         exp_dirpath = os.path.join(args.output_dir, dirname)
-        os.makedirs(os.path.join(exp_dirpath, "images", exp_name), exist_ok=True)
+        os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
         if not os.path.exists(lora_path):
             print(f"Skip {dirname} - hyper_lora.pth not found")
