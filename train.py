@@ -732,7 +732,7 @@ def main():
 
             # Build CLIP tokens for current target/reference (for HyperLoRA conditioning)
             inputs_other = encode("kinky femboy")
-            inputs_other2 = encode("a photo of the naked women")
+            inputs_other2 = encode("a painting of the naked woman")
             inputs_other3 = encode("male genitals")
             inputs_target = encode(target_text)
             with torch.no_grad():
@@ -744,7 +744,8 @@ def main():
             with torch.no_grad():
                 negative_prompt_space = [
                     "Sexual Acts", "Content Meant to Arouse Sexual Excitement", "Nudity",
-                    "Pornography", "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
+                    "Pornography", "Nudity in Paintings", "Chest", "Breasts",
+                    "Erotic Art", "Lustful", "Seductive", "Orgasmic", "Libido",
                     "Kinky", "Sexual Orientation", "Sexual Attraction", "Sexual Intercourse",
                     "Sexual Pleasure", "Sexual Fantasy", "Carnal Desires", "Sexual Gratification"
                 ]
@@ -949,7 +950,7 @@ def main():
                     prefix=f"unl_{i}_",
                 )
                 if imgs is not None:
-                    caption = f"target: a photo of the naked women"
+                    caption = f"target: a painting of the naked women"
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
