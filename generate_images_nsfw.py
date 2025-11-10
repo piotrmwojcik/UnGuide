@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
-                device=model_unl.device
+                device=model.device
             )
 
             inputs = tokenizer(
