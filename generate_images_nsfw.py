@@ -108,6 +108,7 @@ if __name__ == "__main__":
     for dirname in dirs:
         # Load prompts
         df = pd.read_csv(args.csv_path, index_col=0)
+        df = df.sort_values(by="nudity_percentage", ascending=False)
         exp_dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
