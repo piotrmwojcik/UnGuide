@@ -143,6 +143,7 @@ if __name__ == "__main__":
         # Load HyperLoRA weights
         missing, unexpected = model.model.diffusion_model.load_state_dict(lora_state_dict, strict=False)
         print(f"[HyperLoRA] Loaded weights - Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+        print(missing)
 
         sampler_orig = DDIMSampler(model_orig)
 
