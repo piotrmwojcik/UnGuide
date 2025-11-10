@@ -137,6 +137,7 @@ if __name__ == "__main__":
         df = df[df["nudity_percentage"].gt(0)]
         # sort descending
         df = df.sort_values(by="nudity_percentage", ascending=False)
+        print(f"records: {count}")
         exp_dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "models", "hyper_lora.pth")
