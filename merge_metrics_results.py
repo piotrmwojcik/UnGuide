@@ -47,10 +47,10 @@ if __name__ == "__main__":
             json.dump(merged_data, f, indent=4)
 
 
-
         results = dict.fromkeys(next(iter(merged_data.values())).keys(), 0)
 
         for file_name, scores in merged_data.items():
+            print('!!! ', scores)
             for k, detection in scores:
                 results[k] += detection
 
