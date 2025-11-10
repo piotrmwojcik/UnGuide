@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import torch
+import re
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -67,6 +68,28 @@ def generate_images(
         decoded = torch.clamp(decoded, 0.0, 1.0)
         return decoded  # [B,3,H,W] in [0,1]
 
+def coerce_prompt(v):
+    # Treat None/NaN as empty
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return ""
+
+    # Real list/tuple/set -> comma-separated string
+    if isinstance(v, (list, tuple, set)):
+        return ", ".join(str(x).strip() for x in v if str(x).strip())
+
+    # String cases
+    s = str(v).strip()
+
+    # Drop an optional "Prompt" label like "Prompt [a, b]" or "Prompt: a, b"
+    s = re.sub(r'^\s*prompt\s*[:\-]?\s*', "", s, flags=re.I)
+
+    # If it's bracketed like "[a, b]" without quotes, normalize it
+    m = re.match(r'^\[\s*(.*)\s*\]$', s)
+    if m:
+        parts = [p.strip() for p in m.group(1).split(",")]
+        return ", ".join(p for p in parts if p)
+
+    return s
 
 
 if __name__ == "__main__":
@@ -178,7 +201,7 @@ if __name__ == "__main__":
             if image_id % WORLD_SIZE != RANK:
                 continue
             
-            prompt = row.get("prompt", "")
+            prompt = coerce_prompt(row.get("prompt", ""))
             if not isinstance(prompt, str) or not prompt.strip():
                 print(f"Skip [{image_id}] empty prompt")
                 continue
