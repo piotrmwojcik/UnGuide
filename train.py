@@ -817,7 +817,7 @@ def main():
                     loss_retain = loss.clone().detach()
                     print('loss neutral ', loss_retain)
                 else:
-                    rtimestep = int(torch.randint(0, 149, (1,), device=accelerator.device))
+                    rtimestep = int(torch.randint(0, TRAIN_STEPS - 1, (1,), device=accelerator.device))
                     #remove_prompt =
                     base.hyper.set_context(remove_prompt, torch.tensor([rtimestep], device=accelerator.device))
 
