@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
         # Iterate over prompts
 
-        print('!!! ', len(df.iterrows()))
+        print('!!!', len(df))
         for image_id, row in df.iterrows():
             image_path = os.path.join(exp_dirpath, "images", f"{image_id:05d}.jpg")
             if os.path.exists(image_path):
