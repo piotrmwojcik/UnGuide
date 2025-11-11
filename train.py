@@ -50,6 +50,8 @@ from sampling import sample_model
 from utils import get_models, print_trainable_parameters  # DO NOT import set_seed here to avoid clashes
 
 
+TRAIN_STEPS = 500
+
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
@@ -906,8 +908,8 @@ def main():
                 and i % 10 == 0
                 and sample_ids == 0
             ):
-                base.hyper.set_context(cond_target, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(cond_target, torch.tensor([150]).to(accelerator.device))
+                base.hyper.set_context(cond_target, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(cond_target, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -922,8 +924,8 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                base.hyper.set_context(cond_other, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(cond_other, torch.tensor([150]).to(accelerator.device))
+                base.hyper.set_context(cond_other, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(cond_other, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -938,8 +940,8 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other)": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                base.hyper.set_context(cond_other2, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(cond_other2, torch.tensor([150]).to(accelerator.device))
+                base.hyper.set_context(cond_other2, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(cond_other2, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -954,8 +956,8 @@ def main():
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
                     wandb.log({"sample (other) 2": wandb.Image(to_pil_image(im0), caption=caption)}, step=i)
 
-                base.hyper.set_context(cond_other3, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(cond_other3, torch.tensor([150]).to(accelerator.device))
+                base.hyper.set_context(cond_other3, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(cond_other3, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -978,8 +980,8 @@ def main():
                 #   sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                 #                                                     tokenizer=tokenizer)
                 #   sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
-                base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
-                base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
+                base.hyper.set_context(sample_, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                base.hyper.compute_and_cache_loras(sample_, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 imgs = generate_and_save_sd_images(
                     model=base,
                     sampler=sampler,
@@ -1002,8 +1004,8 @@ def main():
                 #     sample_, _ = pooled_from_hidden_and_prompt(sample_prompt, target_text,
                 #                                                tokenizer=tokenizer)
                 #     sample_ = sample_.unsqueeze(dim=0).to(accelerator.device)
-                # base.hyper.set_context(sample_, torch.tensor([150]).to(accelerator.device))
-                # base.hyper.compute_and_cache_loras(sample_, torch.tensor([150]).to(accelerator.device))
+                # base.hyper.set_context(sample_, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
+                # base.hyper.compute_and_cache_loras(sample_, torch.tensor([TRAIN_STEPS]).to(accelerator.device))
                 # imgs = generate_and_save_sd_images(
                 #     model=base,
                 #     sampler=sampler,

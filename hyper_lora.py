@@ -9,6 +9,8 @@ from functools import partial
 import torch.nn as nn
 
 
+TRAIN_STEPS = 500
+
 class HypernetworkManager(nn.Module):
     def __init__(self):
         super().__init__()
@@ -69,7 +71,7 @@ class HypernetworkManager(nn.Module):
 
 
 class TimeFourier(nn.Module):
-    def __init__(self, T=151, L=16):
+    def __init__(self, T=TRAIN_STEPS+1, L=16):
         super().__init__()
         k = torch.linspace(0, L - 1, L, dtype=torch.float32)
         freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
