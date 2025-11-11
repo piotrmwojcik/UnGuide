@@ -234,8 +234,8 @@ if __name__ == "__main__":
 
             t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-            model.hyper.set_context(t_prompt, torch.tensor([150]).to(model.device))
-            model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model.device))
+            model.hyper.set_context(t_prompt, torch.tensor([500]).to(model.device))
+            model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([500]).to(model.device))
 
             sampler = DDIMSampler(model=model)
             img = generate_images(
