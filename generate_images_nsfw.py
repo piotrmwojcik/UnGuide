@@ -237,9 +237,9 @@ if __name__ == "__main__":
             model.hyper.set_context(t_prompt, torch.tensor([150]).to(model.device))
             model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([150]).to(model.device))
 
-            sampler = DDIMSampler(model=model_orig)
+            sampler = DDIMSampler(model=model)
             img = generate_images(
-                sampler=sampler, model=model_orig,
+                sampler=sampler, model=model,
                 start_code=start_code, prompt=prompt, device=model.device,
                 steps=args.ddim_steps
             )
