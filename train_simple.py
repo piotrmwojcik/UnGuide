@@ -584,10 +584,10 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+            print('!!!! ', remove_weight, criterion(delta_live, grads_flat_t))
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
-            #if len(retain_embeddings) > 0:
-            if False:
+            if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
                 num_retain_samples = min(10, len(retain_embeddings))
                 sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
@@ -616,9 +616,8 @@ def main():
                 # Loss: minimize change in LoRA weights across timesteps
                 delta = tensors_flat_t1 - tensors_flat_t0
                 loss_retain = retain_weight * delta.pow(2).mean()
-
-            #else:
-            loss_retain = torch.tensor(0.0, device=accelerator.device)
+            else:
+                loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
