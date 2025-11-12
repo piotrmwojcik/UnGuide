@@ -483,7 +483,7 @@ def main():
                 
                 hyper = base.hyper
                 # Repeat prompts 50x
-                batch_prompts = batch_retain_embs.repeat(50, 1)
+                batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
                 B = batch_prompts.shape[0]
                 perm = torch.randperm(B, device=batch_prompts.device)
                 batch_prompts = batch_prompts[perm]
