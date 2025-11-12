@@ -560,7 +560,9 @@ def main():
             e_m.requires_grad_(False)
             e_p.requires_grad_(False)
             target = e_m - (negative_guidance * (e_p - e_m))
-            loss_remove = criterion(e_n, target)
+            loss_aux = criterion(e_n, target)
+
+            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
@@ -581,12 +583,12 @@ def main():
             
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
-            loss_retain = criterion(delta_live, grads_flat_t)
-            loss_for_backward = (loss_remove + loss_retain) / accelerator.gradient_accumulation_steps
+            loss_remove = criterion(delta_live, grads_flat_t)
+            loss_for_backward = loss_remove / accelerator.gradient_accumulation_steps
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
             
-            accelerator.backward(loss_for_backward)
+            accelerator.backward(loss_for_backward, retain=True)
             
             # Optimizer step
             if accelerator.sync_gradients:
