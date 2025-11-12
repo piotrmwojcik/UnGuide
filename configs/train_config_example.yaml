@@ -95,7 +95,7 @@ UnHype:
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: null  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
   
   # Logging
   logging_dir: logs
