@@ -567,7 +567,7 @@ def main():
 
             for p in trainable_params:
                 if p.grad is not None:
-                    p.grad.detach().zero_()
+                    p.grad = None
 
             # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
@@ -583,7 +583,7 @@ def main():
             
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
-            loss_remove = criterion(delta_live, grads_flat_t)
+            loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             if len(retain_embeddings) > 0:
@@ -621,7 +621,6 @@ def main():
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
-
             
             # Optimizer step
             if accelerator.sync_gradients:
