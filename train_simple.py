@@ -644,7 +644,6 @@ def main():
         
         if is_main:
             pbar.set_postfix({
-                "loss": f"{loss_value:.6f}",
                 "remove": f"{float(loss_remove_reduced.item()):.6f}",
                 "retain": f"{float(loss_retain_reduced.item()):.6f}"
             })
