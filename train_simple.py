@@ -413,7 +413,7 @@ def main():
         base_prompts = df['prompt'].dropna().tolist()
         print(f"Loaded {len(base_prompts)} base retain prompts from CSV")
         
-        # Apply prompt separate steps for training and for hyper (the same as in train.yp)ation to retain prompts if enabled
+        # Apply prompt augmentation to retain prompts if enabled
         if augment_retain:
             print("Applying prompt augmentation to retain prompts")
             for prompt in base_prompts:
@@ -424,15 +424,48 @@ def main():
             retain_prompts = base_prompts
             print(f"Using {len(retain_prompts)} retain prompts without augmentation")
         
-        # Create embeddings for retain prompts
-        for prompt in tqdm(retain_prompts, desc="Creating retain embeddings", disable=not is_main):
-            inputs = encode(prompt)
-            with torch.no_grad():
-                if use_pooler:
-                    emb = clip_text_encoder(inputs).pooler_output.detach()
-                else:
-                    emb = clip_text_encoder(inputs).last_hidden_state.detach()
-            retain_embeddings.append(emb.squeeze())
+        # Create cache path for retain embeddings
+        cache_dir = os.path.join(output_dir, "cache")
+        if is_main:
+            os.makedirs(cache_dir, exist_ok=True)
+        
+        # Create a cache key based on CSV path, augmentation setting, and pooler setting
+        csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
+        cache_key = f"{csv_name}_aug{augment_retain}_pooler{use_pooler}"
+        cache_path = os.path.join(cache_dir, f"retain_embeddings_{cache_key}.pt")
+        
+        # Check if cache exists (before any process tries to create it)
+        cache_exists = os.path.exists(cache_path)
+        
+        # If cache doesn't exist, main process computes and saves embeddings
+        if not cache_exists:
+            if is_main:
+                print(f"Computing retain embeddings (will cache to: {cache_path})")
+                # Create embeddings for retain prompts
+                for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
+                    inputs = encode(prompt)
+                    with torch.no_grad():
+                        if use_pooler:
+                            emb = clip_text_encoder(inputs).pooler_output.detach()
+                        else:
+                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
+                    retain_embeddings.append(emb.squeeze().cpu())  # Store on CPU for caching
+                
+                print(f"Caching retain embeddings to: {cache_path}")
+                torch.save(retain_embeddings, cache_path)
+                print(f"Cached {len(retain_embeddings)} embeddings")
+            
+            # Wait for main process to finish creating the cache
+            accelerator.wait_for_everyone()
+        
+        # All processes load from cache
+        if is_main or not cache_exists:
+            print(f"Loading cached retain embeddings from: {cache_path}")
+        retain_embeddings = torch.load(cache_path, map_location='cpu')
+        # Move to correct device
+        retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
+        if is_main:
+            print(f"Loaded {len(retain_embeddings)} cached embeddings")
     else:
         print("No retain CSV path provided or file not found. Skipping retain loss.")
     
