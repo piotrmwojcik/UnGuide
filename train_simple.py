@@ -432,7 +432,7 @@ def main():
                     emb = clip_text_encoder(inputs).pooler_output.detach()
                 else:
                     emb = clip_text_encoder(inputs).last_hidden_state.detach()
-            retain_embeddings.append(emb)
+            retain_embeddings.append(emb.squeeze())
     else:
         print("No retain CSV path provided or file not found. Skipping retain loss.")
     
@@ -482,7 +482,6 @@ def main():
                 batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
                 
                 hyper = base.hyper
-                # Repeat prompts 50x
                 batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
                 B = batch_prompts.shape[0]
                 perm = torch.randperm(B, device=batch_prompts.device)
