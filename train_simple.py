@@ -501,7 +501,7 @@ def main():
                 
                 # Loss: minimize change in LoRA weights across timesteps
                 delta = tensors_flat_t1 - tensors_flat_t0
-                loss = 0.001 * delta.pow(2).mean()
+                loss = retain_weight * delta.pow(2).mean()
                 
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 loss_retain = loss.clone().detach()
@@ -561,12 +561,8 @@ def main():
             e_m.requires_grad_(False)
             e_p.requires_grad_(False)
             target = e_m - (negative_guidance * (e_p - e_m))
-            loss = criterion(e_n, target)
-            
-            # Backward
-            loss_for_backward = loss / accelerator.gradient_accumulation_steps
-            accelerator.backward(loss_for_backward, retain_graph=True)
-            
+            loss_remove = criterion(e_n, target)
+
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
             if grads_flat_t is None:
@@ -586,9 +582,10 @@ def main():
             
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
-            loss = 5.0 * criterion(delta_live, grads_flat_t)
-            loss_for_backward = loss / accelerator.gradient_accumulation_steps
-            loss_remove = loss.clone().detach()
+            loss_retain = criterion(delta_live, grads_flat_t)
+            loss_for_backward = (loss_remove + loss_retain) / accelerator.gradient_accumulation_steps
+            loss_remove = loss_remove.clone().detach()
+            loss_retain = loss_retain.clone().detach()
             
             accelerator.backward(loss_for_backward)
             
@@ -599,7 +596,7 @@ def main():
                 scheduler.step()
         
         # Combined total loss for logging
-        loss = removal_weight * loss_remove + retain_weight * loss_retain
+        loss = loss_remove + loss_retain
         
         # Gather loss across devices
         with torch.no_grad():
