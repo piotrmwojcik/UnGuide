@@ -611,12 +611,12 @@ def main():
 
                 # Compute LoRAs at t=1, 2, 3, ... B
                 t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                hyper.compute_and_cache_loras(batch_prompts, t_)
-                tensors_flat_t1 = hyper.flatten_cached_from_cache()
+                ##hyper.compute_and_cache_loras(batch_prompts, t_)
+                #tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                 # Loss: minimize change in LoRA weights across timesteps
-                delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * delta.pow(2).mean()
+                #delta = tensors_flat_t1 - tensors_flat_t0
+                loss_retain = retain_weight #* delta.pow(2).mean()
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
@@ -662,7 +662,7 @@ def main():
                 base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 
                 # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
-                combined_model = CombinedCFGModel(cond_model=base, uncond_model=base).eval()
+                combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
                 combined_sampler = DDIMSampler(model=combined_model)
                 
                 start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
