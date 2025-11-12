@@ -584,7 +584,6 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
-            print('!!!! ', remove_weight, criterion(delta_live, grads_flat_t))
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             if len(retain_embeddings) > 0:
@@ -621,7 +620,9 @@ def main():
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
-            
+
+            print('!!!!! ', loss_remove_log)
+
             # Optimizer step
             if accelerator.sync_gradients:
                 optimizer.step()
@@ -632,7 +633,9 @@ def main():
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_remove_log).mean()
             loss_remove_reduced = accelerator.gather(loss_retain_log).mean()
-        
+
+        print('!!!!!!!!!! ', loss_remove_reduced)
+
         if is_main and use_wandb:
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
