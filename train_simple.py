@@ -501,7 +501,9 @@ def main():
         
         # Starting latent code
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
-        
+
+        loss_retain, loss_remove = None, None
+
         with accelerator.accumulate(model):
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
