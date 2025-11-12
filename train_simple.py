@@ -501,10 +501,9 @@ def main():
                 
                 # Loss: minimize change in LoRA weights across timesteps
                 delta = tensors_flat_t1 - tensors_flat_t0
-                loss = retain_weight * delta.pow(2).mean()
+                loss_retain = retain_weight * delta.pow(2).mean()
                 
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                loss_retain = loss.clone().detach()
+                loss_retain_for_backward = loss_retain / accelerator.gradient_accumulation_steps
                 accelerator.backward(loss_for_backward)
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
@@ -584,8 +583,8 @@ def main():
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_retain = criterion(delta_live, grads_flat_t)
             loss_for_backward = (loss_remove + loss_retain) / accelerator.gradient_accumulation_steps
-            loss_remove = loss_remove.clone().detach()
-            loss_retain = loss_retain.clone().detach()
+            loss_remove_log = loss_remove.clone().detach()
+            loss_retain_log = loss_retain.clone().detach()
             
             accelerator.backward(loss_for_backward)
             
@@ -601,8 +600,8 @@ def main():
         # Gather loss across devices
         with torch.no_grad():
             loss_reduced = accelerator.gather(loss.detach()).mean()
-            loss_retain_reduced = accelerator.gather(loss_retain.detach()).mean()
-            loss_remove_reduced = accelerator.gather(loss_remove.detach()).mean()
+            loss_retain_reduced = accelerator.gather(loss_remove_log).mean()
+            loss_remove_reduced = accelerator.gather(loss_retain_log).mean()
         
         loss_value = float(loss_reduced.item())
         losses.append(loss_value)
