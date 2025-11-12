@@ -79,10 +79,10 @@ UnHype:
   negative_guidance: 1.0
   internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
   
-  # Training weights - controls frequency of removal vs retain loss
-  # Default: 8.0 / (8.0 + 4.0) = 67% removal, 33% retain
-  removal_weight: 8.0  # How often to train on removal loss
-  retain_weight: 4.0   # How often to train on retain loss
+  # Training weights - for combining removal and retain losses
+  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
+  removal_weight: 1.0    # Weight for removal loss (main training objective)
+  retain_weight: 0.001   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_final_nudity  # output_dir from args
@@ -95,11 +95,22 @@ UnHype:
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: no  # As specified in args
+  mixed_precision: null  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
   
   # Logging
   logging_dir: logs
   report_to: wandb  # use-wandb flag enabled
+  
+  # Diagnostic prompts for image generation during training
+  # These prompts will be used to generate sample images every N iterations
+  # to monitor training progress and model behavior
+  diagnostic_prompts:
+    - "a photo of a naked woman"
+    - "a photo of a nude person"
+    - "sexual content"
+    - "a photo of a cat"
+    - "a photo of a car"
+    - "a painting of a landscape"
 
   
   # <<< Primary Settings <<<

@@ -31,6 +31,62 @@ from sampling import sample_model
 from utils import get_models, print_trainable_parameters
 
 
+class CombinedCFGModel:
+    """Wrapper that uses different models for conditional and unconditional passes."""
+
+    def __init__(self, cond_model, uncond_model):
+        self.cond_model = cond_model
+        self.uncond_model = uncond_model
+        self.device = cond_model.device
+
+    def apply_model(self, x, t, c):
+        # When DDIMSampler uses guidance, it concatenates [uncond, cond] inputs
+        # We split and route to different models
+        b2 = x.shape[0]
+        assert b2 % 2 == 0
+        b = b2 // 2
+
+        x_uncond = x[:b]
+        x_cond = x[b:]
+        t_uncond = t[:b]
+        t_cond = t[b:]
+
+        # Split conditioning
+        if isinstance(c, dict):
+            c_uncond = {}
+            c_cond = {}
+            for k in c:
+                if isinstance(c[k], list):
+                    c_uncond[k] = [v[:b] for v in c[k]]
+                    c_cond[k] = [v[b:] for v in c[k]]
+                else:
+                    c_uncond[k] = c[k][:b]
+                    c_cond[k] = c[k][b:]
+        else:
+            c_uncond = c[:b]
+            c_cond = c[b:]
+
+        # Route unconditional to model_orig, conditional to model (with LoRA)
+        out_uncond = self.uncond_model.apply_model(x_uncond, t_uncond, c_uncond)
+        out_cond = self.cond_model.apply_model(x_cond, t_cond, c_cond)
+
+        return torch.cat([out_uncond, out_cond], dim=0)
+
+    def get_learned_conditioning(self, prompts):
+        return self.cond_model.get_learned_conditioning(prompts)
+
+    def decode_first_stage(self, z):
+        return self.cond_model.decode_first_stage(z)
+
+    def eval(self):
+        self.cond_model.eval()
+        self.uncond_model.eval()
+        return self
+
+    def __getattr__(self, name):
+        return getattr(self.cond_model, name)
+
+
 def prompt_augmentation(content, augment=True):
     """Generate augmented prompts for a given concept."""
     if augment:
@@ -114,31 +170,30 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
     )
 
 
-def generate_and_save_sd_images(
-    model,
+def generate_images(
     sampler,
+    model,
     prompt: str,
     device: torch.device,
-    cond=None,
     steps: int = 50,
     eta: float = 0.0,
-    guidance_scale: float = 7.5,
     batch_size: int = 1,
-    out_dir: str = "tmp",
-    prefix: str = "img_",
     start_code: torch.Tensor = None,
+    guidance_scale: float = 7.5,
 ):
-    """Generate images using Stable Diffusion."""
+    """
+    Generate images with CFG from a CompVis SD model + DDIMSampler.
+    Uses the same approach as generate_images_nsfw_cfg.py.
+    """
     if start_code is None:
         start_code = torch.randn(batch_size, 4, 64, 64, device=device)
 
     model.eval()
     with torch.no_grad(), torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-        if prompt is not None:
-            cond = model.get_learned_conditioning([prompt] * start_code.shape[0])
+        cond = model.get_learned_conditioning([prompt] * start_code.shape[0])
         uncond = model.get_learned_conditioning([""] * start_code.shape[0])
 
-        samples_latent, _ = sampler.sample(
+        samples, _ = sampler.sample(
             S=steps,
             conditioning={"c_crossattn": [cond]},
             batch_size=start_code.shape[0],
@@ -149,11 +204,10 @@ def generate_and_save_sd_images(
             eta=eta,
             x_T=start_code,
         )
-
-        imgs = model.decode_first_stage(samples_latent)
-        imgs = (imgs.clamp(-1, 1) + 1) / 2.0
-
-        return imgs
+        decoded = model.decode_first_stage(samples)
+        decoded = (decoded + 1.0) / 2.0
+        decoded = torch.clamp(decoded, 0.0, 1.0)
+        return decoded
 
 
 def main():
@@ -183,9 +237,6 @@ def main():
     # Augmentation flags
     augment_target = config.get('augment_target', True)  # Whether to augment target concepts
     augment_retain = config.get('augment_retain', False)  # Whether to augment retain prompts from CSV
-    # Legacy support for 'augment' flag
-    if 'augment' in config and 'augment_target' not in config:
-        augment_target = config.get('augment', True)
     
     # Paths
     output_dir = config.get('output_dir', './output')
@@ -199,6 +250,16 @@ def main():
     start_guidance = 7.5
     negative_guidance = config.get('negative_guidance', 1.0)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
+    
+    # Diagnostic prompts for image generation during training
+    diagnostic_prompts = config.get('diagnostic_prompts', [])
+    if not diagnostic_prompts:
+        # Default diagnostic prompts if none provided
+        diagnostic_prompts = [
+            f"a photo of {concepts[0]}" if concepts else "a photo of a person",
+            "a photo of a cat",
+            "a photo of a car"
+        ]
     
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
@@ -388,23 +449,16 @@ def main():
     
     pbar = tqdm(range(max_train_steps), disable=not accelerator.is_local_main_process)
     
-    # Training weights - controls frequency of removal vs retain loss
-    # This means removal loss runs ~67% of time (8/(8+4)), retain loss ~33%
-    removal_weight = config.get('removal_weight', 8.0)  # Weight for removal loss
-    retain_weight = config.get('retain_weight', 4.0)    # Weight for retain loss
-    total_weight = removal_weight + retain_weight
-    removal_prob = removal_weight / total_weight if total_weight > 0 else 0.5
+    # Training weights for combining removal and retain losses
+    removal_weight = config.get('removal_weight', 1.0)  # Weight for removal loss
+    retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
     
-    print(f"Loss weights: removal={removal_weight:.1f}, retain={retain_weight:.1f} (removal prob: {removal_prob:.1%})")
+    print(f"Loss weights: removal={removal_weight:.3f}, retain={retain_weight:.3f}")
     
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
         
         optimizer.zero_grad(set_to_none=True)
-        
-        # Decide whether to use removal or retain loss based on weights
-        # Use removal loss with probability proportional to removal_weight
-        use_removal_loss = (random.random() < removal_prob) if len(retain_embeddings) > 0 else True
         
         # Random timestep
         t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
@@ -417,19 +471,18 @@ def main():
         
         loss_retain, loss_remove = None, None
         
-        if not use_removal_loss and len(retain_embeddings) > 0:
+        with accelerator.accumulate(model):
             # RETAIN LOSS: Ensure model doesn't forget other concepts
-            # Sample multiple retain concepts (matching original: K=10 samples)
-            num_retain_samples = min(10, len(retain_embeddings))
-            sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
-            sampled_retain_texts = random.sample(retain_prompts, num_retain_samples)
-            
-            # Batch process retain concepts
-            batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
-            
-            with accelerator.accumulate(model):
+            if len(retain_embeddings) > 0:
+                # Sample multiple retain concepts
+                num_retain_samples = min(10, len(retain_embeddings))
+                sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
+                
+                # Batch process retain concepts
+                batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
+                
                 hyper = base.hyper
-                # Repeat prompts 50x (matching original: repeat(50, 1))
+                # Repeat prompts 50x
                 batch_prompts = batch_retain_embs.repeat(50, 1)
                 B = batch_prompts.shape[0]
                 perm = torch.randperm(B, device=batch_prompts.device)
@@ -454,14 +507,9 @@ def main():
                 loss_for_backward = loss / accelerator.gradient_accumulation_steps
                 loss_retain = loss.clone().detach()
                 accelerator.backward(loss_for_backward)
-                
-                if accelerator.sync_gradients:
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
-                    scheduler.step()
+            else:
+                loss_retain = torch.tensor(0.0, device=accelerator.device)
             
-            loss_type = "retain"
-        else:
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
             concept_idx = random.randint(0, len(target_embeddings) - 1)
@@ -490,132 +538,129 @@ def main():
             emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
             emb_m = base.get_learned_conditioning([mapping_text_augmented])  # mapping prompt (what target should map to)
             
-            with accelerator.accumulate(model):
-                # Random timestep for HyperLoRA context
-                rtimestep = int(torch.randint(0, hyper_train_steps - 1, (1,), device=accelerator.device))
-                base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
-                
-                _, current_timestep = base.hyper.get_context()
-                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-                
-                with torch.no_grad():
-                    # Generate hatent using target prompt
-                    z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
-                    # Get noise predictions from original model
-                    e_m = model_orig.apply_model(z, t_enc_ddpm, emb_m)  # mapping (reference) concept
-                    e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target prompt
-                
-                # Prediction from modified model (with HyperLoRA)
-                _, current_timestep = base.hyper.get_context()
-                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-                base.hyper.retain_grad_for_cached_lora()
-                e_n = base.apply_model(z, t_enc_ddpm, emb_n)
-                
-                # Loss: push modified output away from target, towards mapping concept
-                e_m.requires_grad_(False)
-                e_p.requires_grad_(False)
-                target = e_m - (negative_guidance * (e_p - e_m))
-                loss = criterion(e_n, target)
-                
-                # Backward
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward, retain_graph=True)
-                
-                # --- use cached LoRA grads instead of live-tensor grads ---
-                grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
-                if grads_flat_t is None:
-                    raise RuntimeError(
-                        "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
-                # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-                grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
-                
-                _, current_timestep = base.hyper.get_context()
-                base.hyper.set_context(target_emb, current_timestep)
-                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-                tensors_flat_t = base.hyper.flatten_cached_from_cache()
-                
-                base.hyper.set_context(target_emb, current_timestep + 1)
-                base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
-                tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
-                
-                # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-                delta_live = tensors_flat_t1 - tensors_flat_t
-                loss = 5.0 * criterion(delta_live, grads_flat_t)
-                loss_for_backward = loss / accelerator.gradient_accumulation_steps
-                loss_remove = loss.clone().detach()
-                
-                accelerator.backward(loss_for_backward)
-                
-                # Optimizer step
-                if accelerator.sync_gradients:
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
-                    scheduler.step()
+            # Random timestep for HyperLoRA context
+            rtimestep = int(torch.randint(0, hyper_train_steps - 1, (1,), device=accelerator.device))
+            base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
             
-            loss_type = "removal"
+            _, current_timestep = base.hyper.get_context()
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            
+            with torch.no_grad():
+                # Generate latent using target prompt
+                z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
+                # Get noise predictions from original model
+                e_m = model_orig.apply_model(z, t_enc_ddpm, emb_m)  # mapping (reference) concept
+                e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target prompt
+            
+            # Prediction from modified model (with HyperLoRA)
+            _, current_timestep = base.hyper.get_context()
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            base.hyper.retain_grad_for_cached_lora()
+            e_n = base.apply_model(z, t_enc_ddpm, emb_n)
+            
+            # Loss: push modified output away from target, towards mapping concept
+            e_m.requires_grad_(False)
+            e_p.requires_grad_(False)
+            target = e_m - (negative_guidance * (e_p - e_m))
+            loss = criterion(e_n, target)
+            
+            # Backward
+            loss_for_backward = loss / accelerator.gradient_accumulation_steps
+            accelerator.backward(loss_for_backward, retain_graph=True)
+            
+            # --- use cached LoRA grads instead of live-tensor grads ---
+            grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
+            if grads_flat_t is None:
+                raise RuntimeError(
+                    "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
+            # Target step: Δθ ≈ -lr * g_t  (keep target detached)
+            grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
+            
+            _, current_timestep = base.hyper.get_context()
+            base.hyper.set_context(target_emb, current_timestep)
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            tensors_flat_t = base.hyper.flatten_cached_from_cache()
+            
+            base.hyper.set_context(target_emb, current_timestep + 1)
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
+            tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
+            
+            # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
+            delta_live = tensors_flat_t1 - tensors_flat_t
+            loss = 5.0 * criterion(delta_live, grads_flat_t)
+            loss_for_backward = loss / accelerator.gradient_accumulation_steps
+            loss_remove = loss.clone().detach()
+            
+            accelerator.backward(loss_for_backward)
+            
+            # Optimizer step
+            if accelerator.sync_gradients:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                scheduler.step()
+        
+        # Combined total loss for logging
+        loss = removal_weight * loss_remove + retain_weight * loss_retain
         
         # Gather loss across devices
         with torch.no_grad():
             loss_reduced = accelerator.gather(loss.detach()).mean()
-            if loss_retain is not None:
-                loss_retain_reduced = accelerator.gather(loss_retain).mean()
-            if loss_remove is not None:
-                loss_remove_reduced = accelerator.gather(loss_remove).mean()
+            loss_retain_reduced = accelerator.gather(loss_retain.detach()).mean()
+            loss_remove_reduced = accelerator.gather(loss_remove.detach()).mean()
         
         loss_value = float(loss_reduced.item())
         losses.append(loss_value)
         
         if is_main and use_wandb:
-            wandb.log({"loss": loss_value}, step=iteration)
-            if loss_retain is not None:
-                wandb.log({"loss_retain": float(loss_retain_reduced.item())}, step=iteration)
-            if loss_remove is not None:
-                wandb.log({"loss_remove": float(loss_remove_reduced.item())}, step=iteration)
+            wandb.log({
+                "loss": loss_value,
+                "loss_retain": float(loss_retain_reduced.item()),
+                "loss_remove": float(loss_remove_reduced.item()),
+            }, step=iteration)
         
         if is_main:
-            pbar.set_postfix({"loss": f"{loss_value:.6f}", "type": loss_type})
+            pbar.set_postfix({
+                "loss": f"{loss_value:.6f}",
+                "remove": f"{float(loss_remove_reduced.item()):.6f}",
+                "retain": f"{float(loss_retain_reduced.item()):.6f}"
+            })
         
         # Generate sample images periodically
         if is_main and use_wandb and iteration % 20 == 0:
-            # Sample target concepts (should be removed)
-            for idx, (concept, emb) in enumerate(zip(target_concepts[:2], target_embeddings[:2])):
-                base.hyper.set_context(emb, torch.tensor([hyper_train_steps], device=accelerator.device))
-                base.hyper.compute_and_cache_loras(emb, torch.tensor([hyper_train_steps], device=accelerator.device))
+            # Generate images for diagnostic prompts from config
+            for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
+                # Encode the diagnostic prompt
+                inputs_diag = encode(diag_prompt)
+                with torch.no_grad():
+                    if use_pooler:
+                        diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
+                    else:
+                        diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
                 
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt=concept,
+                base.hyper.set_context(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
+                base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
+                
+                # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
+                combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
+                combined_sampler = DDIMSampler(model=combined_model)
+                
+                start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
+                
+                imgs = generate_images(
+                    sampler=combined_sampler,
+                    model=combined_model,
+                    prompt=diag_prompt,
                     device=accelerator.device,
                     steps=50,
                     guidance_scale=start_guidance,
+                    start_code=start_code,
                 )
                 
                 if imgs is not None:
                     im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({f"sample_target_{concept}": wandb.Image(to_pil_image(im0), caption=f"Target: {concept}")}, step=iteration)
-            
-            # Sample retain concepts (should be preserved)
-            if len(retain_embeddings) > 0:
-                idx = random.randint(0, len(retain_embeddings) - 1)
-                retain_prompt = retain_prompts[idx]
-                retain_emb = retain_embeddings[idx]
-                
-                base.hyper.set_context(retain_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
-                base.hyper.compute_and_cache_loras(retain_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
-                
-                imgs = generate_and_save_sd_images(
-                    model=base,
-                    sampler=sampler,
-                    prompt=retain_prompt,
-                    device=accelerator.device,
-                    steps=50,
-                    guidance_scale=start_guidance,
-                )
-                
-                if imgs is not None:
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    wandb.log({f"sample_retain": wandb.Image(to_pil_image(im0), caption=f"Retain: {retain_prompt}")}, step=iteration)
+                    # Clean prompt for wandb key (remove spaces and special chars)
+                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+                    wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(im0), caption=diag_prompt)}, step=iteration)
     
     # Save model
     accelerator.wait_for_everyone()
