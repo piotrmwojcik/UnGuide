@@ -662,7 +662,7 @@ def main():
                 base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 
                 # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
-                combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
+                combined_model = CombinedCFGModel(cond_model=base, uncond_model=base).eval()
                 combined_sampler = DDIMSampler(model=combined_model)
                 
                 start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
