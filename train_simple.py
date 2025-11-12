@@ -586,6 +586,7 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = criterion(delta_live, grads_flat_t)
+            accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
@@ -619,8 +620,7 @@ def main():
 
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
-
-            loss_for_backward = (loss_remove + loss_retain) / accelerator.gradient_accumulation_steps
+            accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
             
@@ -632,21 +632,13 @@ def main():
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
         
-        # Combined total loss for logging
-        loss = loss_remove + loss_retain
-        
         # Gather loss across devices
         with torch.no_grad():
-            loss_reduced = accelerator.gather(loss.detach()).mean()
             loss_retain_reduced = accelerator.gather(loss_remove_log).mean()
             loss_remove_reduced = accelerator.gather(loss_retain_log).mean()
         
-        loss_value = float(loss_reduced.item())
-        losses.append(loss_value)
-        
         if is_main and use_wandb:
             wandb.log({
-                "loss": loss_value,
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
             }, step=iteration)
