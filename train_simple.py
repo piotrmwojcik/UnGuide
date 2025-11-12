@@ -623,8 +623,7 @@ def main():
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
-            
-            accelerator.backward(loss_for_backward)
+
             
             # Optimizer step
             if accelerator.sync_gradients:
