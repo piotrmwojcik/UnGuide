@@ -631,11 +631,8 @@ def main():
         
         # Gather loss across devices
         with torch.no_grad():
-            print('!!!!! ', loss_remove_log)
-            loss_retain_reduced = accelerator.gather(loss_remove_log).mean()
-            loss_remove_reduced = accelerator.gather(loss_retain_log).mean()
-
-        print('!!!!!!!!!! ', loss_remove_reduced)
+            loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
+            loss_remove_reduced = accelerator.gather(loss_remove_log).mean()
 
         if is_main and use_wandb:
             wandb.log({
