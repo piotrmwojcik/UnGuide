@@ -167,6 +167,7 @@ def main():
     # Extract key parameters with defaults
     learning_rate = config.get('learning_rate', 1e-5)
     max_train_steps = config.get('max_train_steps', 120)
+    hyper_train_steps = config.get('hyper_train_steps', 500)  # Steps for hypernetwork context
     rank = config.get('rank', 1)
     lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
     seed = config.get('seed', 2024)
@@ -200,6 +201,7 @@ def main():
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
     
     print(f"Training steps: {max_train_steps}")
+    print(f"Hypernetwork steps: {hyper_train_steps}")
     print(f"Learning rate: {learning_rate}")
     print(f"LoRA rank: {rank}")
     print(f"LoRA alpha: {lora_alpha}")
@@ -350,7 +352,7 @@ def main():
         base_prompts = df['prompt'].dropna().tolist()
         print(f"Loaded {len(base_prompts)} base retain prompts from CSV")
         
-        # Apply prompt augmentation to retain prompts if enabled
+        # Apply prompt separate steps for training and for hyper (the same as in train.yp)ation to retain prompts if enabled
         if augment_retain:
             print("Applying prompt augmentation to retain prompts")
             for prompt in base_prompts:
@@ -490,7 +492,7 @@ def main():
             
             with accelerator.accumulate(model):
                 # Random timestep for HyperLoRA context
-                rtimestep = int(torch.randint(0, max_train_steps - 1, (1,), device=accelerator.device))
+                rtimestep = int(torch.randint(0, hyper_train_steps - 1, (1,), device=accelerator.device))
                 base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
                 
                 _, current_timestep = base.hyper.get_context()
@@ -577,8 +579,8 @@ def main():
         if is_main and use_wandb and iteration % 20 == 0:
             # Sample target concepts (should be removed)
             for idx, (concept, emb) in enumerate(zip(target_concepts[:2], target_embeddings[:2])):
-                base.hyper.set_context(emb, torch.tensor([max_train_steps], device=accelerator.device))
-                base.hyper.compute_and_cache_loras(emb, torch.tensor([max_train_steps], device=accelerator.device))
+                base.hyper.set_context(emb, torch.tensor([hyper_train_steps], device=accelerator.device))
+                base.hyper.compute_and_cache_loras(emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 
                 imgs = generate_and_save_sd_images(
                     model=base,
@@ -599,8 +601,8 @@ def main():
                 retain_prompt = retain_prompts[idx]
                 retain_emb = retain_embeddings[idx]
                 
-                base.hyper.set_context(retain_emb, torch.tensor([max_train_steps], device=accelerator.device))
-                base.hyper.compute_and_cache_loras(retain_emb, torch.tensor([max_train_steps], device=accelerator.device))
+                base.hyper.set_context(retain_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
+                base.hyper.compute_and_cache_loras(retain_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 
                 imgs = generate_and_save_sd_images(
                     model=base,
@@ -649,6 +651,7 @@ def main():
             "rank": rank,
             "learning_rate": learning_rate,
             "max_train_steps": max_train_steps,
+            "hyper_train_steps": hyper_train_steps,
             "final_loss": losses[-1],
             "average_loss": sum(losses) / len(losses),
         }
