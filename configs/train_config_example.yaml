@@ -95,7 +95,7 @@ UnHype:
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: no  # As specified in args
+  mixed_precision: "no"  # As specified in args
   
   # Logging
   logging_dir: logs
