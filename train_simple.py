@@ -616,7 +616,7 @@ def main():
 
                 # Loss: minimize change in LoRA weights across timesteps
                 #delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight #* delta.pow(2).mean()
+                loss_retain = torch.tensor(retain_weight, device=accelerator.device) #* delta.pow(2).mean()
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
