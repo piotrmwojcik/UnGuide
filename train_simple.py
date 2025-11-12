@@ -586,7 +586,8 @@ def main():
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
-            if len(retain_embeddings) > 0:
+            #if len(retain_embeddings) > 0:
+            if False:
                 # Sample multiple retain concepts
                 num_retain_samples = min(10, len(retain_embeddings))
                 sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
