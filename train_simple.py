@@ -508,7 +508,6 @@ def main():
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
             concept_idx = random.randint(0, len(target_embeddings) - 1)
-            target_emb = target_embeddings[concept_idx]
             
             target_text = target_concepts[concept_idx]
             mapping_text = mapping_concept[concept_idx] if concept_idx < len(mapping_concept) else mapping_concept[0]
@@ -524,9 +523,18 @@ def main():
                 # Apply the SAME augmentation variation to mapping
                 augmented_mapping = prompt_augmentation(mapping_text, augment=True)
                 mapping_text_augmented = augmented_mapping[aug_idx]
+                
+                # Recompute target_emb with the same augmentation
+                inputs_aug = encode(target_text_augmented)
+                with torch.no_grad():
+                    if use_pooler:
+                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
+                    else:
+                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
             else:
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
+                target_emb = target_embeddings[concept_idx]
             
             # Get text conditioning for Stable Diffusion
             emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
