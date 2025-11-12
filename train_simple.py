@@ -483,7 +483,7 @@ def main():
     pbar = tqdm(range(max_train_steps), disable=not accelerator.is_local_main_process)
     
     # Training weights for combining removal and retain losses
-    remove_weight = config.get('removal_weight', 1.0)  # Weight for removal loss
+    remove_weight = config.get('remove_weight', 1.0)  # Weight for removal loss
     retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
     
     print(f"Loss weights: removal={remove_weight:.3f}, retain={retain_weight:.3f}")
