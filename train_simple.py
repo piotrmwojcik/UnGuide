@@ -611,12 +611,12 @@ def main():
 
                 # Compute LoRAs at t=1, 2, 3, ... B
                 t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                ##hyper.compute_and_cache_loras(batch_prompts, t_)
-                #tensors_flat_t1 = hyper.flatten_cached_from_cache()
+                hyper.compute_and_cache_loras(batch_prompts, t_)
+                tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                 # Loss: minimize change in LoRA weights across timesteps
-                #delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = torch.tensor(retain_weight, device=accelerator.device) #* delta.pow(2).mean()
+                delta = tensors_flat_t1 - tensors_flat_t0
+                loss_retain = retain_weight * delta.pow(2).mean()
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
