@@ -486,7 +486,7 @@ def main():
     remove_weight = config.get('remove_weight', 1.0)  # Weight for removal loss
     retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
     
-    print(f"Loss weights: removal={remove_weight:.3f}, retain={retain_weight:.3f}")
+    print(f"Loss weights: remove={remove_weight:.3f}, retain={retain_weight:.3f}")
     
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
@@ -555,9 +555,9 @@ def main():
             e_m.requires_grad_(False)
             e_p.requires_grad_(False)
             target = e_m - (negative_guidance * (e_p - e_m))
-            loss_remove = criterion(e_n, target)
+            loss_aux = criterion(e_n, target)
 
-            accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
+            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
