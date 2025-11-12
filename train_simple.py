@@ -504,7 +504,7 @@ def main():
                 loss_retain = retain_weight * delta.pow(2).mean()
                 
                 loss_retain_for_backward = loss_retain / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_for_backward)
+                accelerator.backward(loss_retain_for_backward)
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
             
