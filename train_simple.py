@@ -486,7 +486,7 @@ def main():
     remove_weight = config.get('removal_weight', 1.0)  # Weight for removal loss
     retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
     
-    print(f"Loss weights: removal={removal_weight:.3f}, retain={retain_weight:.3f}")
+    print(f"Loss weights: removal={remove_weight:.3f}, retain={retain_weight:.3f}")
     
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
