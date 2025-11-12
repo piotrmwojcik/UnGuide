@@ -505,42 +505,6 @@ def main():
         loss_retain, loss_remove = None, None
         
         with accelerator.accumulate(model):
-            # RETAIN LOSS: Ensure model doesn't forget other concepts
-            if len(retain_embeddings) > 0:
-                # Sample multiple retain concepts
-                num_retain_samples = min(10, len(retain_embeddings))
-                sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
-                
-                # Batch process retain concepts
-                batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
-                
-                hyper = base.hyper
-                batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
-                B = batch_prompts.shape[0]
-                perm = torch.randperm(B, device=batch_prompts.device)
-                batch_prompts = batch_prompts[perm]
-                
-                # Compute LoRAs at t=0
-                hyper.compute_and_cache_loras(
-                    batch_prompts,
-                    torch.zeros(B, device=accelerator.device)
-                )
-                tensors_flat_t0 = hyper.flatten_cached_from_cache()
-                
-                # Compute LoRAs at t=1, 2, 3, ... B
-                t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                hyper.compute_and_cache_loras(batch_prompts, t_)
-                tensors_flat_t1 = hyper.flatten_cached_from_cache()
-                
-                # Loss: minimize change in LoRA weights across timesteps
-                delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * delta.pow(2).mean()
-                
-                loss_retain_for_backward = loss_retain / accelerator.gradient_accumulation_steps
-                accelerator.backward(loss_retain_for_backward)
-            else:
-                loss_retain = torch.tensor(0.0, device=accelerator.device)
-            
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
             concept_idx = random.randint(0, len(target_embeddings) - 1)
@@ -602,6 +566,11 @@ def main():
             if grads_flat_t is None:
                 raise RuntimeError(
                     "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
+
+            for p in trainable_params:
+                if p.grad is not None:
+                    p.grad.detach().zero_()
+
             # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
             
@@ -617,11 +586,47 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = criterion(delta_live, grads_flat_t)
-            loss_for_backward = loss_remove / accelerator.gradient_accumulation_steps
+
+            if len(retain_embeddings) > 0:
+                # Sample multiple retain concepts
+                num_retain_samples = min(10, len(retain_embeddings))
+                sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
+
+                # Batch process retain concepts
+                batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
+
+                hyper = base.hyper
+                batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
+                B = batch_prompts.shape[0]
+                perm = torch.randperm(B, device=batch_prompts.device)
+                batch_prompts = batch_prompts[perm]
+
+                # Compute LoRAs at t=0
+                hyper.compute_and_cache_loras(
+                    batch_prompts,
+                    torch.zeros(B, device=accelerator.device)
+                )
+                tensors_flat_t0 = hyper.flatten_cached_from_cache()
+
+                # Compute LoRAs at t=1, 2, 3, ... B
+                t_ = (torch.arange(B, device=accelerator.device) % B) + 1
+                hyper.compute_and_cache_loras(batch_prompts, t_)
+                tensors_flat_t1 = hyper.flatten_cached_from_cache()
+
+                # Loss: minimize change in LoRA weights across timesteps
+                delta = tensors_flat_t1 - tensors_flat_t0
+                loss_retain = retain_weight * delta.pow(2).mean()
+
+                loss_retain_for_backward = loss_retain / accelerator.gradient_accumulation_steps
+                accelerator.backward(loss_retain_for_backward)
+            else:
+                loss_retain = torch.tensor(0.0, device=accelerator.device)
+
+            loss_for_backward = (loss_remove + loss_retain) / accelerator.gradient_accumulation_steps
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
             
-            accelerator.backward(loss_for_backward, retain=True)
+            accelerator.backward(loss_for_backward)
             
             # Optimizer step
             if accelerator.sync_gradients:
