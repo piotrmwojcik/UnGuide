@@ -623,8 +623,6 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
-            print('!!!!! ', loss_remove_log)
-
             # Optimizer step
             if accelerator.sync_gradients:
                 optimizer.step()
@@ -633,6 +631,7 @@ def main():
         
         # Gather loss across devices
         with torch.no_grad():
+            print('!!!!! ', loss_remove_log)
             loss_retain_reduced = accelerator.gather(loss_remove_log).mean()
             loss_remove_reduced = accelerator.gather(loss_retain_log).mean()
 
@@ -646,8 +645,8 @@ def main():
         
         if is_main:
             pbar.set_postfix({
-                "remove": f"{float(loss_remove_reduced.item()):.6f}",
-                "retain": f"{float(loss_retain_reduced.item()):.6f}"
+                "retain": f"{float(loss_retain_reduced.item()):.6f}",
+                "remove": f"{float(loss_remove_reduced.item()):.6f}"
             })
         
         # Generate sample images periodically
