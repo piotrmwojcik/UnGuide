@@ -502,8 +502,6 @@ def main():
         # Starting latent code
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
         
-        loss_retain, loss_remove = None, None
-        
         with accelerator.accumulate(model):
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
@@ -557,9 +555,9 @@ def main():
             e_m.requires_grad_(False)
             e_p.requires_grad_(False)
             target = e_m - (negative_guidance * (e_p - e_m))
-            loss_aux = criterion(e_n, target)
+            loss_remove = criterion(e_n, target)
 
-            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps, retain_graph=True)
+            accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps, retain_graph=True)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
