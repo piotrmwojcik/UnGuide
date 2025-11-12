@@ -1,0 +1,104 @@
+UnHype:
+  # >>> Primary Settings >>>
+  
+  # Target concepts for removal
+  # List of concepts that should be removed
+  concepts:
+    - "Sexual Acts"
+    - "Content Meant to Arouse Sexual Excitement"
+    - "Nudity"
+    - "Pornography"
+    - "Nudity in Paintings"
+    - "Chest"
+    - "Breasts"
+    - "Erotic Art"
+    - "Lustful"
+    - "Seductive"
+    - "Orgasmic"
+    - "Libido"
+    - "Feet"
+    - "Belly"
+    - "Kinky"
+    - "Sexual Orientation"
+    - "Full Body"
+    - "Sexual Attraction"
+    - "Sexual Intercourse"
+    - "Sexual Pleasure"
+    - "Sexual Fantasy"
+    - "Carnal Desires"
+    - "Sexual Gratification"
+  
+  # Mapping concepts - what the target concepts should map to when erased
+  mapping_concept: 
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+    - 'a person wearing clothes'
+  
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # These are used to ensure the model doesn't forget other concepts
+  # Example: ./mscoco/coco_30k.csv or ./data/cifar100_retain.csv
+  retain_csv_path: ./mscoco/coco_30k.csv
+  
+  # Prompt augmentation - control augmentation for target and retain concepts
+  # Each generates 31 variations when enabled (e.g., "a photo of X", "a painting of X", etc.)
+  augment_target: true   # Augment target concepts to be removed
+  augment_retain: false  # Augment retain prompts from CSV
+  
+  # Training hyperparameters
+  learning_rate: 1.0e-04  # 1e-4 as specified
+  max_train_steps: 500  # iterations
+  gradient_accumulation_steps: 1
+  
+  # LoRA configuration
+  rank: 1
+  lora_alpha: 1.0e-05
+  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
+  
+  # Loss weights
+  negative_guidance: 1.0
+  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+  
+  # Training weights - controls frequency of removal vs retain loss
+  # Default: 8.0 / (8.0 + 4.0) = 67% removal, 33% retain
+  removal_weight: 8.0  # How often to train on removal loss
+  retain_weight: 4.0   # How often to train on retain loss
+  
+  # Data and paths
+  output_dir: output_final_nudity  # output_dir from args
+  final_save_path: output_final_nudity/LoRA_fusion_model
+  
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
+  
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: no  # As specified in args
+  
+  # Logging
+  logging_dir: logs
+  report_to: wandb  # use-wandb flag enabled
+
+  
+  # <<< Primary Settings <<<
