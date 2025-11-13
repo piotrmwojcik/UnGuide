@@ -595,12 +595,6 @@ def main():
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps)
 
-            total = 0.0
-            for n, p in model.named_parameters():
-                if p.requires_grad and p.grad is not None:
-                    total += p.grad.detach().abs().sum().item()
-            print("!!!!! grad sum after loss_remove backward:", total)
-
             if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
                 num_retain_samples = min(10, len(retain_embeddings))
