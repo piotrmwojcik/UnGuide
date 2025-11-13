@@ -584,11 +584,11 @@ def main():
             _, current_timestep = base.hyper.get_context()
             base.hyper.set_context(target_emb, current_timestep)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            tensors_flat_t = base.hyper.flatten_cached_from_cache().clone()
+            tensors_flat_t = base.hyper.flatten_cached_from_cache()
             
             base.hyper.set_context(target_emb, current_timestep + 1)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
-            tensors_flat_t1 = base.hyper.flatten_cached_from_cache().clone()
+            tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
             
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
@@ -614,12 +614,12 @@ def main():
                    batch_prompts,
                    torch.zeros(B, device=accelerator.device)
                 )
-                tensors_flat_t0 = hyper.flatten_cached_from_cache().clone()
+                tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
                 #Compute LoRAs at t=1, 2, 3, ... B
                 t_ = (torch.arange(B, device=accelerator.device) % B) + 1
                 hyper.compute_and_cache_loras(batch_prompts, t_)
-                tensors_flat_t1 = hyper.flatten_cached_from_cache().clone()
+                tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                 #Loss: minimize change in LoRA weights across timesteps
                 delta = tensors_flat_t1 - tensors_flat_t0
