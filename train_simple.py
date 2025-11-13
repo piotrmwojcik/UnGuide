@@ -574,9 +574,9 @@ def main():
                 raise RuntimeError(
                     "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
 
-            for p in trainable_params:
-                if p.grad is not None:
-                    p.grad = None
+            #for p in trainable_params:
+            #    if p.grad is not None:
+            #        p.grad = None
 
             # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
@@ -646,7 +646,7 @@ def main():
         if is_main and use_wandb:
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
-                "loss_remove": float(loss_remove_reduced.item())#,
+                "loss_remove": float(loss_remove_reduced.item())
             }, step=iteration)
         
         if is_main:
