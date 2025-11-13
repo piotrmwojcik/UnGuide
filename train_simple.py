@@ -686,7 +686,7 @@ def main():
                     prompt=diag_prompt,
                     device=accelerator.device,
                     steps=50,
-                    guidance_scale=start_guidance,
+                    guidance_scale=guidance_scale,
                     start_code=start_code,
                 )
                 
