@@ -626,33 +626,17 @@ def main():
                 loss_retain = retain_weight * delta.pow(2).mean()
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
-            tot_before = 0.0
-            for p in accelerator.unwrap_model(model).parameters():
-                if p.grad is not None: tot_before += p.grad.abs().sum().item()
-            print("[remove] grad sum before retain backward:", tot_before)
 
-            accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
+            #accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
 
-            tot_after = 0.0
-            for p in accelerator.unwrap_model(model).parameters():
-                if p.grad is not None: tot_after += p.grad.abs().sum().item()
-            print("[retain] grad sum after retain backward:", tot_after)
-
-            print("sync_gradients:", accelerator.sync_gradients)
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
             # Optimizer step
-            scaler = getattr(accelerator, "scaler", None)
-            if scaler is not None:
-                print("scale before:", scaler.get_scale())
-            # step
             if accelerator.sync_gradients:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
-                if scaler is not None:
-                    print("scale after:", scaler.get_scale())
         
         # Gather loss across devices
         with torch.no_grad():
