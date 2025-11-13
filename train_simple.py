@@ -593,9 +593,11 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+            print('A')
             accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps)
 
             if accelerator.sync_gradients:
+                print('B')
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
