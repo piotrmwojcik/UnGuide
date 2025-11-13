@@ -580,9 +580,9 @@ def main():
             # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
 
-            for p in trainable_params:
-                if p.grad is not None:
-                    p.grad = None
+            #for p in trainable_params:
+            #    if p.grad is not None:
+            #        p.grad = None
             
             _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
             base.hyper.set_context(target_emb, current_timestep)
