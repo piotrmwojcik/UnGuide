@@ -60,7 +60,7 @@ class HypernetworkManager(nn.Module):
             for w in self.get_cached_lora(name):
                 g = getattr(w, "grad", None)
                 if g is not None:
-                    grads.append(g.reshape(-1))
+                    grads.append(g.clone().reshape(-1))
         return None if not grads else torch.cat(grads, dim=0)
 
     def retain_grad_for_cached_lora(self):
