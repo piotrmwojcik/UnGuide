@@ -38,7 +38,7 @@ class HypernetworkManager(nn.Module):
             _ = hyper.get_lora_matrices(clip_emb, timestep)
 
     def compute_and_cache_loras(self, clip_emb, timestep):
-        #self.lora_weights_cache.clear()
+        self.lora_weights_cache.clear()
         for name, idx in self.layer_name_to_idx.items():
             hyper = self.hyper_layers[idx]
             x_alpha, x_L, x_R = hyper.get_lora_matrices(clip_emb, timestep)
