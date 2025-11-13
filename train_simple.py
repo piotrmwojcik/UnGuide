@@ -247,7 +247,7 @@ def main():
     # Training settings
     ddim_steps = 50
     ddim_eta = 0.0
-    start_guidance = 7.5
+    start_guidance = config.get('negative_guidance', 9.0)
     negative_guidance = config.get('negative_guidance', 1.0)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
     
@@ -578,7 +578,6 @@ def main():
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
 
             # Free the computation graph now that we've extracted the gradients
-            loss_aux = None
             del e_n, target
 
             for p in trainable_params:
