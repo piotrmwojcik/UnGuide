@@ -247,7 +247,7 @@ def main():
     # Training settings
     ddim_steps = 50
     ddim_eta = 0.0
-    start_guidance = config.get('negative_guidance', 9.0)
+    start_guidance = config.get('start_guidance', 9.0)
     negative_guidance = config.get('negative_guidance', 1.0)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
     
@@ -582,7 +582,7 @@ def main():
                 if p.grad is not None:
                     p.grad = None
             
-            _, current_timestep = base.hyper.get_context()
+            _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
             base.hyper.set_context(target_emb, current_timestep)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
             tensors_flat_t = base.hyper.flatten_cached_from_cache()
