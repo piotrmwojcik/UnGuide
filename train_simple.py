@@ -502,8 +502,6 @@ def main():
         # Starting latent code
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
 
-        loss_retain, loss_remove = None, None
-
         with accelerator.accumulate(model):
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
@@ -611,10 +609,10 @@ def main():
                 batch_prompts = batch_prompts[perm]
 
                 # Compute LoRAs at t=0
-                hyper.compute_and_cache_loras(
-                    batch_prompts,
-                    torch.zeros(B, device=accelerator.device)
-                )
+                #hyper.compute_and_cache_loras(
+                #    batch_prompts,
+                #    torch.zeros(B, device=accelerator.device)
+                #)
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
                 # Compute LoRAs at t=1, 2, 3, ... B
@@ -670,7 +668,7 @@ def main():
                 base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 
                 # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
-                combined_model = CombinedCFGModel(cond_model=base, uncond_model=base).eval()
+                combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
                 combined_sampler = DDIMSampler(model=combined_model)
                 
                 start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
