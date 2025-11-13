@@ -532,6 +532,8 @@ def main():
                     else:
                         target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
             else:
+
+                print('!!! ', target_text, mapping_text)
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
                 target_emb = target_embeddings[concept_idx]
