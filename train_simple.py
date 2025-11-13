@@ -474,7 +474,7 @@ def main():
     
     # Training loop
     criterion = torch.nn.MSELoss()
-    #losses = []
+    losses = []
     
     quick_sampler = create_quick_sampler(
         accelerator.unwrap_model(model), sampler, resolution, ddim_steps, ddim_eta
