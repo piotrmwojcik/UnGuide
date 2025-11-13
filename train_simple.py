@@ -567,7 +567,7 @@ def main():
             target = e_m - (negative_guidance * (e_p - e_m))
             loss_aux = criterion(e_n, target)
 
-            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps, retain_graph=True)
+            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
@@ -577,9 +577,6 @@ def main():
 
             # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
-
-            # Free the computation graph now that we've extracted the gradients
-            del e_n, target
 
             for p in trainable_params:
                 if p.grad is not None:
