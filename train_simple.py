@@ -567,17 +567,12 @@ def main():
             loss_aux = criterion(e_n, target)
 
             accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps, retain_graph=True)
-
-            if accelerator.sync_gradients:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-                scheduler.step()
             
             # --- use cached LoRA grads instead of live-tensor grads ---
-            # grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
-            # if grads_flat_t is None:
-            #     raise RuntimeError(
-            #         "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
+            grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
+            if grads_flat_t is None:
+                raise RuntimeError(
+                    "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
 
             for p in trainable_params:
                 if p.grad is not None:
