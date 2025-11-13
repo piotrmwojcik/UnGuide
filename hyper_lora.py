@@ -9,8 +9,6 @@ from functools import partial
 import torch.nn as nn
 
 
-TRAIN_STEPS = 500
-
 class HypernetworkManager(nn.Module):
     def __init__(self):
         super().__init__()
@@ -71,7 +69,7 @@ class HypernetworkManager(nn.Module):
 
 
 class TimeFourier(nn.Module):
-    def __init__(self, T=TRAIN_STEPS+1, L=16):
+    def __init__(self, T, L=16):
         super().__init__()
         k = torch.linspace(0, L - 1, L, dtype=torch.float32)
         freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
@@ -101,7 +99,7 @@ class HyperLora(nn.Module):
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
-        self.train_steps = train_steps if train_steps is not None else TRAIN_STEPS
+        self.train_steps = train_steps
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
         self._dbg_calls = 0   # to avoid spamming
         ## it should (?) be shared
