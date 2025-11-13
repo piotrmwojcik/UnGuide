@@ -641,7 +641,7 @@ def main():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
             loss_remove_reduced = accelerator.gather(loss_remove_log).mean()
 
-        losses.append(float(loss_remove_reduced.item()))
+        losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if is_main and use_wandb:
             wandb.log({
