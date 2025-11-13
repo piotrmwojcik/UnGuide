@@ -322,6 +322,7 @@ def main():
         clip_size=clip_size,
         rank=rank,
         alpha=lora_alpha,
+        train_steps=hyper_train_steps,
     )
     
     hyper_lora_layers = inject_hyper_lora(
