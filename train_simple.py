@@ -643,10 +643,16 @@ def main():
             loss_retain_log = loss_retain.clone().detach()
 
             # Optimizer step
+            scaler = getattr(accelerator, "scaler", None)
+            if scaler is not None:
+                print("scale before:", scaler.get_scale())
+            # step
             if accelerator.sync_gradients:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
+                if scaler is not None:
+                    print("scale after:", scaler.get_scale())
         
         # Gather loss across devices
         with torch.no_grad():
