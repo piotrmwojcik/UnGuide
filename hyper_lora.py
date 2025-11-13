@@ -94,12 +94,14 @@ class HyperLora(nn.Module):
         clip_size: int = 768,
         alpha_init: int = 16.0,
         time_embedd: int = 32,
-        use_scaling=True
+        use_scaling=True,
+        train_steps: int = None
     ):
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
+        self.train_steps = train_steps if train_steps is not None else TRAIN_STEPS
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
         self._dbg_calls = 0   # to avoid spamming
         ## it should (?) be shared
@@ -127,20 +129,20 @@ class HyperLora(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(100, out_dim * rank),
         )
-        self.time_feat = TimeFourier()
+        self.time_feat = TimeFourier(T=self.train_steps + 1)
 
         self.use_scaling = use_scaling
         if self.use_scaling:
             self.alpha = nn.Parameter(torch.tensor(alpha_init))
 
     def forward_linear_L(self, emb, t):
-        return self.xL_const_flat + t[:, None] / TRAIN_STEPS * self.left_head(emb)
+        return self.xL_const_flat + t[:, None] / self.train_steps * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
-        return self.xR_const_flat + t[:, None] / TRAIN_STEPS * self.right_head(emb)
+        return self.xR_const_flat + t[:, None] / self.train_steps * self.right_head(emb)
 
     def forward_alpha(self, t):
-        return self.alpha_b + t[:, None] / TRAIN_STEPS * self.alpha
+        return self.alpha_b + t[:, None] / self.train_steps * self.alpha
 
     def get_lora_matrices(self, clip, t):
         #B = clip.shape[0]
@@ -184,6 +186,7 @@ class HyperLoRALinear(nn.Module):
         rank: int = 1,
         alpha: int = 16,
         layer_name: str = None,
+        train_steps: int = None,
     ):
         super().__init__()
         self.original = original_linear
@@ -193,6 +196,7 @@ class HyperLoRALinear(nn.Module):
             rank,
             clip_size,
             alpha,
+            train_steps=train_steps,
         )
         self.parent_model = None
         self.layer_name = layer_name
