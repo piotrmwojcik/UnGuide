@@ -698,26 +698,26 @@ def main():
                     wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(im0), caption=diag_prompt)}, step=iteration)
     
     # Save model
-    accelerator.wait_for_everyone()
-    if is_main:
-        print("\nTraining completed!")
-        print(f"Final loss: {losses[-1]:.6f}")
-        print(f"Average loss: {sum(losses)/len(losses):.6f}")
-        
-        # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs(final_save_path, exist_ok=True)
-        
-        # Save LoRA weights
-        lora_state_dict = {}
-        model_unwrapped = accelerator.unwrap_model(model)
-        for name, param in model_unwrapped.model.diffusion_model.named_parameters():
-            if param.requires_grad:
-                lora_state_dict[name] = param.detach().cpu().clone()
-        
-        lora_path = os.path.join(final_save_path, "hyper_lora.pth")
-        accelerator.save(lora_state_dict, lora_path)
-        print(f"Model saved to: {lora_path}")
+        accelerator.wait_for_everyone()
+        if is_main and iteration % 20 == 0:
+            print("\nTraining completed!")
+            print(f"Final loss: {losses[-1]:.6f}")
+            print(f"Average loss: {sum(losses)/len(losses):.6f}")
+
+            # Create output directory
+            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(final_save_path, exist_ok=True)
+
+            # Save LoRA weights
+            lora_state_dict = {}
+            model_unwrapped = accelerator.unwrap_model(model)
+            for name, param in model_unwrapped.model.diffusion_model.named_parameters():
+                if param.requires_grad:
+                    lora_state_dict[name] = param.detach().cpu().clone()
+
+            lora_path = os.path.join(final_save_path, "hyper_lora.pth")
+            accelerator.save(lora_state_dict, lora_path)
+            print(f"Model saved to: {lora_path}")
         
         # Save config
         config_save = {
@@ -732,7 +732,7 @@ def main():
             "learning_rate": learning_rate,
             "max_train_steps": max_train_steps,
             "hyper_train_steps": hyper_train_steps,
-            #"final_loss": losses[-1],
+            "final_loss": losses[-1],
             "average_loss": sum(losses) / len(losses),
         }
         
