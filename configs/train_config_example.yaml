@@ -65,7 +65,7 @@ UnHype:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  learning_rate: 1.0e-04  # 1e-4 as specified
+  learning_rate: 4.0e-04  # 1e-4 as specified
   max_train_steps: 2000  # Number of actual training iterations
   hyper_train_steps: 500  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
@@ -82,7 +82,7 @@ UnHype:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 5.000   # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 1.000   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_final_nudity  # output_dir from args
