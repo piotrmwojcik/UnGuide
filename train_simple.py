@@ -622,12 +622,12 @@ def main():
 
                 # Loss: minimize change in LoRA weights across timesteps
                 #delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * torch.tensor(0, device=accelerator.device)#delta.pow(2).mean()
-            else:
-                loss_retain = torch.tensor(0.0, device=accelerator.device)
+                #loss_retain = retain_weight * torch.tensor(0, device=accelerator.device)#delta.pow(2).mean()
+            #else:
+                #loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
             loss_remove_log = loss_remove.clone().detach()
-            loss_retain_log = loss_retain.clone().detach()
+            #loss_retain_log = loss_retain.clone().detach()
 
             # Optimizer step
             if accelerator.sync_gradients:
@@ -637,18 +637,18 @@ def main():
         
         # Gather loss across devices
         with torch.no_grad():
-            loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
+            #loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
             loss_remove_reduced = accelerator.gather(loss_remove_log).mean()
 
         if is_main and use_wandb:
             wandb.log({
-                "loss_retain": float(loss_retain_reduced.item()),
-                "loss_remove": float(loss_remove_reduced.item()),
+                #"loss_retain": float(loss_retain_reduced.item()),
+                "loss_remove": float(loss_remove_reduced.item())#,
             }, step=iteration)
         
         if is_main:
             pbar.set_postfix({
-                "retain": f"{float(loss_retain_reduced.item()):.6f}",
+                #"retain": f"{float(loss_retain_reduced.item()):.6f}",
                 "remove": f"{float(loss_remove_reduced.item()):.6f}"
             })
         
