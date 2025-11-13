@@ -533,11 +533,12 @@ def main():
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
                 target_emb = target_embeddings[concept_idx]
-            
-            # Get text conditioning for Stable Diffusion
-            emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
-            emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
-            emb_m = base.get_learned_conditioning([mapping_text_augmented])  # mapping prompt (what target should map to)
+
+            with torch.no_grad():
+                # Get text conditioning for Stable Diffusion
+                emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
+                emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
+                emb_m = base.get_learned_conditioning([mapping_text_augmented])  # mapping prompt (what target should map to)
             
             # Random timestep for HyperLoRA context
             rtimestep = int(torch.randint(0, hyper_train_steps - 1, (1,), device=accelerator.device))
