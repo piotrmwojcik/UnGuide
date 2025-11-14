@@ -4,9 +4,9 @@ UnGuide_Airplane:
   # Target concepts for removal
   concepts:
     - "a photo of the airplane"
-    - "a photo of the aircraft"
-    - "a photo of the plane"
-    - "a photo of the jet"
+    - "a photo of the airliner"
+    - "a photo of the airship"
+    - "a photo of the fighter"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
