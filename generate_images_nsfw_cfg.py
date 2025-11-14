@@ -165,7 +165,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--image_size", type=int, default=512)
     parser.add_argument("--ddim_steps", type=int, default=50)
-    parser.add_argument("--nudity", type=bool, default=true)
+    parser.add_argument("--nudity", type=bool, default=True)
     parser.add_argument("--ddim_eta", type=float, default=0.0)
     parser.add_argument("--guidance_scale", type=float, default=7.5, help="Default guidance scale (fallback if not in CSV)")
     parser.add_argument("--hyper_timestep", type=int, default=500, help="Timestep for HyperLoRA context")
