@@ -291,7 +291,7 @@ if __name__ == "__main__":
             model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([args.hyper_timestep]).to(model.device))
 
             # Use combined model: conditional uses model (with LoRA), unconditional uses model_orig
-            combined_model = CombinedCFGModel(cond_model=model, uncond_model=model_orig).eval()
+            combined_model = CombinedCFGModel(cond_model=model_orig, uncond_model=model_orig).eval()
             sampler = DDIMSampler(model=combined_model)
             
             img = generate_images(
