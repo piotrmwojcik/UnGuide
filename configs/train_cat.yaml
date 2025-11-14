@@ -24,7 +24,7 @@ UnGuide_Cat:
   
   # Training hyperparameters
   learning_rate: 8.0e-04  # 1e-4 as specified
-  max_train_steps: 5000  # Number of actual training iterations
+  max_train_steps: 1000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
   
