@@ -77,6 +77,10 @@ def parse_args():
         "--n_samples", type=int, default=25,
         help="n_samples"
     )
+    parser.add_argument(
+        "--timestep", type=int, default=0,
+        help="Timestep value for HyperLoRA context"
+    )
     return parser.parse_args()
 
 
@@ -95,6 +99,9 @@ def main():
     lora_sd = torch.load(args.lora, map_location="cpu")
     #apply_lora_to_model(model.model.diffusion_model, lora_sd, alpha=8)
 
+    from hyper_lora import HypernetworkManager
+    model.hyper = HypernetworkManager()
+
     hyper_lora_factory = partial(
         HyperLoRALinear,
         clip_size=1536,
@@ -105,8 +112,9 @@ def main():
         model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
     )
 
-    for layer in hyper_lora_layers:
+    for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
+        model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
@@ -203,8 +211,16 @@ def main():
                     encode(data.get("reference")),
                 )
 
-                model.current_conditioning = (clip_text_encoder(t_prompt[0]).pooler_output.detach(),
-                                              clip_text_encoder(t_prompt[1]).pooler_output.detach())
+                target_emb = clip_text_encoder(t_prompt[0]).pooler_output.detach()
+                ref_emb = clip_text_encoder(t_prompt[1]).pooler_output.detach()
+
+                model.current_conditioning = (target_emb, ref_emb)
+
+                # Set hypernetwork context with timestep
+                timestep_tensor = torch.tensor([args.timestep], device=args.device)
+                model.hyper.set_context(target_emb, timestep_tensor)
+                model.hyper.compute_and_cache_loras(target_emb, timestep_tensor)
+
                 eps_lora = model.apply_model(z_batch, t_enc_ddpm, cond)
                 #model.current_conditioning = cond_orig
                 eps_orig = model_orig.apply_model(z_batch, t_enc_ddpm, cond_orig)
@@ -242,6 +258,7 @@ def main():
             "eta": args.eta,
             "t_enc": args.t_enc,
             "n_samples": args.n_samples,
+            "timestep": args.timestep,
             "target_prompt": data.get("target"),
             "synonyms": data.get("synonyms"),
         }
