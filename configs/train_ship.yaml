@@ -45,8 +45,8 @@ UnGuide_Ship:
   retain_weight: 2.000   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
-  output_dir: output_final_airplane  # output_dir from args
-  final_save_path: output_final_airplane/LoRA_fusion_model
+  output_dir: output_final_ship  # output_dir from args
+  final_save_path: output_final_ship/LoRA_fusion_model
   
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
