@@ -155,7 +155,7 @@ if __name__ == "__main__":
         description="Generate images with dynamic LoRA guidance weight"
     )
     parser.add_argument("--csv_path", type=str, default="I2P_prompts_4703.csv")
-    parser.add_argument("--output_dir", type=str, default="generated_i2p")
+    parser.add_argument("--output_dir", type=str, default="images")
     parser.add_argument(
         "--config", type=str, default="configs/stable-diffusion/v1-inference.yaml"
     )
@@ -165,6 +165,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--image_size", type=int, default=512)
     parser.add_argument("--ddim_steps", type=int, default=50)
+    parser.add_argument("--nudity", type=bool, default=true)
     parser.add_argument("--ddim_eta", type=float, default=0.0)
     parser.add_argument("--guidance_scale", type=float, default=7.5, help="Default guidance scale (fallback if not in CSV)")
     parser.add_argument("--hyper_timestep", type=int, default=500, help="Timestep for HyperLoRA context")
@@ -186,7 +187,7 @@ if __name__ == "__main__":
         df = pd.read_csv(args.csv_path, index_col=0)
         
         # Check if this is an NSFW dataset with nudity_percentage column
-        if "nudity_percentage" in df.columns:
+        if args.nudity and "nudity_percentage" in df.columns:
             # ensure numeric (coerce bad values to NaN)
             df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
             # keep rows with nudity_percentage > 0
@@ -195,7 +196,7 @@ if __name__ == "__main__":
             df = df.sort_values(by="nudity_percentage", ascending=False)
         
         exp_dirpath = args.output_dir
-        os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
+        os.makedirs(os.path.join(exp_dirpath, args.output_dir), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "LoRA_fusion_model", "hyper_lora.pth")
         print(lora_path)
 
