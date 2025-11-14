@@ -194,7 +194,7 @@ if __name__ == "__main__":
             # sort descending
             df = df.sort_values(by="nudity_percentage", ascending=False)
         
-        exp_dirpath = os.path.join(args.output_dir, dirname)
+        exp_dirpath = args.output_dir
         os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "LoRA_fusion_model", "hyper_lora.pth")
         print(lora_path)
