@@ -33,14 +33,6 @@ def parse_args():
         help="number of images to generate"
     )
     parser.add_argument(
-        "--w1", type=float, default=-1.0,
-        help="weight for prompt above threshold"
-    )
-    parser.add_argument(
-        "--w2", type=float, default=2.0,
-        help="weight for prompt below threshold"
-    )
-    parser.add_argument(
         "--steps", type=int, default=50,
         help="number of sampling steps"
     )
@@ -221,7 +213,7 @@ if __name__ == "__main__":
             HyperLoRALinear,
             clip_size=768,
             rank=1,
-            train_steps=hyper_train_steps,
+            train_steps=args.hyper_timestep,
             alpha=0.00001,
         )
         model_unl.hyper = HypernetworkManager()
