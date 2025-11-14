@@ -1,0 +1,71 @@
+UnGuide_Airplane:
+  # >>> Primary Settings >>>
+
+  # Target concepts for removal
+  concepts:
+    - "a photo of the airplane"
+    - "a photo of the aircraft"
+    - "a photo of the plane"
+    - "a photo of the jet"
+
+  # Mapping concepts - what the target concepts should map to when erased
+  mapping_concept:
+    - 'a photo of the street'
+    - 'a photo of the street'
+    - 'a photo of the street'
+    - 'a photo of the street'
+
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
+  retain_csv_path: ./cifar100.csv
+
+  # Prompt augmentation - control augmentation for target and retain concepts
+  augment_target: true   # Augment target concepts to be removed
+  augment_retain: false  # Augment retain prompts from CSV
+
+  # Training hyperparameters
+  learning_rate: 1.0e-04
+  max_train_steps: 1000
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  # LoRA configuration
+  rank: 1
+  lora_alpha: 1.0
+  use_pooler: true
+
+  # Loss weights
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  # Training weights
+  remove_weight: 20.0
+  retain_weight: 2.0
+
+  # Data and paths
+  output_dir: output_airplane
+  final_save_path: output_airplane/LoRA_fusion_model
+
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  # Logging
+  logging_dir: logs
+  report_to: wandb
+
+  # Diagnostic prompts for monitoring training progress
+  diagnostic_prompts:
+    - "a photo of the airplane"
+    - "a photo of the aircraft"
+    - "a photo of a cat"
+    - "a photo of a car"
+
+  # <<< Primary Settings <<<
