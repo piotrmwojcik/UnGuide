@@ -85,6 +85,18 @@ def parse_args():
         "--train_steps", type=int, default=500,
         help="Number of training steps for HyperLoRA (must match training config)"
     )
+    parser.add_argument(
+        "--clip_size", type=int, default=768,
+        help="CLIP embedding size (768 if use_pooler=True, 512 otherwise)"
+    )
+    parser.add_argument(
+        "--rank", type=int, default=1,
+        help="LoRA rank (must match training config)"
+    )
+    parser.add_argument(
+        "--lora_alpha", type=float, default=8.0,
+        help="LoRA alpha parameter (must match training config)"
+    )
     return parser.parse_args()
 
 
@@ -108,9 +120,9 @@ def main():
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=1536,
-        rank=1,
-        alpha=0.001,
+        clip_size=args.clip_size,
+        rank=args.rank,
+        alpha=args.lora_alpha,
         train_steps=args.train_steps,
     )
     hyper_lora_layers = inject_hyper_lora(
@@ -265,6 +277,9 @@ def main():
             "n_samples": args.n_samples,
             "timestep": args.timestep,
             "train_steps": args.train_steps,
+            "clip_size": args.clip_size,
+            "rank": args.rank,
+            "lora_alpha": args.lora_alpha,
             "target_prompt": data.get("target"),
             "synonyms": data.get("synonyms"),
         }
