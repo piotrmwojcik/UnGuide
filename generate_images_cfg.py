@@ -221,6 +221,7 @@ if __name__ == "__main__":
             HyperLoRALinear,
             clip_size=768,
             rank=1,
+            train_steps=hyper_train_steps,
             alpha=0.00001,
         )
         model_unl.hyper = HypernetworkManager()
