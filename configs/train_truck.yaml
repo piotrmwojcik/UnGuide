@@ -1,0 +1,70 @@
+UnGuide_Truck:
+  # >>> Primary Settings >>>
+
+  # Target concepts for removal
+  concepts:
+    - "a photo of the truck"
+    - "a photo of the van"
+    - "a photo of the pickup"
+
+  # Mapping concepts - what the target concepts should map to when erased
+  mapping_concept:
+    - 'a photo of the street'
+    - 'a photo of the street'
+    - 'a photo of the street'
+    - 'a photo of the street'
+
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
+  retain_csv_path: ./cifar100.csv
+
+  augment_target: true   # Augment target concepts to be removed
+  augment_retain: false  # Augment retain prompts from CSV
+  
+  # Training hyperparameters
+  learning_rate: 8.0e-04  # 1e-4 as specified
+  max_train_steps: 5000  # Number of actual training iterations
+  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  gradient_accumulation_steps: 1
+  
+  # LoRA configuration
+  rank: 1
+  lora_alpha: 1.0e-05
+  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
+  
+  # Loss weights
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+  
+  # Training weights - for combining removal and retain losses
+  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
+  remove_weight: 20.0    # Weight for removal loss (main training objective)
+  retain_weight: 2.000   # Weight for retain loss (regularization to preserve other concepts)
+  
+  # Data and paths
+  output_dir: output_final_airplane  # output_dir from args
+  final_save_path: output_final_airplane/LoRA_fusion_model
+  
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
+  
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+  
+  # Logging
+  logging_dir: logs
+  report_to: wandb  # use-wandb flag enabled
+
+  # Diagnostic prompts for monitoring training progress
+  diagnostic_prompts:
+    - "a photo of the truck"
+    - "a photo of the lorry"
+    - "a photo of a cat"
+    - "a photo of a car"
+
+  # <<< Primary Settings <<<
