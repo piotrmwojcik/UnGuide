@@ -155,7 +155,7 @@ if __name__ == "__main__":
         description="Generate images with dynamic LoRA guidance weight"
     )
     parser.add_argument("--csv_path", type=str, default="I2P_prompts_4703.csv")
-    parser.add_argument("--output_dir", type=str, default="images")
+    parser.add_argument("--output_dir", type=str, default="generated_i2p")
     parser.add_argument(
         "--config", type=str, default="configs/stable-diffusion/v1-inference.yaml"
     )
