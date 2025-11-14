@@ -79,7 +79,11 @@ def parse_args():
     )
     parser.add_argument(
         "--timestep", type=int, default=0,
-        help="Timestep value for HyperLoRA context"
+        help="Diffusion timestep value for HyperLoRA context (0 to train_steps)"
+    )
+    parser.add_argument(
+        "--train_steps", type=int, default=500,
+        help="Number of training steps for HyperLoRA (must match training config)"
     )
     return parser.parse_args()
 
@@ -107,6 +111,7 @@ def main():
         clip_size=1536,
         rank=1,
         alpha=0.001,
+        train_steps=args.train_steps,
     )
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
@@ -259,6 +264,7 @@ def main():
             "t_enc": args.t_enc,
             "n_samples": args.n_samples,
             "timestep": args.timestep,
+            "train_steps": args.train_steps,
             "target_prompt": data.get("target"),
             "synonyms": data.get("synonyms"),
         }
