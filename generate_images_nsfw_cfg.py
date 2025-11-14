@@ -196,7 +196,8 @@ if __name__ == "__main__":
         
         exp_dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
-        lora_path = os.path.join(exp_dirpath, "hyper_lora.pth")
+        lora_path = os.path.join(exp_dirpath, "LoRA_fusion_model", "hyper_lora.pth")
+
         if not os.path.exists(lora_path):
             print(f"Skip {dirname} - hyper_lora.pth not found")
             continue
