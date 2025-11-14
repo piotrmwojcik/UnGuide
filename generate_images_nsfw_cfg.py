@@ -218,7 +218,8 @@ if __name__ == "__main__":
             HyperLoRALinear,
             clip_size=768,
             rank=1,
-            alpha=args.alpha,
+            train_steps=args.hyper_timestep,
+            alpha=0.00001,
         )
         model.hyper = HypernetworkManager()
         hyper_lora_layers = inject_hyper_lora(
