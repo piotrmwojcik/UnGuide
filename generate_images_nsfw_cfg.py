@@ -148,6 +148,7 @@ def coerce_prompt(v):
 
 
 if __name__ == "__main__":
+    LOCAL_RANK = int(os.environ.get("LOCAL_RANK", "0"))
     RANK = int(os.environ.get("RANK", 0))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 1))
 
