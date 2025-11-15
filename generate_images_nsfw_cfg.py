@@ -151,6 +151,9 @@ if __name__ == "__main__":
     RANK = int(os.environ.get("RANK", 0))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 1))
 
+    torch.cuda.set_device(LOCAL_RANK)
+    device = torch.device(f"cuda:{LOCAL_RANK}")
+
     parser = argparse.ArgumentParser(
         description="Generate images with dynamic LoRA guidance weight"
     )
