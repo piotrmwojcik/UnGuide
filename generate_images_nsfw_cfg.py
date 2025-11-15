@@ -156,6 +156,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--csv_path", type=str, default="I2P_prompts_4703.csv")
     parser.add_argument("--output_dir", type=str, default="generated_i2p")
+    parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument(
         "--config", type=str, default="configs/stable-diffusion/v1-inference.yaml"
     )
@@ -196,7 +197,7 @@ if __name__ == "__main__":
             df = df.sort_values(by="nudity_percentage", ascending=False)
         
         exp_dirpath = args.output_dir
-        os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
+        os.makedirs(os.path.join(exp_dirpath, args.save_folder), exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "LoRA_fusion_model", "hyper_lora.pth")
         print(lora_path)
 
