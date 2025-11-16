@@ -21,32 +21,46 @@ def parse_args():
         help="path to model config file"
     )
     parser.add_argument(
-        "--ckpt", type=str, default="models/sd-v1-4-full-ema.ckpt",
+        "--ckpt", type=str, default="models/sd-v1-4.ckpt",
         help="path to model checkpoint"
     )
     parser.add_argument(
-        "--output_dir", type=str, default="cat",
-        help=""
+        "--output_dir", type=str, required=True,
+        help="directory containing experiment folders with LoRA_fusion_model/hyper_lora.pth"
+    )
+    parser.add_argument(
+        "--class_name", type=str, required=True,
+        help="class name to generate (e.g., 'airplane', 'cat', 'dog'). Will load data/{class_name}.json"
+    )
+    parser.add_argument(
+        "--save_folder", type=str, default="images",
+        help="subfolder name to save generated images"
     )
     parser.add_argument(
         "--samples", type=int, default=50,
-        help="number of images to generate"
+        help="number of images to generate per prompt"
     )
     parser.add_argument(
         "--steps", type=int, default=50,
         help="number of sampling steps"
     )
-    parser.add_argument("--start_guidance", type=float, default=9.0,
-                        help="Starting guidance scale")
+    parser.add_argument("--guidance_scale", type=float, default=7.5,
+                        help="CFG guidance scale")
     parser.add_argument("--image_size", type=int, default=512,
-                        help="Image size for training")
+                        help="Image size for generation")
     parser.add_argument("--ddim_steps", type=int, default=50,
                         help="DDIM sampling steps")
     parser.add_argument("--ddim_eta", type=float, default=0.0,
                         help="DDIM eta")
+    parser.add_argument("--hyper_timestep", type=int, default=500,
+                        help="Timestep for HyperLoRA context")
+    parser.add_argument(
+        "--alpha", type=float, default=0.00001,
+        help="LoRA alpha scaling factor"
+    )
     parser.add_argument(
         "--seed", type=int, default=2024,
-        help="random seed for reproducibility"
+        help="random seed base for reproducibility"
     )
     parser.add_argument(
         "--device", type=str, default="cuda:0",
@@ -121,6 +135,7 @@ def generate_images(
     eta: float = 0.0,
     batch_size: int = 1,
     start_code: torch.Tensor = None,
+    guidance_scale: float = 7.5,
 ):
     if start_code is None:
         start_code = torch.randn(batch_size, 4, 64, 64, device=device)
@@ -136,7 +151,7 @@ def generate_images(
             batch_size=start_code.shape[0],
             shape=start_code.shape[1:],
             verbose=False,
-            unconditional_guidance_scale=7.5,
+            unconditional_guidance_scale=guidance_scale,
             unconditional_conditioning={"c_crossattn": [uncond]},
             eta=eta,
             x_T=start_code,
@@ -149,8 +164,8 @@ def generate_images(
 
 if __name__ == "__main__":
     LOCAL_RANK = int(os.environ.get("LOCAL_RANK", "0"))
-    RANK = int(os.environ.get("RANK", "0"))
-    WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
+    RANK = int(os.environ.get("RANK", 0))
+    WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 1))
 
     torch.cuda.set_device(LOCAL_RANK)
     device = torch.device(f"cuda:{LOCAL_RANK}")
@@ -159,27 +174,37 @@ if __name__ == "__main__":
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
 
-    exps = os.listdir(args.output_dir)
-    print(f"Exps: {exps}", flush=True)
-    for exp in exps:
-        exp_filepath = os.path.join(args.output_dir, exp)
-        os.makedirs(os.path.join(exp_dirpath, "images"), exist_ok=True)
+    # Load class-specific prompts from JSON
+    json_path = f"data/{args.class_name}.json"
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"JSON file not found: {json_path}")
+
+    with open(json_path, "r") as f:
+        data = json.load(f)
+
+    prompts = [data.get("target")] + data.get("synonyms", []) + data.get("other", [])
+    prompts = prompts[:-1]
+    print(f"Loaded prompts from {json_path}: {prompts}", flush=True)
+
+    # Check if output_dir contains a single experiment or multiple experiments
+    if os.path.exists(os.path.join(args.output_dir, "LoRA_fusion_model", "hyper_lora.pth")):
+        dirs = [args.output_dir]
+    else:
+        dirs = [os.path.join(args.output_dir, d) for d in os.listdir(args.output_dir)
+                if os.path.isdir(os.path.join(args.output_dir, d))]
+
+    for exp_dirpath in dirs:
+        print(f"Processing experiment: {exp_dirpath}", flush=True)
+
+        img_root = os.path.join(exp_dirpath, args.save_folder)
+        os.makedirs(img_root, exist_ok=True)
         lora_path = os.path.join(exp_dirpath, "LoRA_fusion_model", "hyper_lora.pth")
 
-        train_json_path = os.path.join(exp_filepath, "train_config.json")
+        if not os.path.exists(lora_path):
+            print(f"Skip {exp_dirpath} - hyper_lora.pth not found at {lora_path}")
+            continue
 
-        with open(train_json_path, 'r') as f:
-            settings = json.load(f)
-
-        prompts_json_path = settings["prompts_json"]
-        with open(prompts_json_path, "r") as f:
-            data = json.load(f)
-
-        prompts = [data.get("target")] + data.get("synonyms", []) + data.get("other", [])
-        prompts = prompts[:-1]
-        print("Prompts: ", prompts, flush=True)
-
-        # collect all valid subfolders
+        # Check if already processed
         subs = [
             d for d in os.listdir(img_root)
             if os.path.isdir(os.path.join(img_root, d))
@@ -195,38 +220,34 @@ if __name__ == "__main__":
             counts.append(len(imgs))
 
         if len(prompts) * args.samples == sum(counts):
-            print(f"Skip: {exp}", flush=True)
+            print(f"Skip {exp_dirpath} - already processed", flush=True)
             continue
 
-        print(f"Exp: {exp}", flush=True)
-        # Load models - model_full for unconditional, model_unl for conditional
-        model_full = load_model_from_config(
-            args.config, args.ckpt, device=device
-        )
-        model_unl = load_model_from_config(
-            args.config, args.ckpt, device=device
-        )
+        # Load models - model_orig for unconditional, model for conditional
+        model_orig = load_model_from_config(args.config, args.ckpt, device)
+        model = load_model_from_config(args.config, args.ckpt, device)
 
-        # Apply LoRA to conditional model only
-        lora_sd = torch.load(lora_filepath, map_location=device)
+        # Apply HyperLoRA to conditional model only
+        lora_sd = torch.load(lora_path, map_location=device)
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=768,
             rank=1,
             train_steps=args.hyper_timestep,
-            alpha=0.00001,
+            alpha=args.alpha,
         )
-        model_unl.hyper = HypernetworkManager()
+        model.hyper = HypernetworkManager()
         hyper_lora_layers = inject_hyper_lora(
-            model_unl.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
+            model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
         )
         for layer_name, layer in hyper_lora_layers:
             layer.set_parent_model(model)
+            model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
         updated = 0
         skipped = []
 
-        sd = model_unl.model.diffusion_model.state_dict()
+        sd = model.model.diffusion_model.state_dict()
 
         with torch.no_grad():
             for k, v in lora_sd.items():
@@ -242,32 +263,39 @@ if __name__ == "__main__":
 
         print(f"[LoRA] copied {updated} tensors, skipped {len(skipped)}")
 
+        # Generate images for each prompt
         for prompt in prompts:
+            if not prompt or not prompt.strip():
+                continue
+
             with torch.no_grad():
                 class_name = prompt.split(" ")[-1]
                 class_root = os.path.join(img_root, class_name)
                 os.makedirs(class_root, exist_ok=True)
-                if len(os.listdir(class_root)) == args.samples:
+
+                if len(os.listdir(class_root)) >= args.samples:
+                    print(f"Skip {prompt} - already has {args.samples} samples")
                     continue
 
-                # Use combined model: conditional uses model_unl (with LoRA), unconditional uses model_full
-                combined_model = CombinedCFGModel(cond_model=model_unl, uncond_model=model_full).eval()
+                # Use combined model: conditional uses model (with LoRA), unconditional uses model_orig
+                combined_model = CombinedCFGModel(cond_model=model, uncond_model=model_orig).eval()
                 sampler = DDIMSampler(model=combined_model)
 
-                for idx in tqdm(range(args.samples), desc="Generating images"):
-                    start = time.time()
+                for idx in tqdm(range(args.samples), desc=f"Generating '{prompt}'"):
                     filename = f"{idx:05d}.jpg"
-                    filename_path = os.path.join(img_root, class_name, filename)
+                    filename_path = os.path.join(class_root, filename)
                     if os.path.exists(filename_path):
                         continue
                     if idx % WORLD_SIZE != RANK:
                         continue
 
+                    start = time.time()
                     seed = args.seed + idx
                     set_seed(seed)
                     gen = torch.Generator(device=device).manual_seed(seed)
 
-                    start_code = torch.randn(1, 4, 64, 64, generator=gen, device=device)
+                    start_code = torch.randn(1, 4, args.image_size // 8, args.image_size // 8,
+                                            generator=gen, device=device)
                     inputs = tokenizer(
                         prompt,
                         max_length=tokenizer.model_max_length,
@@ -278,17 +306,17 @@ if __name__ == "__main__":
 
                     t_prompt = clip_text_encoder(inputs).pooler_output.detach()
 
-                    model_unl.hyper.set_context(t_prompt, torch.tensor([500]).to(model_unl.device))
-                    model_unl.hyper.compute_and_cache_loras(t_prompt, torch.tensor([500]).to(model_unl.device))
+                    model.hyper.set_context(t_prompt, torch.tensor([args.hyper_timestep]).to(model.device))
+                    model.hyper.compute_and_cache_loras(t_prompt, torch.tensor([args.hyper_timestep]).to(model.device))
 
                     img = generate_images(
                         sampler=sampler, model=combined_model,
-                        start_code=start_code, prompt=prompt, device=model_unl.device,
-                        steps=args.steps
+                        start_code=start_code, prompt=prompt, device=model.device,
+                        steps=args.steps, guidance_scale=args.guidance_scale
                     )
                     img_np = img[0].cpu().permute(1, 2, 0).numpy()
                     img_pil = to_pil_image((img_np * 255).astype(np.uint8))
 
                     img_pil.save(filename_path, format='JPEG', quality=90, optimize=True)
                     end = time.time()
-                    print(f"Generate: {end - start}", flush=True)
+                    print(f"Generated {filename_path} in {end - start:.2f}s", flush=True)
