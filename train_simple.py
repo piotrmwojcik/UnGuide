@@ -700,7 +700,6 @@ def main():
     # Save model
         accelerator.wait_for_everyone()
         if is_main and iteration % 20 == 0:
-            print("\nTraining completed!")
             print(f"Final loss: {losses[-1]:.6f}")
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 

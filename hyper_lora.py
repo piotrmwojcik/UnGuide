@@ -93,12 +93,14 @@ class HyperLora(nn.Module):
         alpha_init: int = 16.0,
         time_embedd: int = 32,
         use_scaling=True,
+        original_linear = None,
         train_steps: int = None
     ):
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
+        self.original = original_linear
         self.train_steps = train_steps
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
         self._dbg_calls = 0   # to avoid spamming
@@ -173,7 +175,6 @@ class HyperLora(nn.Module):
         alpha, x_L, x_R = self.get_lora_matrices(clip, t)
 
         ret = (x @ x_L) @ x_R
-        print('!!!! ', ret.shape)
         return ret
 
 
@@ -191,6 +192,7 @@ class HyperLoRALinear(nn.Module):
         super().__init__()
         self.original = original_linear
         self.hyper_lora = HyperLora(
+            original_linear,
             original_linear.in_features,
             original_linear.out_features,
             rank,
@@ -234,10 +236,8 @@ class HyperLoRALinear(nn.Module):
             clip_embedding = parent.current_conditioning
             timestep = getattr(parent, 'time_step', None)
 
-
             if clip_embedding is None or timestep is None:
                 return self.original(x)
-
 
             return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
 
