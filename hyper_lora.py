@@ -172,7 +172,9 @@ class HyperLora(nn.Module):
     def forward(self, x, clip, t):
         alpha, x_L, x_R = self.get_lora_matrices(clip, t)
 
-        return (x @ x_L) @ x_R
+        ret = (x @ x_L) @ x_R
+        print('!!!! ', ret.shape)
+        return ret
 
 
 class HyperLoRALinear(nn.Module):
@@ -233,11 +235,9 @@ class HyperLoRALinear(nn.Module):
             timestep = getattr(parent, 'time_step', None)
 
 
-            print('!!!')
             if clip_embedding is None or timestep is None:
                 return self.original(x)
 
-            print('!!!!! ', self.original(x).shape)
 
             return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
 
