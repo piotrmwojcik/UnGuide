@@ -232,6 +232,8 @@ class HyperLoRALinear(nn.Module):
             clip_embedding = parent.current_conditioning
             timestep = getattr(parent, 'time_step', None)
 
+
+            print('!!!')
             if clip_embedding is None or timestep is None:
                 return self.original(x)
 
