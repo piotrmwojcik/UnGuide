@@ -94,7 +94,8 @@ class HyperLora(nn.Module):
         time_embedd: int = 32,
         use_scaling=True,
         original_linear = None,
-        train_steps: int = None
+        train_steps: int = None,
+        use_orig_concat: bool = True
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -102,6 +103,7 @@ class HyperLora(nn.Module):
         self.rank = rank
         self.original = original_linear
         self.train_steps = train_steps
+        self.use_orig_concat = use_orig_concat
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
         self._dbg_calls = 0   # to avoid spamming
         ## it should (?) be shared
@@ -119,13 +121,16 @@ class HyperLora(nn.Module):
         self.register_buffer(
             "alpha_b", torch.tensor(alpha_init, dtype=torch.float32), persistent=False
         )
+
+        hyper_input_size = clip_size + time_embedd + (out_dim if use_orig_concat else 0)
+
         self.left_head = nn.Sequential(
-            nn.Linear(clip_size + time_embedd, 100),
+            nn.Linear(hyper_input_size, 100),
             nn.ReLU(inplace=True),
             nn.Linear(100, in_dim * rank),
         )
         self.right_head = nn.Sequential(
-            nn.Linear(clip_size + time_embedd, 100),
+            nn.Linear(hyper_input_size, 100),
             nn.ReLU(inplace=True),
             nn.Linear(100, out_dim * rank),
         )
@@ -188,6 +193,7 @@ class HyperLoRALinear(nn.Module):
         alpha: int = 16,
         layer_name: str = None,
         train_steps: int = None,
+        use_orig_concat: bool = True,
     ):
         super().__init__()
         self.original = original_linear
@@ -198,7 +204,8 @@ class HyperLoRALinear(nn.Module):
             clip_size,
             alpha,
             train_steps=train_steps,
-            original_linear=original_linear
+            original_linear=original_linear,
+            use_orig_concat=use_orig_concat,
         )
         self.parent_model = None
         self.layer_name = layer_name
@@ -215,7 +222,13 @@ class HyperLoRALinear(nn.Module):
                 if clip_embedding is None:
                     print("WARNING: clip_embedding is None in auto mode")
                     return self.original(x)
-                return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
+
+                orig = self.original(x)
+                if self.hyper_lora.use_orig_concat:
+                    hyper_input = torch.cat([clip_embedding, orig], dim=-1)
+                else:
+                    hyper_input = clip_embedding
+                return orig + self.hyper_lora(x, hyper_input, timestep)
             else:
                 lora_weights = parent.hyper.get_cached_lora(self.layer_name)
                 if lora_weights is None:
@@ -239,7 +252,12 @@ class HyperLoRALinear(nn.Module):
             if clip_embedding is None or timestep is None:
                 return self.original(x)
 
-            return self.original(x) + self.hyper_lora(x, clip_embedding, timestep)
+            orig = self.original(x)
+            if self.hyper_lora.use_orig_concat:
+                hyper_input = torch.cat([clip_embedding, orig], dim=-1)
+            else:
+                hyper_input = clip_embedding
+            return orig + self.hyper_lora(x, hyper_input, timestep)
 
 
 def inject_hyper_lora(

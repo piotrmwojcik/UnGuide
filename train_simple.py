@@ -227,6 +227,7 @@ def main():
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
     use_pooler = config.get('use_pooler', True)
+    use_orig_concat = config.get('use_orig_concat', True)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
     
     # Multi-concept configuration
@@ -324,6 +325,7 @@ def main():
         rank=rank,
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
+        use_orig_concat=use_orig_concat,
     )
     
     hyper_lora_layers = inject_hyper_lora(
