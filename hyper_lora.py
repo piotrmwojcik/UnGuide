@@ -192,13 +192,13 @@ class HyperLoRALinear(nn.Module):
         super().__init__()
         self.original = original_linear
         self.hyper_lora = HyperLora(
-            original_linear,
             original_linear.in_features,
             original_linear.out_features,
             rank,
             clip_size,
             alpha,
             train_steps=train_steps,
+            original_linear=original_linear
         )
         self.parent_model = None
         self.layer_name = layer_name
