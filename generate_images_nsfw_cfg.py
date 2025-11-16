@@ -259,13 +259,13 @@ if __name__ == "__main__":
         for image_id, row in df.iterrows():
             if args.n_images is not None and images_generated >= args.n_images:
                 break
-            image_path = os.path.join(exp_dirpath, "images", f"{image_id:05d}.jpg")
+            image_path = os.path.join(exp_dirpath, args.save_folder, f"{image_id:05d}.jpg")
             if os.path.exists(image_path):
                 continue  # Skip if image already exists
             
             if image_id % WORLD_SIZE != RANK:
                 continue
-            
+
             prompt = coerce_prompt(row.get("prompt", ""))
             if not isinstance(prompt, str) or not prompt.strip():
                 print(f"Skip [{image_id}] empty prompt")
@@ -311,4 +311,4 @@ if __name__ == "__main__":
             img_pil.save(image_path)
             images_generated += 1
             end = time.time()
-            print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds. Saved to {image_path}", flush=True)
+            print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds. Saved to {args.save_folder}", flush=True)
