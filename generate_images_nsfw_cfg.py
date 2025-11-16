@@ -271,7 +271,7 @@ if __name__ == "__main__":
                 print(f"Skip [{image_id}] empty prompt")
                 continue
             start = time.time()
-            seed = int(row.get("evaluation_seed", image_id))
+            seed = int(row.get("evaluation_seed", 0))
             guidance = float(row.get("evaluation_guidance", args.guidance_scale))
             set_seed(seed)
 
