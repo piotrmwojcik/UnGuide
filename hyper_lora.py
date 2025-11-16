@@ -101,6 +101,7 @@ class HyperLora(nn.Module):
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.rank = rank
+        self.clip_size = clip_size
         self.original = original_linear
         self.train_steps = train_steps
         self.use_orig_concat = use_orig_concat
@@ -150,10 +151,13 @@ class HyperLora(nn.Module):
         return self.alpha_b + t[:, None] / self.train_steps * self.alpha
 
     def get_lora_matrices(self, clip, t):
-        #B = clip.shape[0]
         t_feats = self.time_feat(t)
 
         emb = clip
+        if self.use_orig_concat and clip.shape[-1] == self.clip_size:
+            dummy_orig = torch.zeros(clip.shape[0], self.out_dim, device=clip.device, dtype=clip.dtype)
+            emb = torch.cat([emb, dummy_orig], dim=-1)
+
         emb = torch.cat([emb, t_feats], dim=-1)
 
         assert self.use_scaling
