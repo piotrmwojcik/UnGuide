@@ -17,4 +17,5 @@ if NUDITY_FILTER_ENABLED and "nudity_percentage" in df.columns:
     df = df.sort_values(by="nudity_percentage", ascending=False)
 
 # Do something with the result, e.g. show first rows or save
-print(df.head())
+for i, row in df.iterrows():
+    print(i, row["prompt"], row["nudity_percentage"])
