@@ -78,6 +78,8 @@ UnHype:
   step_size: 500
   gamma: 0.8
 
+  use_orig_concat: False
+
   # Loss weights
   negative_guidance: 2.0
   guidance_scale: 7.5
