@@ -63,7 +63,16 @@ UnGuide_Deer:
   diagnostic_prompts:
     - "a photo of the deer"
     - "a photo of the hart"
-    - "a photo of a cat"
-    - "a photo of a car"
+    - "a photo of the stag"
+    - "a photo of the doe"
+    - "a photo of the airplane"
+    - "a photo of the automobile"
+    - "a photo of the bird"
+    - "a photo of the cat"
+    - "a photo of the dog"
+    - "a photo of the frog"
+    - "a photo of the horse"
+    - "a photo of the ship"
+    - "a photo of the truck"
 
   # <<< Primary Settings <<<
