@@ -75,7 +75,7 @@ UnHype:
   lora_alpha: 1.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
-  step_size: 200
+  step_size: 500
   gamma: 0.8
 
   # Loss weights
