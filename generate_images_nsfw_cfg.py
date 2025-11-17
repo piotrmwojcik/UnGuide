@@ -208,7 +208,7 @@ if __name__ == "__main__":
         if not os.path.exists(lora_path):
             print(f"Skip {dirname} - hyper_lora.pth not found")
             continue
-        if len(os.listdir(os.path.join(exp_dirpath, "images"))) >= len(df):
+        if len(os.listdir(os.path.join(exp_dirpath, args.save_folder))) >= len(df):
             print(f"Skip {dirname} - already processed")
             continue
         print(f"Processing experiment: {dirname}.", flush=True)
