@@ -76,7 +76,7 @@ UnHype:
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: 200
-  gamma: 0.5
+  gamma: 0.8
 
   # Loss weights
   negative_guidance: 2.0
