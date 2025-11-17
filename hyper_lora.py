@@ -258,7 +258,8 @@ class HyperLoRALinear(nn.Module):
 
             orig = self.original(x)
             if self.hyper_lora.use_orig_concat:
-                hyper_input = torch.cat([clip_embedding, orig], dim=-1)
+                orig_norm = F.normalize(orig, p=2, dim=-1)  # shape stays the same
+                hyper_input = torch.cat([clip_embedding, orig_norm], dim=-1)
             else:
                 hyper_input = clip_embedding
             return orig + self.hyper_lora(x, hyper_input, timestep)
