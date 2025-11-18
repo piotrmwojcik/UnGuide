@@ -68,7 +68,7 @@ UnHype:
   learning_rate: 1.0e-03  # 1e-4 as specified
   max_train_steps: 5000  # Number of actual training iterations
   hyper_train_steps: 500  # Timestep range for hypernetwork context (independent of max_train_steps)
-  gradient_accumulation_steps: 32
+  gradient_accumulation_steps: 16
 
   # LoRA configuration
   rank: 1

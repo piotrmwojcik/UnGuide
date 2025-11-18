@@ -499,7 +499,7 @@ def main():
         
         # Random timestep
         t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
-        og_num = round((int(t_enc) / ddim_steps) * 1000)
+        og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
         
@@ -571,7 +571,7 @@ def main():
             target = e_m - (negative_guidance * (e_p - e_m))
             loss_aux = criterion(e_n, target)
 
-            accelerator.backward(loss_aux / accelerator.gradient_accumulation_steps)
+            accelerator.backward(loss_aux)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
@@ -598,7 +598,7 @@ def main():
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
-            accelerator.backward(loss_remove / accelerator.gradient_accumulation_steps)
+            accelerator.backward(loss_remove)
 
             if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
