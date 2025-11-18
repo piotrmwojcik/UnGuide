@@ -254,6 +254,8 @@ def main():
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
     # LR scheduler decay factor (MultiStepLR)
     gamma = config.get('gamma', 0.5)
+    # LR scheduler milestones (list of ints)
+    milestones = config.get('milestones', [300])
     
     # Diagnostic prompts for image generation during training
     diagnostic_prompts = config.get('diagnostic_prompts', [])
@@ -345,8 +347,11 @@ def main():
         print_trainable_parameters(model)
     
     optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
+    # Ensure milestones is a list of ints
+    if isinstance(milestones, int):
+        milestones = [milestones]
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=gamma
+        optimizer, milestones=milestones, gamma=gamma
     )
     
     # Prepare for distributed training

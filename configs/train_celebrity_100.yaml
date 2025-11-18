@@ -219,6 +219,9 @@ UnHype:
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
   gamma: 0.5 # Scheduler decay factor for MultiStepLR
+  # LR scheduler milestones (list of step indices where LR is decayed)
+  milestones:
+    - 300
 
   # LoRA settings
   rank: 1
