@@ -225,6 +225,7 @@ if __name__ == "__main__":
             clip_size=768,
             rank=1,
             train_steps=args.hyper_timestep,
+            use_orig_concat=False,
             alpha=0.00001,
         )
         model.hyper = HypernetworkManager()
