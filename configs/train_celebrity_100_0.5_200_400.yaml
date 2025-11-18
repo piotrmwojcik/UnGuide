@@ -216,8 +216,8 @@ UnHype:
   remove_weight: 20.0
   retain_weight: 2.0
 
-  output_dir: output_celebrity_100
-  final_save_path: output_celebrity_100/LoRA_fusion_model
+  output_dir: output_celebrity_100_g0p5_m200_400
+  final_save_path: output_celebrity_100_g0p5_m200_400/LoRA_fusion_model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
   pretrained_model_name_or_path: models/sd-v1-4.ckpt
 
