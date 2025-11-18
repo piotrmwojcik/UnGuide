@@ -252,6 +252,8 @@ def main():
     negative_guidance = config.get('negative_guidance', 2.0)
     guidance_scale = config.get('guidance_scale', 7.5)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
+    # LR scheduler decay factor (MultiStepLR)
+    gamma = config.get('gamma', 0.5)
     
     # Diagnostic prompts for image generation during training
     diagnostic_prompts = config.get('diagnostic_prompts', [])
@@ -344,7 +346,7 @@ def main():
     
     optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=0.5
+        optimizer, milestones=[300], gamma=gamma
     )
     
     # Prepare for distributed training

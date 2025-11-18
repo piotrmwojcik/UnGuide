@@ -1,0 +1,254 @@
+UnHype:
+  # Training config for erasing 100 celebrities (Erasure Group)
+  concepts:
+    - "Adam Driver"
+    - "Adriana Lima"
+    - "Amber Heard"
+    - "Amy Adams"
+    - "Andrew Garfield"
+    - "Angelina Jolie"
+    - "Anjelica Huston"
+    - "Anna Faris"
+    - "Anna Kendrick"
+    - "Anne Hathaway"
+    - "Arnold Schwarzenegger"
+    - "Barack Obama"
+    - "Beth Behrs"
+    - "Bill Clinton"
+    - "Bob Dylan"
+    - "Bob Marley"
+    - "Bradley Cooper"
+    - "Bruce Willis"
+    - "Bryan Cranston"
+    - "Cameron Diaz"
+    - "Channing Tatum"
+    - "Charlie Sheen"
+    - "Charlize Theron"
+    - "Chris Evans"
+    - "Chris Hemsworth"
+    - "Chris Pine"
+    - "Chuck Norris"
+    - "Courteney Cox"
+    - "Demi Lovato"
+    - "Drake"
+    - "Drew Barrymore"
+    - "Dwayne Johnson"
+    - "Ed Sheeran"
+    - "Elon Musk"
+    - "Elvis Presley"
+    - "Emma Stone"
+    - "Frida Kahlo"
+    - "George Clooney"
+    - "Glenn Close"
+    - "Gwyneth Paltrow"
+    - "Harrison Ford"
+    - "Hillary Clinton"
+    - "Hugh Jackman"
+    - "Idris Elba"
+    - "Jake Gyllenhaal"
+    - "James Franco"
+    - "Jared Leto"
+    - "Jason Momoa"
+    - "Jennifer Aniston"
+    - "Jennifer Lawrence"
+    - "Jennifer Lopez"
+    - "Jeremy Renner"
+    - "Jessica Biel"
+    - "Jessica Chastain"
+    - "John Oliver"
+    - "John Wayne"
+    - "Johnny Depp"
+    - "Julianne Hough"
+    - "Justin Timberlake"
+    - "Kate Bosworth"
+    - "Kate Winslet"
+    - "Leonardo DiCaprio"
+    - "Margot Robbie"
+    - "Mariah Carey"
+    - "Melania Trump"
+    - "Meryl Streep"
+    - "Mick Jagger"
+    - "Mila Kunis"
+    - "Milla Jovovich"
+    - "Morgan Freeman"
+    - "Nick Jonas"
+    - "Nicolas Cage"
+    - "Nicole Kidman"
+    - "Octavia Spencer"
+    - "Olivia Wilde"
+    - "Oprah Winfrey"
+    - "Paul McCartney"
+    - "Paul Walker"
+    - "Peter Dinklage"
+    - "Philip Seymour Hoffman"
+    - "Reese Witherspoon"
+    - "Richard Gere"
+    - "Ricky Gervais"
+    - "Rihanna"
+    - "Robin Williams"
+    - "Ronald Reagan"
+    - "Ryan Gosling"
+    - "Ryan Reynolds"
+    - "Shia LaBeouf"
+    - "Shirley Temple"
+    - "Spike Lee"
+    - "Stan Lee"
+    - "Theresa May"
+    - "Tom Cruise"
+    - "Tom Hanks"
+    - "Tom Hardy"
+    - "Tom Hiddleston"
+    - "Whoopi Goldberg"
+    - "Zac Efron"
+    - "Zayn Malik"
+
+  # Mapping concept for all listed celebrities (erasure -> map to a neutral description)
+  mapping_concept:
+    # gendered mapping per celebrity (same order as `concepts`)
+    - 'a man'   # Adam Driver
+    - 'a woman' # Adriana Lima
+    - 'a woman' # Amber Heard
+    - 'a woman' # Amy Adams
+    - 'a man'   # Andrew Garfield
+    - 'a woman' # Angelina Jolie
+    - 'a woman' # Anjelica Huston
+    - 'a woman' # Anna Faris
+    - 'a woman' # Anna Kendrick
+    - 'a woman' # Anne Hathaway
+    - 'a man'   # Arnold Schwarzenegger
+    - 'a man'   # Barack Obama
+    - 'a woman' # Beth Behrs
+    - 'a man'   # Bill Clinton
+    - 'a man'   # Bob Dylan
+    - 'a man'   # Bob Marley
+    - 'a man'   # Bradley Cooper
+    - 'a man'   # Bruce Willis
+    - 'a man'   # Bryan Cranston
+    - 'a woman' # Cameron Diaz
+    - 'a man'   # Channing Tatum
+    - 'a man'   # Charlie Sheen
+    - 'a woman' # Charlize Theron
+    - 'a man'   # Chris Evans
+    - 'a man'   # Chris Hemsworth
+    - 'a man'   # Chris Pine
+    - 'a man'   # Chuck Norris
+    - 'a woman' # Courteney Cox
+    - 'a woman' # Demi Lovato
+    - 'a man'   # Drake
+    - 'a woman' # Drew Barrymore
+    - 'a man'   # Dwayne Johnson
+    - 'a man'   # Ed Sheeran
+    - 'a man'   # Elon Musk
+    - 'a man'   # Elvis Presley
+    - 'a woman' # Emma Stone
+    - 'a woman' # Frida Kahlo
+    - 'a man'   # George Clooney
+    - 'a woman' # Glenn Close
+    - 'a woman' # Gwyneth Paltrow
+    - 'a man'   # Harrison Ford
+    - 'a woman' # Hillary Clinton
+    - 'a man'   # Hugh Jackman
+    - 'a man'   # Idris Elba
+    - 'a man'   # Jake Gyllenhaal
+    - 'a man'   # James Franco
+    - 'a man'   # Jared Leto
+    - 'a man'   # Jason Momoa
+    - 'a woman' # Jennifer Aniston
+    - 'a woman' # Jennifer Lawrence
+    - 'a woman' # Jennifer Lopez
+    - 'a man'   # Jeremy Renner
+    - 'a woman' # Jessica Biel
+    - 'a woman' # Jessica Chastain
+    - 'a man'   # John Oliver
+    - 'a man'   # John Wayne
+    - 'a man'   # Johnny Depp
+    - 'a woman' # Julianne Hough
+    - 'a man'   # Justin Timberlake
+    - 'a woman' # Kate Bosworth
+    - 'a woman' # Kate Winslet
+    - 'a man'   # Leonardo DiCaprio
+    - 'a woman' # Margot Robbie
+    - 'a woman' # Mariah Carey
+    - 'a woman' # Melania Trump
+    - 'a woman' # Meryl Streep
+    - 'a man'   # Mick Jagger
+    - 'a woman' # Mila Kunis
+    - 'a woman' # Milla Jovovich
+    - 'a man'   # Morgan Freeman
+    - 'a man'   # Nick Jonas
+    - 'a man'   # Nicolas Cage
+    - 'a woman' # Nicole Kidman
+    - 'a woman' # Octavia Spencer
+    - 'a woman' # Olivia Wilde
+    - 'a woman' # Oprah Winfrey
+    - 'a man'   # Paul McCartney
+    - 'a man'   # Paul Walker
+    - 'a man'   # Peter Dinklage
+    - 'a man'   # Philip Seymour Hoffman
+    - 'a woman' # Reese Witherspoon
+    - 'a man'   # Richard Gere
+    - 'a man'   # Ricky Gervais
+    - 'a woman' # Rihanna
+    - 'a man'   # Robin Williams
+    - 'a man'   # Ronald Reagan
+    - 'a man'   # Ryan Gosling
+    - 'a man'   # Ryan Reynolds
+    - 'a man'   # Shia LaBeouf
+    - 'a woman' # Shirley Temple
+    - 'a man'   # Spike Lee
+    - 'a man'   # Stan Lee
+    - 'a woman' # Theresa May
+    - 'a man'   # Tom Cruise
+    - 'a man'   # Tom Hanks
+    - 'a man'   # Tom Hardy
+    - 'a man'   # Tom Hiddleston
+    - 'a woman' # Whoopi Goldberg
+    - 'a man'   # Zac Efron
+    - 'a man'   # Zayn Malik
+
+  # Retain prompts CSV (used to preserve other concepts during training)
+  retain_csv_path: ./data/celebrity_retain_100.csv
+
+  # Augmentation settings
+  augment_target: true
+  augment_retain: true
+
+  # Training hyperparameters (inherited from example, tweak as needed)
+  learning_rate: 4.0e-04
+  max_train_steps: 5000
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+  gamma: 0.5 # Scheduler decay factor for MultiStepLR
+
+  # LoRA settings
+  rank: 1
+  lora_alpha: 1.0e-05
+  use_pooler: true
+
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  remove_weight: 20.0
+  retain_weight: 2.0
+
+  # Paths and model
+  output_dir: output_celebrity_100
+  final_save_path: output_celebrity_100/LoRA_fusion_model
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  logging_dir: logs
+  report_to: wandb
+
+  diagnostic_prompts:
+    - "a photo of Adam Driver"
+    - "a photo of a person"
+    - "a portrait of a celebrity"
+    - "a paparazzi photo"
+  
