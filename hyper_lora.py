@@ -197,7 +197,7 @@ class HyperLoRALinear(nn.Module):
         alpha: int = 16,
         layer_name: str = None,
         train_steps: int = None,
-        use_orig_concat: bool = True,
+        use_orig_concat: bool = False,
     ):
         super().__init__()
         self.original = original_linear

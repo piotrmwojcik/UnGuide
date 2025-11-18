@@ -227,7 +227,7 @@ def main():
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
     use_pooler = config.get('use_pooler', True)
-    use_orig_concat = config.get('use_orig_concat', True)
+    use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
     
     # Multi-concept configuration
