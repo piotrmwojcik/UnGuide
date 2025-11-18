@@ -495,7 +495,7 @@ def main():
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
         
-        optimizer.zero_grad(set_to_none=True)
+        #optimizer.zero_grad(set_to_none=True)
         
         # Random timestep
         t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
