@@ -632,7 +632,7 @@ def main():
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
 
-            accelerator.backward(loss_retain / accelerator.gradient_accumulation_steps)
+            accelerator.backward(loss_retain)
 
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
