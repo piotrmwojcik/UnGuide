@@ -1,0 +1,3 @@
+[submodule "submodules/meru"]
+	path = submodules/meru
+	url = https://github.com/piotrmwojcik/meru
