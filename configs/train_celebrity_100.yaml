@@ -207,7 +207,7 @@ UnHype:
     - 'a man'   # Zayn Malik
 
   # Retain prompts CSV (used to preserve other concepts during training)
-  retain_csv_path: ./data/celebrity_retain_100.csv
+  retain_csv_path: ./data/celebrity_coco_retain.csv
 
   # Augmentation settings
   augment_target: true
@@ -215,7 +215,7 @@ UnHype:
 
   # Training hyperparameters (inherited from example, tweak as needed)
   learning_rate: 4.0e-04
-  max_train_steps: 5000
+  max_train_steps: 1000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
   gamma: 0.5 # Scheduler decay factor for MultiStepLR
