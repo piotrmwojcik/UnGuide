@@ -21,6 +21,8 @@ import wandb
 import yaml
 from submodules.meru.meru.models import MERU, CLIPBaseline
 from meru.tokenizer import Tokenizer
+from meru.config import LazyConfig, LazyFactory
+from meru.utils.checkpointing import CheckpointManager
 from accelerate import Accelerator
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
