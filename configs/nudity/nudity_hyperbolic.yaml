@@ -104,6 +104,10 @@ UnHype:
   seed: 2024
   mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
 
+  # MERU
+  meru_train_config: submodules/meru/configs/train_meru_vit_l.py
+  meru_checkpoint_path: submodules/meru/checkpoints/meru_vit_l.pth
+
   # Logging
   logging_dir: logs
   report_to: wandb  # use-wandb flag enabled

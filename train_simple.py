@@ -363,7 +363,15 @@ def main():
     # Setup CLIP for conditioning
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
-    
+
+    meru_train_config = config.get('meru_train_config', None)
+    meru_checkpoint_path = config.get('meru_checkpoint_path', None)
+    tokenizer_MERU = Tokenizer()
+    _C_TRAIN = LazyConfig.load(meru_train_config)
+    model = LazyFactory.build_model(_C_TRAIN, device).eval()
+    CheckpointManager(model=model).load(meru_checkpoint_path)
+
+
     def encode(text: str):
         return tokenizer(
             text,
