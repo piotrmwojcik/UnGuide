@@ -370,9 +370,8 @@ def main():
     meru_checkpoint_path = config.get('meru_checkpoint_path', None)
     tokenizer_MERU = Tokenizer()
     _C_TRAIN = LazyConfig.load(meru_train_config)
-    model = LazyFactory.build_model(_C_TRAIN, device).eval()
+    model = LazyFactory.build_model(_C_TRAIN, accelerator.device).eval()
     CheckpointManager(model=model).load(meru_checkpoint_path)
-
 
     def encode(text: str):
         return tokenizer(
