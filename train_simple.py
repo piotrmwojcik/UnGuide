@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import wandb
 import yaml
-from meru.models import MERU, CLIPBaseline
+from submodules.meru.meru.models import MERU, CLIPBaseline
 from meru.tokenizer import Tokenizer
 from accelerate import Accelerator
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
