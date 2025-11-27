@@ -384,7 +384,7 @@ def main():
         ).to(accelerator.device).input_ids
 
     def encode_meru(text: str):
-        return tokenizer_MERU([text]).to(accelerator.device)
+        return tokenizer_MERU([text])
     
     # Prepare concept embeddings
     target_concepts = []
