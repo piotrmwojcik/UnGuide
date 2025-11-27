@@ -401,7 +401,7 @@ def main():
     for concept in target_concepts:
         inputs = encode_meru(concept)
         with torch.no_grad():
-            emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True)[0].detach()
+            emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True).detach()
         target_embeddings.append(emb)
     
     # Mapping concept embeddings (retain)
@@ -409,7 +409,7 @@ def main():
     for concept in mapping_concept:
         inputs = encode_meru(concept)
         with torch.no_grad():
-            emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True)[0].detach()
+            emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True).detach()
         mapping_embeddings.append(emb)
     
     # Retain prompts - load from CSV file with 'prompt' column
@@ -459,7 +459,7 @@ def main():
                 for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
                     inputs = encode_meru(prompt)
                     with torch.no_grad():
-                        emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True)[0].detach()
+                        emb = accelerator.unwrap_model(meru_model).encode_text(inputs, project=True).detach()
                     retain_embeddings.append(emb.squeeze().cpu())  # Store on CPU for caching
                 
                 print(f"Caching retain embeddings to: {cache_path}")
@@ -536,10 +536,9 @@ def main():
                 # Recompute target_emb with the same augmentation
                 inputs_aug = encode_meru(target_text_augmented)
                 with torch.no_grad():
-                    target_emb = accelerator.unwrap_model(meru_model).encode_text(inputs_aug, project=True)[0].detach()
+                    target_emb = accelerator.unwrap_model(meru_model).encode_text(inputs_aug, project=True).detach()
 
             else:
-
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
                 target_emb = target_embeddings[concept_idx]
@@ -674,7 +673,7 @@ def main():
                 # Encode the diagnostic prompt
                 inputs_diag = encode_meru(diag_prompt)
                 with torch.no_grad():
-                    diag_emb = accelerator.unwrap_model(meru_model).encode_text(inputs_diag, project=True)[0].detach()
+                    diag_emb = accelerator.unwrap_model(meru_model).encode_text(inputs_diag, project=True).detach()
                 
                 base.hyper.set_context(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
