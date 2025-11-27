@@ -320,12 +320,13 @@ def main():
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
     
-    clip_size = 768 if use_pooler else 512
+    #clip_size = 768 if use_pooler else 512
+    meru_clip_size = 512
     target_modules = ["attn2.to_k", "attn2.to_v"]
     
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=clip_size,
+        clip_size=meru_clip_size,
         rank=rank,
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
@@ -373,7 +374,7 @@ def main():
     model = LazyFactory.build_model(_C_TRAIN, accelerator.device).eval()
     CheckpointManager(model=model).load(meru_checkpoint_path)
 
-    def encode(text: str):
+    def encode_clip(text: str):
         return tokenizer(
             text,
             max_length=tokenizer.model_max_length,
@@ -381,6 +382,9 @@ def main():
             truncation=True,
             return_tensors="pt",
         ).to(accelerator.device).input_ids
+
+    def encode_meru(text: str):
+        return tokenizer_MERU([text]).to(accelerator.device)
     
     # Prepare concept embeddings
     target_concepts = []
@@ -394,23 +398,17 @@ def main():
     # Create concept embeddings
     target_embeddings = []
     for concept in target_concepts:
-        inputs = encode(concept)
+        inputs = encode_meru(concept)
         with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            emb = model.encode_text(inputs, project=True)[0].detach()
         target_embeddings.append(emb)
     
     # Mapping concept embeddings (retain)
     mapping_embeddings = []
     for concept in mapping_concept:
-        inputs = encode(concept)
+        inputs = encode_meru(concept)
         with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            emb = model.encode_text(inputs, project=True)[0].detach()
         mapping_embeddings.append(emb)
     
     # Retain prompts - load from CSV file with 'prompt' column
@@ -458,12 +456,9 @@ def main():
                 print(f"Computing retain embeddings (will cache to: {cache_path})")
                 # Create embeddings for retain prompts
                 for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                    inputs = encode(prompt)
+                    inputs = encode_meru(prompt)
                     with torch.no_grad():
-                        if use_pooler:
-                            emb = clip_text_encoder(inputs).pooler_output.detach()
-                        else:
-                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
+                        emb = model.encode_text(inputs, project=True)[0].detach()
                     retain_embeddings.append(emb.squeeze().cpu())  # Store on CPU for caching
                 
                 print(f"Caching retain embeddings to: {cache_path}")
@@ -538,12 +533,10 @@ def main():
                 mapping_text_augmented = augmented_mapping[aug_idx]
                 
                 # Recompute target_emb with the same augmentation
-                inputs_aug = encode(target_text_augmented)
+                inputs_aug = encode_meru(target_text_augmented)
                 with torch.no_grad():
-                    if use_pooler:
-                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
-                    else:
-                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
+                    target_emb = model.encode_text(inputs_aug, project=True)[0].detach()
+
             else:
 
                 target_text_augmented = target_text
@@ -678,12 +671,9 @@ def main():
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 # Encode the diagnostic prompt
-                inputs_diag = encode(diag_prompt)
+                inputs_diag = encode_meru(diag_prompt)
                 with torch.no_grad():
-                    if use_pooler:
-                        diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
-                    else:
-                        diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                    diag_emb = model.encode_text(inputs_adiag, project=True)[0].detach()
                 
                 base.hyper.set_context(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
                 base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
