@@ -72,7 +72,7 @@ UnHype:
 
   # LoRA configuration
   rank: 1
-  lora_alpha: 1.0e-05
+  lora_alpha: 5.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: 500
@@ -84,12 +84,12 @@ UnHype:
   negative_guidance: 2.0
   guidance_scale: 7.5
   start_guidance: 9.0
-  internal_lr: 2.0e-05  # Simulated learning rate for hypernetwork gradient matching
+  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 200.0    # Weight for removal loss (main training objective)
-  retain_weight: 100.000   # Weight for retain loss (regularization to preserve other concepts)
+  remove_weight: 10.0    # Weight for removal loss (main training objective)
+  retain_weight: 1.000   # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
   output_dir: output_nudity_4  # output_dir from args
