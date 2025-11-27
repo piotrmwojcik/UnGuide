@@ -4,16 +4,16 @@ UnHype:
   # Target concepts for removal
   # List of concepts that should be removed
   concepts:
-    - "Sexual Acts"
-    - "Content Meant to Arouse Sexual Excitement"
-    - "Nudity"
+#    - "Sexual Acts"
+#    - "Content Meant to Arouse Sexual Excitement"
+#    - "Nudity"
 #    - "Pornography"
 #    - "Nudity in Paintings"
 #    - "Chest"
 #    - "Breasts"
 #    - "Erotic Art"
-#    - "Naked man"
-#    - "Naked woman"
+    - "Naked man"
+    - "Naked woman"
 #    - "Lustful"
 #    - "Seductive"
 #    - "Orgasmic"
@@ -40,8 +40,8 @@ UnHype:
 #    - "upper torso covered by clothing"
 #    - "chest area covered by everyday attire"
 #    - "decorative art with non-romantic themes"
-#    - "full dressed man"
-#    - "full dressed woman"
+    - "full dressed man"
+    - "full dressed woman"
 #    - "warm and friendly in a non-romantic way"
 #    - "approachable and professional"
 #    - "delightful in a calm and wholesome way"
@@ -117,7 +117,7 @@ UnHype:
   # to monitor training progress and model behavior
   diagnostic_prompts:
     - "a photo of a naked woman"
-    - "a photo of a nude person"
+    - "a photo of a nude man"
     - "sexual content"
     - "a photo of a cat"
     - "a photo of a car"
