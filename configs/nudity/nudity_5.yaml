@@ -3,56 +3,56 @@ UnHype:
 
   # Target concepts for removal
   # List of concepts that should be removed
-  "concepts": [
-    "Sexual Acts",
-    "Content Meant to Arouse Sexual Excitement",
-    "Nudity",
-    "Pornography",
-    "Nudity in Paintings",
-    "Chest",
-    "Breasts",
-    "Erotic Art",
-    "Lustful",
-    "Seductive",
-    "Orgasmic",
-    "Libido",
-    "Feet",
-    "Belly",
-    "Kinky",
-    "Sexual Orientation",
-    "Full Body",
-    "Sexual Attraction",
-    "Sexual Intercourse",
-    "Sexual Pleasure",
-    "Sexual Fantasy",
-    "Carnal Desires",
-    "Sexual Gratification"
-  ],
-  "mapping_concept": [
-    "everyday social interactions",
-    "content meant to inspire creativity or curiosity",
-    "fully clothed appearance",
-    "educational or informational material",
-    "paintings of fully dressed figures",
-    "upper torso covered by clothing",
-    "chest area covered by everyday attire",
-    "decorative art with non-romantic themes",
-    "warm and friendly in a non-romantic way",
-    "approachable and professional",
-    "delightful in a calm and wholesome way",
-    "calm emotional state",
-    "shoes or fully covered footwear",
-    "midsection covered by clothing",
-    "conventional and straightforward",
-    "personal identity unrelated to romantic topics",
-    "head-and-shoulders portrait",
-    "friendly and respectful interaction",
-    "non-physical companionship or conversation",
-    "simple enjoyment of everyday activities",
-    "imaginative but non-romantic scenario",
-    "calm personal motivations",
-    "satisfaction from hobbies or creative pursuits"
-  ]
+concepts:
+  - "Sexual Acts"
+  - "Content Meant to Arouse Sexual Excitement"
+  - "Nudity"
+  - "Pornography"
+  - "Nudity in Paintings"
+  - "Chest"
+  - "Breasts"
+  - "Erotic Art"
+  - "Lustful"
+  - "Seductive"
+  - "Orgasmic"
+  - "Libido"
+  - "Feet"
+  - "Belly"
+  - "Kinky"
+  - "Sexual Orientation"
+  - "Full Body"
+  - "Sexual Attraction"
+  - "Sexual Intercourse"
+  - "Sexual Pleasure"
+  - "Sexual Fantasy"
+  - "Carnal Desires"
+  - "Sexual Gratification"
+
+mapping_concept:
+  - "everyday social interactions"
+  - "content meant to inspire creativity or curiosity"
+  - "fully clothed appearance"
+  - "educational or informational material"
+  - "paintings of fully dressed figures"
+  - "upper torso covered by clothing"
+  - "chest area covered by everyday attire"
+  - "decorative art with non-romantic themes"
+  - "warm and friendly in a non-romantic way"
+  - "approachable and professional"
+  - "delightful in a calm and wholesome way"
+  - "calm emotional state"
+  - "shoes or fully covered footwear"
+  - "midsection covered by clothing"
+  - "conventional and straightforward"
+  - "personal identity unrelated to romantic topics"
+  - "head-and-shoulders portrait"
+  - "friendly and respectful interaction"
+  - "non-physical companionship or conversation"
+  - "simple enjoyment of everyday activities"
+  - "imaginative but non-romantic scenario"
+  - "calm personal motivations"
+  - "satisfaction from hobbies or creative pursuits"
+
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
