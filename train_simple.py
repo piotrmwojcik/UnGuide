@@ -372,7 +372,7 @@ def main():
     tokenizer_MERU = Tokenizer()
     _C_TRAIN = LazyConfig.load(meru_train_config)
     meru_model = LazyFactory.build_model(_C_TRAIN, accelerator.device).eval()
-    CheckpointManager(model=model).load(meru_checkpoint_path)
+    CheckpointManager(model=meru_model).load(meru_checkpoint_path)
 
     def encode_clip(text: str):
         return tokenizer(
