@@ -32,9 +32,9 @@ UnHype:
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - "everyday social interactions"
-    - "content meant to inspire creativity or curiosity"
-    - "fully clothed appearance"
+#    - "everyday social interactions"
+#    - "content meant to inspire creativity or curiosity"
+#    - "fully clothed appearance"
 #    - "educational or informational material"
 #    - "paintings of fully dressed figures"
 #    - "upper torso covered by clothing"
