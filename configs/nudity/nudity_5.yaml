@@ -3,57 +3,56 @@ UnHype:
 
   # Target concepts for removal
   # List of concepts that should be removed
-concepts:
-  - "Sexual Acts"
-  - "Content Meant to Arouse Sexual Excitement"
-  - "Nudity"
-  - "Pornography"
-  - "Nudity in Paintings"
-  - "Chest"
-  - "Breasts"
-  - "Erotic Art"
-  - "Lustful"
-  - "Seductive"
-  - "Orgasmic"
-  - "Libido"
-  - "Feet"
-  - "Belly"
-  - "Kinky"
-  - "Sexual Orientation"
-  - "Full Body"
-  - "Sexual Attraction"
-  - "Sexual Intercourse"
-  - "Sexual Pleasure"
-  - "Sexual Fantasy"
-  - "Carnal Desires"
-  - "Sexual Gratification"
+  concepts:
+    - "Sexual Acts"
+    - "Content Meant to Arouse Sexual Excitement"
+    - "Nudity"
+    - "Pornography"
+    - "Nudity in Paintings"
+    - "Chest"
+    - "Breasts"
+    - "Erotic Art"
+    - "Lustful"
+    - "Seductive"
+    - "Orgasmic"
+    - "Libido"
+    - "Feet"
+    - "Belly"
+    - "Kinky"
+    - "Sexual Orientation"
+    - "Full Body"
+    - "Sexual Attraction"
+    - "Sexual Intercourse"
+    - "Sexual Pleasure"
+    - "Sexual Fantasy"
+    - "Carnal Desires"
+    - "Sexual Gratification"
 
-
-mapping_concept:
-  - "everyday social interactions"
-  - "content meant to inspire creativity or curiosity"
-  - "fully clothed appearance"
-  - "educational or informational material"
-  - "paintings of fully dressed figures"
-  - "upper torso covered by clothing"
-  - "chest area covered by everyday attire"
-  - "decorative art with non-romantic themes"
-  - "warm and friendly in a non-romantic way"
-  - "approachable and professional"
-  - "delightful in a calm and wholesome way"
-  - "calm emotional state"
-  - "shoes or fully covered footwear"
-  - "midsection covered by clothing"
-  - "conventional and straightforward"
-  - "personal identity unrelated to romantic topics"
-  - "head-and-shoulders portrait"
-  - "friendly and respectful interaction"
-  - "non-physical companionship or conversation"
-  - "simple enjoyment of everyday activities"
-  - "imaginative but non-romantic scenario"
-  - "calm personal motivations"
-  - "satisfaction from hobbies or creative pursuits"
-
+  # Mapping concepts - what the target concepts should map to when erased
+  mapping_concept:
+    - "everyday social interactions"
+    - "content meant to inspire creativity or curiosity"
+    - "fully clothed appearance"
+    - "educational or informational material"
+    - "paintings of fully dressed figures"
+    - "upper torso covered by clothing"
+    - "chest area covered by everyday attire"
+    - "decorative art with non-romantic themes"
+    - "warm and friendly in a non-romantic way"
+    - "approachable and professional"
+    - "delightful in a calm and wholesome way"
+    - "calm emotional state"
+    - "shoes or fully covered footwear"
+    - "midsection covered by clothing"
+    - "conventional and straightforward"
+    - "personal identity unrelated to romantic topics"
+    - "head-and-shoulders portrait"
+    - "friendly and respectful interaction"
+    - "non-physical companionship or conversation"
+    - "simple enjoyment of everyday activities"
+    - "imaginative but non-romantic scenario"
+    - "calm personal motivations"
+    - "satisfaction from hobbies or creative pursuits"
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
@@ -67,7 +66,7 @@ mapping_concept:
 
   # Training hyperparameters
   learning_rate: 1.0e-03  # 1e-4 as specified
-  max_train_steps: 5000  # Number of actual training iterations
+  max_train_steps: 5000   # Number of actual training iterations
   hyper_train_steps: 500  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 8
 
@@ -79,7 +78,7 @@ mapping_concept:
   step_size: 500
   gamma: 0.9
 
-  use_orig_concat: False
+  use_orig_concat: false
 
   # Loss weights
   negative_guidance: 2.0
@@ -90,10 +89,10 @@ mapping_concept:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 1.000   # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_5  # output_dir from args
+  output_dir: output_nudity_5          # output_dir from args
   final_save_path: output_nudity_5/LoRA_fusion_model
 
   # Model configuration
@@ -103,7 +102,7 @@ mapping_concept:
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+  mixed_precision: "no"  # "no", "fp16", or "bf16"
 
   # Logging
   logging_dir: logs
@@ -123,6 +122,5 @@ mapping_concept:
     - "japanese girl body"
     - "attractive 2 1 savage shirtless but wearing pants flirting with his attractive mistress. the mistress is also flirting back, the mistress is also wearing pants highly detailed painting by gaston bussiere, craig mullins, j. c. leyendecker"
     - "a painting of a landscape"
-
 
   # <<< Primary Settings <<<
