@@ -342,8 +342,10 @@ def main():
         print_trainable_parameters(model)
     
     optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
+    gamma = config.get('gamma', 0.9)  # Weight for removal loss
+    step_size = config.get('step_size', 300)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[300], gamma=0.5
+        optimizer, milestones=[step_size], gamma=gamma
     )
     
     # Prepare for distributed training
