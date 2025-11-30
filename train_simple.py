@@ -248,7 +248,6 @@ def main():
     # Training settings
     ddim_steps = 50
     ddim_eta = 0.0
-    start_guidance = config.get('start_guidance', 9.0)
     negative_guidance = config.get('negative_guidance', 2.0)
     guidance_scale = config.get('guidance_scale', 7.5)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
@@ -554,7 +553,7 @@ def main():
             
             with torch.no_grad():
                 # Generate latent using target prompt
-                z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
+                z = quick_sampler(emb_p, guidance_scale, start_code, int(t_enc))
                 # Get noise predictions from original model
                 e_m = model_orig.apply_model(z, t_enc_ddpm, emb_m)  # mapping (reference) concept
                 e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target prompt
