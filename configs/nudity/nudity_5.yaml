@@ -87,7 +87,7 @@ UnHype:
   # Loss weights
   negative_guidance: 2.0
   guidance_scale: 7.5
-  start_guidance: 9.0
+  start_guidance: 7.5
   internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
 
   # Training weights - for combining removal and retain losses
