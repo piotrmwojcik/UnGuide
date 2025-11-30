@@ -65,7 +65,7 @@ UnHype:
 
   # Prompt augmentation - control augmentation for target and retain concepts
   # Each generates 31 variations when enabled (e.g., "a photo of X", "a painting of X", etc.)
-  augment_target: false   # Augment target concepts to be removed
+  augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
 
   # Training hyperparameters
