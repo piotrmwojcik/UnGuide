@@ -532,10 +532,6 @@ def main():
                 else mapping_concept[0]
             )
 
-            print(
-                f"[Rank {rank} | Device {accelerator.device}] "
-                f"idx={concept_idx} | Mapping {target_text} --> {mapping_text}"
-            )
 
             # Apply prompt augmentation to target if enabled
             # When augmenting, apply the SAME augmentation to both target and mapping
@@ -571,6 +567,11 @@ def main():
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
                 target_emb = target_embeddings[concept_idx]
+
+            print(
+                f"[Rank {rank} | Device {accelerator.device}] "
+                f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
+            )
 
             with torch.no_grad():
                 # Get text conditioning for Stable Diffusion
