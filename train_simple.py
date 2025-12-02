@@ -516,7 +516,7 @@ def main():
             target_text = target_concepts[concept_idx]
             mapping_text = mapping_concept[concept_idx] if concept_idx < len(mapping_concept) else mapping_concept[0]
 
-            print(f'Mapping {target_text} --> {mapping_text}')
+            print(f'GPU {accelerator.device} Mapping {target_text} --> {mapping_text}')
 
             # Apply prompt augmentation to target if enabled
             # When augmenting, apply the SAME augmentation to both target and mapping
