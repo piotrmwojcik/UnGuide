@@ -532,7 +532,7 @@ def main():
                 else mapping_concept[0]
             )
 
-            accelerator.print(
+            print(
                 f"[Rank {rank} | Device {accelerator.device}] "
                 f"idx={concept_idx} | Mapping {target_text} --> {mapping_text}"
             )
