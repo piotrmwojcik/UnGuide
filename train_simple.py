@@ -479,7 +479,7 @@ def main():
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
     
     # Training loop
-    criterion = torch.nn.MSELoss()
+    criterion = torch.nn.L1Loss()
     losses = []
     
     quick_sampler = create_quick_sampler(
