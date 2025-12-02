@@ -541,12 +541,23 @@ def main():
             # When augmenting, apply the SAME augmentation to both target and mapping
             if augment_target:
                 augmented_prompts = prompt_augmentation(target_text, augment=True)
-                # Pick a random augmentation variation
-                aug_idx = random.randint(0, len(augmented_prompts) - 1)
+
+                # Shard augmentation indices per rank as well
+                valid_aug_indices = list(range(rank, len(augmented_prompts), world_size))
+                if len(valid_aug_indices) == 0:
+                    aug_idx = rank % len(augmented_prompts)
+                else:
+                    aug_idx = random.choice(valid_aug_indices)
+
                 target_text_augmented = augmented_prompts[aug_idx]
 
                 # Apply the SAME augmentation variation to mapping
                 augmented_mapping = prompt_augmentation(mapping_text, augment=True)
+
+                # In case augmented_mapping has fewer variants, wrap aug_idx
+                if aug_idx >= len(augmented_mapping):
+                    aug_idx = aug_idx % len(augmented_mapping)
+
                 mapping_text_augmented = augmented_mapping[aug_idx]
 
                 # Recompute target_emb with the same augmentation
