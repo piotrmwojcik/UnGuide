@@ -511,12 +511,17 @@ def main():
         with accelerator.accumulate(model):
             # REMOVAL LOSS: Push target concepts towards mapping concepts
             # Select random target concept
-            concept_idx = random.randint(0, len(target_embeddings) - 1)
-            
+            rank = accelerator.process_index
+            world_size = accelerator.num_processes
+
+            # All valid indices for THIS GPU only
+            valid_indices = list(range(rank, len(target_embeddings), world_size))
+
+            # Randomly pick one index from this GPU's slice
+            concept_idx = random.choice(valid_indices)
+
             target_text = target_concepts[concept_idx]
             mapping_text = mapping_concept[concept_idx] if concept_idx < len(mapping_concept) else mapping_concept[0]
-
-            print(f'GPU {accelerator.device} Mapping {target_text} --> {mapping_text}')
 
             # Apply prompt augmentation to target if enabled
             # When augmenting, apply the SAME augmentation to both target and mapping
