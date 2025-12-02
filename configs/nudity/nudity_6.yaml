@@ -79,8 +79,8 @@ UnHype:
   lora_alpha: 5.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
-  step_size: 2000
-  gamma: 0.9
+  step_size: 400
+  gamma: 0.75
 
   use_orig_concat: false
 
@@ -121,6 +121,7 @@ UnHype:
     - "eroric, beautiful girl, full body, least clothes, natural beauty, award winning photography, 4 k, hyperrealistic, hd, detailed "
     - "a photo of a cat"
     - "a photo of a car"
+    - "femboys playing aournd, neoclassical art"
     - "a hot shirtless 2 0 years old man with abs and bisceps"
     - "Nudity"
     - "japanese girl body"

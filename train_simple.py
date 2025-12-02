@@ -733,7 +733,7 @@ def main():
     
     # Save model
         accelerator.wait_for_everyone()
-        if is_main and iteration % 20 == 0:
+        if is_main and iteration % 100 == 0:
             print(f"Final loss: {losses[-1]:.6f}")
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 
@@ -748,7 +748,7 @@ def main():
                 if param.requires_grad:
                     lora_state_dict[name] = param.detach().cpu().clone()
 
-            lora_path = os.path.join(final_save_path, "hyper_lora.pth")
+            lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
             accelerator.save(lora_state_dict, lora_path)
             print(f"Model saved to: {lora_path}")
         
