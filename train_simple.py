@@ -532,7 +532,6 @@ def main():
                 else mapping_concept[0]
             )
 
-
             # Apply prompt augmentation to target if enabled
             # When augmenting, apply the SAME augmentation to both target and mapping
             if augment_target:
