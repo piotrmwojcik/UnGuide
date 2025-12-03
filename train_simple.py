@@ -705,31 +705,70 @@ def main():
                         diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
                     else:
                         diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
-                
-                base.hyper.set_context(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
-                base.hyper.compute_and_cache_loras(diag_emb, torch.tensor([hyper_train_steps], device=accelerator.device))
-                
-                # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
-                combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
-                combined_sampler = DDIMSampler(model=combined_model)
-                
-                start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
-                
-                imgs = generate_images(
-                    sampler=combined_sampler,
-                    model=combined_model,
-                    prompt=diag_prompt,
-                    device=accelerator.device,
-                    steps=50,
-                    guidance_scale=guidance_scale,
-                    start_code=start_code,
+
+                # Choose a few hyper-steps to visualize: start, middle, end
+                diag_time_steps = [
+                    0,
+                    hyper_train_steps // 2,
+                    hyper_train_steps,
+                ]
+
+                # Use the same start_code so differences come only from hyper-time
+                start_code = torch.randn(
+                    (1, 4, resolution // 8, resolution // 8), device=accelerator.device
                 )
-                
-                if imgs is not None:
-                    im0 = (imgs[0].clamp(0, 1) * 255).round().to(torch.uint8).cpu()
-                    # Clean prompt for wandb key (remove spaces and special chars)
-                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-                    wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(im0), caption=diag_prompt)}, step=iteration)
+
+                imgs_per_prompt = []  # will hold images for this prompt across time steps
+
+                for h_step in diag_time_steps:
+                    h_step_tensor = torch.tensor([h_step], device=accelerator.device)
+
+                    base.hyper.set_context(diag_emb, h_step_tensor)
+                    base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
+
+                    # Use CombinedCFGModel: conditional uses model (with LoRA), unconditional uses model_orig
+                    combined_model = CombinedCFGModel(cond_model=base, uncond_model=model_orig).eval()
+                    combined_sampler = DDIMSampler(model=combined_model)
+
+                    imgs = generate_images(
+                        sampler=combined_sampler,
+                        model=combined_model,
+                        prompt=diag_prompt,
+                        device=accelerator.device,
+                        steps=50,
+                        guidance_scale=guidance_scale,
+                        start_code=start_code,  # same noise for all h_step
+                    )
+
+                    imgs_per_prompt.append(imgs)
+
+                if len(imgs_per_prompt) > 0:
+                    row_tensors = []
+
+                    for imgs in imgs_per_prompt:
+                        if imgs is None:
+                            continue
+                        # Take the first image in the batch and convert to uint8
+                        img = imgs[0].clamp(0, 1)  # (C, H, W)
+                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
+                        row_tensors.append(im_uint8)
+
+                    if len(row_tensors) > 0:
+                        # Concatenate horizontally to form a row: (C, H, sum_W)
+                        row = torch.cat(row_tensors, dim=2)
+
+                        # Clean prompt for wandb key (remove spaces and special chars)
+                        safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+
+                        wandb.log(
+                            {
+                                f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                    to_pil_image(row),
+                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                                )
+                            },
+                            step=iteration,
+                        )
     
     # Save model
         accelerator.wait_for_everyone()
