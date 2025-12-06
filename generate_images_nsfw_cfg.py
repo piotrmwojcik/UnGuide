@@ -273,7 +273,7 @@ if __name__ == "__main__":
                 continue
             start = time.time()
             seed = int(row.get("evaluation_seed", 0))
-            guidance = float(row.get("evaluation_guidance", args.guidance_scale))
+            guidance = float(args.guidance_scale)
             set_seed(seed)
 
             start_code = torch.randn(
