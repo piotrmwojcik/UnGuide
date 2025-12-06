@@ -479,7 +479,7 @@ def main():
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
     
     # Training loop
-    criterion = torch.nn.L1Loss()
+    criterion = torch.nn.MSELoss()
     losses = []
     
     quick_sampler = create_quick_sampler(
@@ -695,7 +695,7 @@ def main():
             })
         
         # Generate sample images periodically
-        if is_main and use_wandb and iteration % 20 == 0:
+        if is_main and use_wandb and iteration % 50 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 # Encode the diagnostic prompt
@@ -772,7 +772,7 @@ def main():
     
     # Save model
         accelerator.wait_for_everyone()
-        if is_main and iteration % 100 == 0:
+        if is_main and ((iteration % 100 == 0) or (iteration == max_train_steps)):
             print(f"Final loss: {losses[-1]:.6f}")
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 
