@@ -276,8 +276,6 @@ if __name__ == "__main__":
             guidance = float(row.get("evaluation_guidance", args.guidance_scale))
             set_seed(seed)
 
-            print(prompt)
-
             start_code = torch.randn(
                 (1, 4, args.image_size // 8, args.image_size // 8),
                 device=model.device
@@ -312,4 +310,4 @@ if __name__ == "__main__":
             img_pil.save(image_path)
             images_generated += 1
             end = time.time()
-            print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds. Saved to {args.save_folder}", flush=True)
+            print(f"Prompt [{prompt}] processed in {end - start:.2f}) seconds with guidance [{guidance}]. Saved to {args.save_folder}", flush=True)
