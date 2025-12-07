@@ -578,7 +578,19 @@ def main():
                 emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
                 emb_m = base.get_learned_conditioning([mapping_text_augmented])  # mapping prompt (what target should map to)
             # Random timestep for HyperLoRA context
-            rtimestep = int(torch.randint(0, hyper_train_steps - 1, (1,), device=accelerator.device))
+            rank = accelerator.process_index
+            world_size = accelerator.num_processes
+
+            # Timesteps assigned to THIS rank: rank, rank + world_size, ...
+            valid_timesteps = torch.arange(rank, hyper_train_steps, world_size, device=accelerator.device)
+
+            if valid_timesteps.numel() == 0:
+                # Fallback in case hyper_train_steps < world_size
+                rtimestep = int(torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+            else:
+                # Sample index into this rank’s slice
+                idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
+                rtimestep = int(valid_timesteps[idx])
             base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
             
             _, current_timestep = base.hyper.get_context()
