@@ -707,7 +707,7 @@ def main():
             })
         
         # Generate sample images periodically
-        if is_main and use_wandb and iteration % 50 == 0:
+        if is_main and use_wandb and (iteration + 1) % 50 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 # Encode the diagnostic prompt
@@ -784,7 +784,7 @@ def main():
     
     # Save model
         accelerator.wait_for_everyone()
-        if is_main and ((iteration % 100 == 0) or (iteration == max_train_steps)):
+        if is_main and ((iteration + 1 % 100 == 0) or (iteration == max_train_steps)):
             print(f"Final loss: {losses[-1]:.6f}")
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 
