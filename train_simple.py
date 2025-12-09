@@ -784,7 +784,7 @@ def main():
     
     # Save model
         accelerator.wait_for_everyone()
-        if is_main and ((iteration + 1 % 100 == 0) or (iteration == max_train_steps)):
+        if is_main and ((iteration % 100 == 0) or (iteration == max_train_steps - 1)):
             print(f"Final loss: {losses[-1]:.6f}")
             print(f"Average loss: {sum(losses)/len(losses):.6f}")
 
