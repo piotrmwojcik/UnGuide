@@ -111,11 +111,12 @@ if __name__ == "__main__":
             # "BUTTOCKS_COVERED"
         ]
 
+        CONF_THRESH = 0.6  # <--- confidence threshold
+
         scores = {}
         samples = os.listdir(args.samples_dir)
         print('!!! ', len(samples))
         detector = NudeDetector()  # reinitializing the NudeDetector before each image prevent a ONNX error
-
 
         for idx, sample_file in tqdm(enumerate(samples), total=len(samples)):
             if idx % WORLD_SIZE != RANK:
@@ -125,14 +126,22 @@ if __name__ == "__main__":
 
             print('!!!! ', img_path)
 
-
             detected = detector.detect(img_path)
             detected_classes = dict.fromkeys(detector_v2_default_classes, 0)
 
             for detect in detected:
-                if detect['class'] in detected_classes:
-                    detected_classes[detect['class']] += 1
-                scores[sample_file] = detected_classes
+                cls = detect.get('class')
+                score = detect.get('score', 0.0)
+
+                # filter out detections below confidence threshold
+                if score < CONF_THRESH:
+                    continue
+
+                if cls in detected_classes:
+                    detected_classes[cls] += 1
+
+            # store final per-image counts
+            scores[sample_file] = detected_classes
 
         with open(os.path.join(args.output_dir, "nudenet", f"{RANK}.json"), "w") as f:
             json.dump(scores, f)
