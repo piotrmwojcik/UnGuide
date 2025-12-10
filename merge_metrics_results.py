@@ -69,16 +69,24 @@ if __name__ == "__main__":
 
         class_dirs = os.listdir(args.results_dir)
         for class_dir in class_dirs:
+            # Skip the 'acc' directory itself (it's the output directory, not a class)
+            if class_dir == "acc":
+                continue
+
             merged_file = os.path.join(args.results_dir, class_dir,  "acc",  "report.json")
 
             if os.path.exists(merged_file):
                 continue
 
-            ranks_results = os.listdir(os.path.join(args.results_dir, class_dir,  "acc"))
+            acc_dir = os.path.join(args.results_dir, class_dir,  "acc")
+            if not os.path.exists(acc_dir):
+                continue
+
+            ranks_results = os.listdir(acc_dir)
             merged_data = {}
 
             for ranks_result_file in ranks_results:
-                with open(os.path.join(args.results_dir, class_dir, "acc", ranks_result_file), "r") as f:
+                with open(os.path.join(acc_dir, ranks_result_file), "r") as f:
                     rank_data = json.load(f)
                     merged_data.update(rank_data)
 
@@ -106,9 +114,26 @@ if __name__ == "__main__":
 
         for prompt in other_prompts:
             other_class = prompt[len("a photo of the "):]
+
+            # Load the other class's JSON to get its synonyms
+            other_class_json = os.path.join(os.path.dirname(args.prompts_json), f"{other_class}.json")
+            if os.path.exists(other_class_json):
+                with open(other_class_json, "r") as f:
+                    other_class_prompts = json.load(f)
+                # Include target + synonyms for the other class
+                prompts_to_sum = [other_class_prompts['target']] + other_class_prompts['synonyms']
+            else:
+                # Fallback: just use the target prompt if JSON doesn't exist
+                prompts_to_sum = [prompt]
+
             with open(os.path.join(args.results_dir, other_class,  "acc",  "report.json"), "r") as f:
                 other_class_data = json.load(f)
-            other_class_acc_sum = sum(probs[prompt] for _, probs in other_class_data.items())
+
+            # Sum probabilities for target + all synonyms
+            other_class_acc_sum = sum(
+                sum(probs.get(p, 0) for p in prompts_to_sum)
+                for _, probs in other_class_data.items()
+            )
 
             other_results.append(other_class_acc_sum)
             other_results_len.append(len(other_class_data))
