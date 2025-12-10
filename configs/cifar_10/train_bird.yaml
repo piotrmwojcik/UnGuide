@@ -46,7 +46,7 @@ UnGuide_Bird:
 
   # Data and paths
   output_dir: output_pw/bird  # output_dir from args
-  final_save_path: output_pw/bird/LoRA_fusion_model
+  final_save_path: output_pw/bird_pw/LoRA_fusion_model
   
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
