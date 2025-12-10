@@ -3,17 +3,17 @@ UnGuide_Bird:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the bird"
-    - "a photo of the owl"
-    - "a photo of the warbler"
-    - "a photo of the songbird"
+    - "a bird"
+    - "a owl"
+    - "a warbler"
+    - "a songbird"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the ground'
-    - 'a photo of the ground'
-    - 'a photo of the ground'
-    - 'a photo of the ground'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
@@ -23,7 +23,7 @@ UnGuide_Bird:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  learning_rate: 8.0e-04  # 1e-4 as specified
+  learning_rate: 1.0e-03  # 1e-4 as specified
   max_train_steps: 1000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
@@ -41,12 +41,12 @@ UnGuide_Bird:
   
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 2.000   # Weight for retain loss (regularization to preserve other concepts)
-  
+  remove_weight: 10.0    # Weight for removal loss (main training objective)
+  retain_weight: 1.0
+
   # Data and paths
-  output_dir: output/bird  # output_dir from args
-  final_save_path: output/bird/LoRA_fusion_model
+  output_dir: output_pw/bird  # output_dir from args
+  final_save_path: output_pw/bird/LoRA_fusion_model
   
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
