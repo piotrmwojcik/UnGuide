@@ -3,17 +3,17 @@ UnGuide_Bird:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the bird"
-    - "a photo of the owl"
-    - "a photo of the warbler"
-    - "a photo of the songbird"
+    - "bird"
+    - "owl"
+    - "warbler"
+    - "songbird"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the ground'
-    - 'a photo of the ground'
-    - 'a photo of the ground'
-    - 'a photo of the ground'
+    - 'ground'
+    - 'ground'
+    - 'ground'
+    - 'ground'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts

@@ -3,16 +3,16 @@ UnGuide_Truck:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the truck"
-    - "a photo of the van"
-    - "a photo of the pickup"
+    - "truck"
+    - "van"
+    - "pickup"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
+    - 'street'
+    - 'street'
+    - 'street'
+    - 'street'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts

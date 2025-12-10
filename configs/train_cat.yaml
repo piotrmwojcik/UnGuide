@@ -3,17 +3,17 @@ UnGuide_Cat:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the cat"
-    - "a photo of the puss"
-    - "a photo of the caracal"
-    - "a photo of the wildcat"
+    - "cat"
+    - "puss"
+    - "caracal"
+    - "wildcat"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the forest'
-    - 'a photo of the forest'
-    - 'a photo of the forest'
-    - 'a photo of the forest'
+    - 'forest'
+    - 'forest'
+    - 'forest'
+    - 'forest'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts

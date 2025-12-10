@@ -3,17 +3,17 @@ UnGuide_Dog:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the dog"
-    - "a photo of the puppy"
-    - "a photo of the doggo"
-    - "a photo of the corgi"
+    - "dog"
+    - "puppy"
+    - "doggo"
+    - "corgi"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
+    - 'street'
+    - 'street'
+    - 'street'
+    - 'street'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
