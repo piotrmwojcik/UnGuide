@@ -147,6 +147,8 @@ if __name__ == "__main__":
         synonym_results_len = []
 
         for prompt in synonym_prompts:
+            target_prompt = prompts_data["target"]
+            target_class = target_prompt[len("a photo of the "):]
             synonym_class = prompt[len("a photo of the "):]
 
             if synonym_class == "winged creature":
@@ -154,7 +156,7 @@ if __name__ == "__main__":
 
             with open(os.path.join(args.results_dir, synonym_class,  "acc",  "report.json"), "r") as f:
                 synonym_class_data = json.load(f)
-            synonym_class_acc_sum = sum(probs[prompt] for _, probs in synonym_class_data.items())
+            synonym_class_acc_sum = sum(probs[target_prompt] for _, probs in synonym_class_data.items())
 
             synonym_results.append(synonym_class_acc_sum)
             synonym_results_len.append(len(synonym_class_data))
