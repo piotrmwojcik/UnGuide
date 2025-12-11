@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
             # Load the other class's JSON to get its synonyms
             other_class_json = os.path.join(os.path.dirname(args.prompts_json), f"{other_class}.json")
-            if os.path.exists(other_class_json):
+            if False: #os.path.exists(other_class_json):
                 with open(other_class_json, "r") as f:
                     other_class_prompts = json.load(f)
                 # Include target + synonyms for the other class
