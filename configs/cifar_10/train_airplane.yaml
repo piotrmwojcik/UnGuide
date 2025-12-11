@@ -3,17 +3,17 @@ UnGuide_Airplane:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the airplane"
-    - "a photo of the airliner"
-    - "a photo of the airship"
-    - "a photo of the fighter"
+    - "an airplane"
+    - "an airliner"
+    - "an airship"
+    - "an fighter"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
