@@ -3,17 +3,17 @@ UnGuide_Cat:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the cat"
-    - "a photo of the puss"
-    - "a photo of the caracal"
-    - "a photo of the wildcat"
+    - "a cat"
+    - "a puss"
+    - "a caracal"
+    - "a wildcat"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the forest'
-    - 'a photo of the forest'
-    - 'a photo of the forest'
-    - 'a photo of the forest'
+    - 'a forest'
+    - 'a forest'
+    - 'a forest'
+    - 'a forest'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
@@ -23,14 +23,14 @@ UnGuide_Cat:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  learning_rate: 8.0e-04  # 1e-4 as specified
+  learning_rate: 1.0e-03  # 1e-4 as specified
   max_train_steps: 1000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
   
   # LoRA configuration
   rank: 1
-  lora_alpha: 1.0e-05
+  lora_alpha: 5.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
   
   # Loss weights
@@ -41,12 +41,12 @@ UnGuide_Cat:
   
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 2.000   # Weight for retain loss (regularization to preserve other concepts)
+  remove_weight: 10.0    # Weight for removal loss (main training objective)
+  retain_weight: 1.000   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
-  output_dir: output/cat  # output_dir from args
-  final_save_path: output/cat/LoRA_fusion_model
+  output_dir: output_pw/cat_pw  # output_dir from args
+  final_save_path: output_pw/cat_pw/LoRA_fusion_model
   
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
