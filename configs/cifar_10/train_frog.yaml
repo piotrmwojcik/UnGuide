@@ -3,15 +3,13 @@ UnGuide_Frog:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the frog"
-    - "a photo of the bullfrog"
+    - "a frog"
+    - "a bullfrog"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
-    - 'a photo of the street'
+    - 'a forest'
+    - 'a forest'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
