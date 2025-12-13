@@ -3,10 +3,10 @@ UnGuide_Ship:
 
   # Target concepts for removal
   concepts:
-    - "a photo of the ship"
-    - "a photo of the fregate"
-    - "a photo of the liner"
-    - "a photo of the aircraft carrier"
+    - "a ship"
+    - "a fregate"
+    - "a liner"
+    - "a aircraft carrier"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
