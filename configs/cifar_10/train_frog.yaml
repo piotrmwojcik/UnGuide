@@ -5,6 +5,8 @@ UnGuide_Frog:
   concepts:
     - "a frog"
     - "a bullfrog"
+    - "a surinam toad"
+    - "a amauensis"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
