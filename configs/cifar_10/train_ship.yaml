@@ -5,7 +5,7 @@ UnGuide_Ship:
   concepts:
     - "a ship"
     - "a fregate"
-    - "a liner"
+    - "an ocean liner"
     - "a aircraft carrier"
 
   # Mapping concepts - what the target concepts should map to when erased
