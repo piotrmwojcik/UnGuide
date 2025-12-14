@@ -4,9 +4,9 @@ UnGuide_Ship:
   # Target concepts for removal
   concepts:
     - "a ship"
-    - "a fregate"
+    - "a frigate"
     - "an ocean liner"
-    - "a aircraft carrier"
+    - "a ferry"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
