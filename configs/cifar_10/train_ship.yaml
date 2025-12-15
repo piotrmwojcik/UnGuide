@@ -42,7 +42,7 @@ UnGuide_Ship:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 50.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.050   # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 0.000   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_pw/ship_pw  # output_dir from args
