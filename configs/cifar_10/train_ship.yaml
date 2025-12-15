@@ -10,10 +10,10 @@ UnGuide_Ship:
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a forest'
-    - 'a forest'
-    - 'a forest'
-    - 'a forest'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
+    - 'a ground'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
@@ -42,7 +42,7 @@ UnGuide_Ship:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.010   # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 1.0   # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_pw/ship_pw  # output_dir from args
