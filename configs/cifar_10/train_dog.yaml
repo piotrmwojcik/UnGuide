@@ -23,7 +23,7 @@ UnGuide_Dog:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  learning_rate: 1.0e-03  # 1e-4 as specified
+  learning_rate:  5.0e-03 # 1e-4 as specified
   max_train_steps: 1000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
