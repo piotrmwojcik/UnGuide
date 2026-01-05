@@ -17,10 +17,10 @@ UnGuide_Dog:
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
-  retain_csv_path: ./cifar100.csv
+  retain_csv_path: ./cifar100_plain.csv
 
   augment_target: true   # Augment target concepts to be removed
-  augment_retain: false  # Augment retain prompts from CSV
+  augment_retain: true  # Augment retain prompts from CSV
   
   # Training hyperparameters
   learning_rate: 3.0e-04  # 1e-4 as specified
