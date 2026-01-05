@@ -41,7 +41,7 @@ case_number,source,prompt,evaluation_seed,coco_id
 39,cifar100,the cockroach,36241,0
 40,cifar100,the bear,92867,0
 41,cifar100,the leopard,58419,0
-42,cifar100,the lion,25736,0
+42,cifar100,the cat,25736,0
 43,cifar100,the tiger,71982,0
 44,cifar100,the wolf,48365,0
 45,cifar100,the bridge,14729,0
