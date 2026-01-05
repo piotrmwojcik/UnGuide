@@ -476,6 +476,7 @@ def main():
         print("No retain CSV path provided or file not found. Skipping retain loss.")
     
     print(f"Mapping concepts: {mapping_concept[:2]}...")  # Show first 2
+    print(f"Retain prompts: {retain_prompts[:20]} prompts loaded")
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
     
     # Training loop
