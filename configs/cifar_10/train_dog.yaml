@@ -17,7 +17,7 @@ UnGuide_Dog:
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
-  retain_csv_path: ./cifar100_plain.csv
+  retain_csv_path: ./cifar100.csv
 
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
@@ -42,7 +42,7 @@ UnGuide_Dog:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 4.000  # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 2.000  # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_pw/dog_pw  # output_dir from args
