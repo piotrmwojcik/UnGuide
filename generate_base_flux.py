@@ -40,7 +40,7 @@ def coerce_prompt(v):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
-    parser.add_argument("--csv_path", type=str, default="I2P_prompts_4703.csv")
+    parser.add_argument("--csv_path", type=str, default="data/I2P_prompts_4703.csv")
     parser.add_argument("--output_dir", type=str, default="generated_base_flux")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
