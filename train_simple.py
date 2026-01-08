@@ -423,6 +423,9 @@ def main():
         if augment_retain:
             print("Applying prompt augmentation to retain prompts")
             for prompt in base_prompts:
+                # Remove "A photo of the " from the beginning if present
+                if prompt.startswith("A photo of the "):
+                    prompt = prompt[len("A photo of the "):]
                 augmented = prompt_augmentation(prompt, augment=True)
                 retain_prompts.extend(augmented)
             print(f"Generated {len(retain_prompts)} retain prompts with augmentation")
