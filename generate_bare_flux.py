@@ -89,6 +89,101 @@ def import_model_class_from_model_name_or_path(
     else:
         raise ValueError(f"{model_class} is not supported.")
 
+@torch.no_grad()
+def generate_one_image_from_prompt(
+    prompt: str,
+    *,
+    transformer,
+    vae,
+    noise_scheduler,
+    text_encoders,
+    tokenizers,
+    height: int = 512,
+    width: int = 512,
+    num_inference_steps: int = 28,
+    guidance_scale: float = 3.0,
+    weight_dtype: torch.dtype = torch.bfloat16,
+    seed: int | None = None,
+):
+    """
+    Training-free single-image generation using your FLUX components.
+    - Uses ONLY one text prompt (no negative prompt, no losses).
+    - Samples latents with `latent_sample(...)` and decodes with VAE (shift/scaling aware).
+    Returns: PIL.Image
+    """
+
+    device = transformer.device
+    bsz = 1
+
+    # Optional deterministic seed
+    if seed is not None:
+        torch.manual_seed(seed)
+        if device.type == "cuda":
+            torch.cuda.manual_seed_all(seed)
+
+    # --- Text embeddings (positive prompt only) ---
+    prompts = [prompt]
+    emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
+        prompts, text_encoders, tokenizers
+    )
+
+    # --- VAE scale factor (same as your snippet) ---
+    vae_scale_factor = 2 ** (len(vae.config.block_out_channels))
+
+    # --- Guidance tensor (same style as your code) ---
+    guidance = torch.tensor([guidance_scale], device=device).expand(bsz)
+
+    # --- Sample latents from pure noise using your sampler ---
+    # NOTE: latent_sample signature from your snippet:
+    # latent_sample(transformer, noise_scheduler, batch_size, num_channels, height, width,
+    #               emb, pooled_emb, text_ids, guidance, steps, vae_scale_factor)
+    num_channels = getattr(transformer.config, "in_channels", 16)
+
+    z, latent_image_ids = latent_sample(
+        transformer,
+        noise_scheduler,
+        bsz,
+        num_channels,
+        height,
+        width,
+        emb_p.to(device),
+        pooled_emb_p.to(device),
+        text_ids_p.to(device),
+        guidance,
+        int(num_inference_steps),
+        vae_scale_factor,
+    )
+
+    # If your latent_sample returns packed latents, unpack them.
+    # (If it already returns (B,C,H,W), this branch will be skipped.)
+    if z.dim() == 3 and hasattr(FluxPipeline, "_unpack_latents"):
+        latent_h = height // vae_scale_factor
+        latent_w = width // vae_scale_factor
+        z = FluxPipeline._unpack_latents(
+            z,
+            height=latent_h,
+            width=latent_w,
+            vae_scale_factor=vae_scale_factor,
+        )
+
+    # --- Decode latents with VAE (invert shift/scaling) ---
+    shift = vae.config.shift_factor
+    scale = vae.config.scaling_factor
+
+    z = z.to(device=device, dtype=weight_dtype)
+    z = z / scale + shift
+
+    decoded = vae.decode(z).sample  # (1, 3, H, W) in [-1, 1] typically
+    img = (decoded / 2 + 0.5).clamp(0, 1)
+
+    # Convert to PIL
+    import numpy as np
+    from PIL import Image
+
+    img = img[0].permute(1, 2, 0).float().cpu().numpy()
+    img = (img * 255).round().astype(np.uint8)
+    return Image.fromarray(img)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
@@ -99,6 +194,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_size", type=int, default=512)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--nudity", type=bool, default=True)
+    parser.add_argument("--max_sequence_length", type=int, default=256)
     parser.add_argument("--guidance_scale", type=float, default=7.5)
     parser.add_argument("--n_images", type=int, default=None)
     parser.add_argument("--device", type=str, default="cuda")
@@ -150,15 +246,19 @@ if __name__ == "__main__":
     tokenizers = [tokenizer_one, tokenizer_two]
     text_encoders = [text_encoder_one, text_encoder_two]
 
-    def compute_text_embeddings(prompt, text_encoders, tokenizers):
-        with torch.no_grad():
-            prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
-                text_encoders, tokenizers, prompt, args.max_sequence_length
-            )
-            prompt_embeds = prompt_embeds.to(transformer.device)
-            pooled_prompt_embeds = pooled_prompt_embeds.to(transformer.device)
-            text_ids = text_ids.to(transformer.device)
-        return prompt_embeds, pooled_prompt_embeds, text_ids
+    def compute_text_embeddings(prompts, text_encoders, tokenizers):
+        # prompts: List[str] or str
+        if isinstance(prompts, str):
+            prompts = [prompts]
+
+        prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
+            text_encoders, tokenizers, prompts, args.max_sequence_length
+        )
+        return (
+            prompt_embeds.to(transformer.device),
+            pooled_prompt_embeds.to(transformer.device),
+            text_ids.to(transformer.device),
+        )
 
     # Load Flux pipeline
     #cache_dir = "./models"
@@ -195,16 +295,24 @@ if __name__ == "__main__":
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
-        # image = pipe(
-        #     prompt=prompt,
-        #     guidance_scale=args.guidance_scale,
-        #     num_inference_steps=args.num_inference_steps,
-        #     height=args.image_size,
-        #     width=args.image_size,
-        #     generator=generator,
-        #     max_sequence_length=256
-        # ).images[0]
-        # image.save(image_path)
+
+        image = generate_one_image_from_prompt(
+            prompt=prompt,
+            transformer=transformer,
+            vae=vae,
+            noise_scheduler=noise_scheduler,
+            text_encoders=text_encoders,
+            tokenizers=tokenizers,
+            height=args.image_size,
+            width=args.image_size,
+            num_inference_steps=args.num_inference_steps,
+            guidance_scale=args.guidance_scale,
+            weight_dtype=weight_dtype,
+            seed=seed,  # uses your per-row seed
+        )
+
+        image.save(image_path)
+
         images_generated += 1
         end = time.time()
         print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Saved to {image_path}")
