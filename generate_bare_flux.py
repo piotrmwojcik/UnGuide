@@ -6,6 +6,13 @@ from tqdm import tqdm
 import time
 import re
 from diffusers import FluxPipeline
+from diffusers import (
+    AutoencoderKL,
+    FlowMatchEulerDiscreteScheduler,
+    FluxPipeline,
+    FluxTransformer2DModel,
+)
+from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from huggingface_hub import login
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -39,9 +46,29 @@ def coerce_prompt(v):
     return s
 
 
+def import_model_class_from_model_name_or_path(
+    pretrained_model_name_or_path: str, revision: str, subfolder: str = "text_encoder"
+):
+    text_encoder_config = PretrainedConfig.from_pretrained(
+        pretrained_model_name_or_path, subfolder=subfolder, revision=revision
+    )
+    model_class = text_encoder_config.architectures[0]
+    if model_class == "CLIPTextModel":
+        from transformers import CLIPTextModel
+
+        return CLIPTextModel
+    elif model_class == "T5EncoderModel":
+        from transformers import T5EncoderModel
+
+        return T5EncoderModel
+    else:
+        raise ValueError(f"{model_class} is not supported.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
     parser.add_argument("--csv_path", type=str, default="data/I2P_prompts_4703.csv")
+    parser.add_argument("--pretrained_model_name_or_path", type=str, default="black-forest-labs/FLUX.1-dev")
     parser.add_argument("--output_dir", type=str, default="generated_base_flux")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
@@ -53,6 +80,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+
+    transformer = FluxTransformer2DModel.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="transformer", revision=null, variant=null
+    ).to(device)
 
     # Load Flux pipeline
     cache_dir = "./models"
