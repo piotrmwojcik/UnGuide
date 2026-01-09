@@ -94,10 +94,10 @@ if __name__ == "__main__":
 
     # import correct text encoder classes
     text_encoder_cls_one = import_model_class_from_model_name_or_path(
-        args.pretrained_model_name_or_path, args.revision
+        args.pretrained_model_name_or_path, None
     )
     text_encoder_cls_two = import_model_class_from_model_name_or_path(
-        args.pretrained_model_name_or_path, args.revision, subfolder="text_encoder_2"
+        args.pretrained_model_name_or_path, None, subfolder="text_encoder_2"
     )
 
     transformer = FluxTransformer2DModel.from_pretrained(
