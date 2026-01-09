@@ -233,8 +233,10 @@ if __name__ == "__main__":
         variant=None,
     )
 
+    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+
     transformer = FluxTransformer2DModel.from_pretrained(
-        args.pretrained_model_name_or_path, torch_dtype=torch.bfloat16,
+        args.pretrained_model_name_or_path, torch_dtype=weight_dtype,
         subfolder="transformer", revision=None, variant=None
     ).to(device)
 
