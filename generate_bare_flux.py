@@ -26,6 +26,17 @@ if token:
 else:
     print("Warning: HF_TOKEN not set.")
 
+API_KEY=''
+END_POINT='https://research-01-02.openai.azure.com/'
+API_VERSION = "2024-08-01-preview"
+
+api_keys = {
+    "gpt": {"azure":True, "api_key":API_KEY, "end_point":END_POINT, "api_version": API_VERSION},
+    "claude": None,
+    "kimi": None,
+    "qwen": None
+}
+
 def coerce_prompt(v):
     # Treat None/NaN as empty
     if v is None or (isinstance(v, float) and pd.isna(v)):
@@ -135,6 +146,19 @@ if __name__ == "__main__":
     vae.requires_grad_(False)
     text_encoder_one.requires_grad_(False)
     text_encoder_two.requires_grad_(False)
+
+    tokenizers = [tokenizer_one, tokenizer_two]
+    text_encoders = [text_encoder_one, text_encoder_two]
+
+    def compute_text_embeddings(prompt, text_encoders, tokenizers):
+        with torch.no_grad():
+            prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
+                text_encoders, tokenizers, prompt, args.max_sequence_length
+            )
+            prompt_embeds = prompt_embeds.to(transformer.device)
+            pooled_prompt_embeds = pooled_prompt_embeds.to(transformer.device)
+            text_ids = text_ids.to(transformer.device)
+        return prompt_embeds, pooled_prompt_embeds, text_ids
 
     # Load Flux pipeline
     #cache_dir = "./models"
