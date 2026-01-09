@@ -8,6 +8,7 @@ import re
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import CustomFlowMatchEulerDiscreteScheduler
 from tools.ir_concept import UniversalModelCaller, MoE
+import copy
 from diffusers import FluxPipeline
 from diffusers import (
     AutoencoderKL,
