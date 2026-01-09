@@ -101,7 +101,8 @@ if __name__ == "__main__":
     )
 
     transformer = FluxTransformer2DModel.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="transformer", revision=None, variant=None
+        args.pretrained_model_name_or_path, torch_dtype=torch.bfloat16,
+        subfolder="transformer", revision=None, variant=None
     ).to(device)
 
     # Load Flux pipeline
