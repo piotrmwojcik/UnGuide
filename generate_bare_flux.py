@@ -81,6 +81,25 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
+    tokenizer_one = CLIPTokenizer.from_pretrained(
+        args.pretrained_model_name_or_path,
+        subfolder="tokenizer",
+        revision=None,
+    )
+    tokenizer_two = T5TokenizerFast.from_pretrained(
+        args.pretrained_model_name_or_path,
+        subfolder="tokenizer_2",
+        revision=None,
+    )
+
+    # import correct text encoder classes
+    text_encoder_cls_one = import_model_class_from_model_name_or_path(
+        args.pretrained_model_name_or_path, args.revision
+    )
+    text_encoder_cls_two = import_model_class_from_model_name_or_path(
+        args.pretrained_model_name_or_path, args.revision, subfolder="text_encoder_2"
+    )
+
     transformer = FluxTransformer2DModel.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="transformer", revision=None, variant=None
     ).to(device)
@@ -88,8 +107,8 @@ if __name__ == "__main__":
     # Load Flux pipeline
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
-    pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    pipe = pipe.to(device)
+    #pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
+    #pipe = pipe.to(device)
 
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
@@ -120,16 +139,16 @@ if __name__ == "__main__":
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
-        image = pipe(
-            prompt=prompt,
-            guidance_scale=args.guidance_scale,
-            num_inference_steps=args.num_inference_steps,
-            height=args.image_size,
-            width=args.image_size,
-            generator=generator,
-            max_sequence_length=256
-        ).images[0]
-        image.save(image_path)
+        # image = pipe(
+        #     prompt=prompt,
+        #     guidance_scale=args.guidance_scale,
+        #     num_inference_steps=args.num_inference_steps,
+        #     height=args.image_size,
+        #     width=args.image_size,
+        #     generator=generator,
+        #     max_sequence_length=256
+        # ).images[0]
+        # image.save(image_path)
         images_generated += 1
         end = time.time()
         print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Saved to {image_path}")
