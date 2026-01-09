@@ -5,6 +5,9 @@ import pandas as pd
 from tqdm import tqdm
 import time
 import re
+from tools.prompt_process import encode_prompt
+from tools.scheduler_process import CustomFlowMatchEulerDiscreteScheduler
+from tools.ir_concept import UniversalModelCaller, MoE
 from diffusers import FluxPipeline
 from diffusers import (
     AutoencoderKL,
@@ -100,14 +103,31 @@ if __name__ == "__main__":
         args.pretrained_model_name_or_path, None, subfolder="text_encoder_2"
     )
 
+    noise_scheduler = CustomFlowMatchEulerDiscreteScheduler.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="scheduler"
+    )
+    noise_scheduler_copy = copy.deepcopy(noise_scheduler)
+    text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two, args)
+    vae = AutoencoderKL.from_pretrained(
+        args.pretrained_model_name_or_path,
+        subfolder="vae",
+        revision=None,
+        variant=None,
+    )
+
     transformer = FluxTransformer2DModel.from_pretrained(
         args.pretrained_model_name_or_path, torch_dtype=torch.bfloat16,
         subfolder="transformer", revision=None, variant=None
     ).to(device)
 
+    transformer.requires_grad_(False)
+    vae.requires_grad_(False)
+    text_encoder_one.requires_grad_(False)
+    text_encoder_two.requires_grad_(False)
+
     # Load Flux pipeline
-    cache_dir = "./models"
-    os.makedirs(cache_dir, exist_ok=True)
+    #cache_dir = "./models"
+    #os.makedirs(cache_dir, exist_ok=True)
     #pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
     #pipe = pipe.to(device)
 
