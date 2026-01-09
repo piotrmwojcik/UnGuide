@@ -50,6 +50,16 @@ def coerce_prompt(v):
     return s
 
 
+def load_text_encoders(class_one, class_two, args):
+    text_encoder_one = class_one.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="text_encoder", revision=None, variant=None
+    )
+    text_encoder_two = class_two.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="text_encoder_2", revision=None, variant=None
+    )
+    return text_encoder_one, text_encoder_two
+
+
 def import_model_class_from_model_name_or_path(
     pretrained_model_name_or_path: str, revision: str, subfolder: str = "text_encoder"
 ):
