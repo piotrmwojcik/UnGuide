@@ -82,7 +82,7 @@ if __name__ == "__main__":
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
     transformer = FluxTransformer2DModel.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="transformer", revision=null, variant=null
+        args.pretrained_model_name_or_path, subfolder="transformer", revision=None, variant=None
     ).to(device)
 
     # Load Flux pipeline
