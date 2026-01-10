@@ -102,7 +102,6 @@ def generate_one_image_from_prompt(
     height: int = 512,
     width: int = 512,
     num_inference_steps: int = 28,
-    start_guidance: float = 3.0,
     weight_dtype: torch.dtype = torch.bfloat16,
     seed: int | None = None,
 ):
@@ -131,14 +130,15 @@ def generate_one_image_from_prompt(
     # --- VAE scale factor (same as your snippet) ---
     vae_scale_factor = 2 ** (len(vae.config.block_out_channels))
 
-    # --- Guidance tensor (same style as your code) ---
-    guidance = torch.tensor([start_guidance], device=device).expand(bsz)
-
     # --- Sample latents from pure noise using your sampler ---
     # NOTE: latent_sample signature from your snippet:
     # latent_sample(transformer, noise_scheduler, batch_size, num_channels, height, width,
     #               emb, pooled_emb, text_ids, guidance, steps, vae_scale_factor)
-    num_channels = getattr(transformer.config, "in_channels", 16)
+    num_channels = vae.config.latent_channels
+
+    start_guidance = 3
+    start_guidance = torch.tensor([start_guidance], device=transformer.device)
+    start_guidance = start_guidance.expand(model_input.shape[0])
 
     z, latent_image_ids = latent_sample(
         transformer,
@@ -150,7 +150,7 @@ def generate_one_image_from_prompt(
         emb_p.to(device),
         pooled_emb_p.to(device),
         text_ids_p.to(device),
-        guidance,
+        start_guidance,
         int(num_inference_steps),
         vae_scale_factor,
     )
@@ -309,7 +309,6 @@ if __name__ == "__main__":
             height=args.image_size,
             width=args.image_size,
             num_inference_steps=args.num_inference_steps,
-            start_guidance=args.guidance_scale,
             weight_dtype=weight_dtype,
             seed=seed,  # uses your per-row seed
         )
