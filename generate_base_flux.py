@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="generated_base_flux")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
-    parser.add_argument("--num_inference_steps", type=int, default=50)
+    parser.add_argument("--num_inference_steps", type=int, default=28)
     parser.add_argument("--nudity", type=bool, default=True)
     parser.add_argument("--guidance_scale", type=float, default=7.5)
     parser.add_argument("--n_images", type=int, default=None)
@@ -91,7 +91,6 @@ if __name__ == "__main__":
         start = time.time()
         image = pipe(
             prompt=prompt,
-            guidance_scale=args.guidance_scale,
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
