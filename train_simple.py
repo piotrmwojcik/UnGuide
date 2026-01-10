@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import random
+import copy
 from pathlib import Path
 from functools import partial
 
