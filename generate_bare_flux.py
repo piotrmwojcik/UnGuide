@@ -102,7 +102,7 @@ def generate_one_image_from_prompt(
     height: int = 512,
     width: int = 512,
     num_inference_steps: int = 28,
-    guidance_scale: float = 3.0,
+    start_guidance: float = 3.0,
     weight_dtype: torch.dtype = torch.bfloat16,
     seed: int | None = None,
 ):
@@ -132,7 +132,7 @@ def generate_one_image_from_prompt(
     vae_scale_factor = 2 ** (len(vae.config.block_out_channels))
 
     # --- Guidance tensor (same style as your code) ---
-    guidance = torch.tensor([guidance_scale], device=device).expand(bsz)
+    guidance = torch.tensor([start_guidance], device=device).expand(bsz)
 
     # --- Sample latents from pure noise using your sampler ---
     # NOTE: latent_sample signature from your snippet:
@@ -309,7 +309,7 @@ if __name__ == "__main__":
             height=args.image_size,
             width=args.image_size,
             num_inference_steps=args.num_inference_steps,
-            guidance_scale=args.guidance_scale,
+            start_guidance=args.guidance_scale,
             weight_dtype=weight_dtype,
             seed=seed,  # uses your per-row seed
         )
