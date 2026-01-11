@@ -158,12 +158,6 @@ def generate_one_image_from_prompt(
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 
-    import diffusers, inspect
-    print("diffusers version:", diffusers.__version__)
-    print("diffusers path:", diffusers.__file__)
-    print("transformer class:", transformer.__class__)
-    print("transformer module:", transformer.__class__.__module__)
-    print("forward source:", inspect.getsourcefile(transformer.forward))
 
     with torch.no_grad():
         z, latent_image_ids = latent_sample(
