@@ -112,6 +112,8 @@ def generate_one_image_from_prompt(
     Returns: PIL.Image
     """
 
+    print('!!!!! -- !!!!!')
+
     device = transformer.device
     bsz = 1
 
@@ -158,26 +160,27 @@ def generate_one_image_from_prompt(
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 
-    z, latent_image_ids = latent_sample(
-        transformer,
-        noise_scheduler,
-        bsz,
-        num_channels,
-        height,
-        width,
-        emb_p.to(device),
-        pooled_emb_p.to(device),
-        text_ids_p.to(device),
-        start_guidance,
-        int(num_inference_steps),
-        vae_scale_factor,
-    )
+    with torch.no_grad():
+        z, latent_image_ids = latent_sample(
+            transformer,
+            noise_scheduler,
+            bsz,
+            num_channels,
+            height,
+            width,
+            emb_p.to(device),
+            pooled_emb_p.to(device),
+            text_ids_p.to(device),
+            start_guidance,
+            int(num_inference_steps),
+            vae_scale_factor,
+        )
 
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
     if z.dim() == 3 and hasattr(FluxPipeline, "_unpack_latents"):
-        latent_h = height // vae_scale_factor
-        latent_w = width // vae_scale_factor
+        latent_h = latent_h
+        latent_w = latent_w
         z = FluxPipeline._unpack_latents(
             z,
             height=latent_h,
