@@ -136,6 +136,24 @@ def generate_one_image_from_prompt(
     #               emb, pooled_emb, text_ids, guidance, steps, vae_scale_factor)
     num_channels = vae.config.latent_channels
 
+    image_h = 512
+    image_w = 512
+
+    latent_h = image_h // vae_scale_factor
+    latent_w = image_w // vae_scale_factor
+
+    batch_size = 1  # or whatever you need
+
+    # --- Create dummy latent ---
+    model_input = torch.zeros(
+        (batch_size, latent_channels, latent_h, latent_w),
+        device=vae.device,
+        dtype=weight_dtype,
+    )
+
+    # --- Apply the same normalization as real latents ---
+    model_input = (model_input - vae.config.shift_factor) * vae.config.scaling_factor
+
     start_guidance = 3
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
