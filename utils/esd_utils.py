@@ -72,7 +72,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     prompt_embeds = prompt_embeds.bfloat16()
     text_ids = text_ids.bfloat16()
 
-    attn_map_lst = []
     # Denoising loop
     for i, t in enumerate(timesteps):
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
@@ -95,11 +94,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-        attn_map_lst.append(attn_maps)
-
-    if return_attn:
-        return latents, latent_image_ids, attn_map_lst
-    else:
         return latents, latent_image_ids
 
 
