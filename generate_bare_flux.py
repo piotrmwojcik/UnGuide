@@ -146,7 +146,7 @@ def generate_one_image_from_prompt(
 
     # --- Create dummy latent ---
     model_input = torch.zeros(
-        (batch_size, latent_channels, latent_h, latent_w),
+        (batch_size, num_channels, latent_h, latent_w),
         device=vae.device,
         dtype=weight_dtype,
     )
