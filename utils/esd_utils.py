@@ -83,7 +83,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
             hidden_states=latents,
             timestep=timestep / 1000,
             guidance=guidance,
-            output_attentions=True,
             pooled_projections=pooled_prompt_embeds,
             encoder_hidden_states=prompt_embeds,
             txt_ids=text_ids,
