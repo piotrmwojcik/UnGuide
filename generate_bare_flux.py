@@ -268,7 +268,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="generated_bare_flux")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
-    parser.add_argument("--num_inference_steps", type=int, default=50)
+    parser.add_argument("--num_inference_steps", type=int, default=28)
     parser.add_argument("--nudity", type=bool, default=True)
     parser.add_argument("--max_sequence_length", type=int, default=256)
     parser.add_argument("--guidance_scale", type=float, default=7.5)
