@@ -91,6 +91,10 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
             return_dict=False,
         )
 
+        if isinstance(out, (tuple, list)):
+            noise_pred = out[0]
+        else:
+            noise_pred = out
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 

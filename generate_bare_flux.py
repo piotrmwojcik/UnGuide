@@ -142,11 +142,9 @@ def generate_one_image_from_prompt(
     latent_h = image_h // vae_scale_factor
     latent_w = image_w // vae_scale_factor
 
-    batch_size = 1  # or whatever you need
-
     # --- Create dummy latent ---
     model_input = torch.zeros(
-        (batch_size, num_channels, latent_h, latent_w),
+        (bsz, num_channels, latent_h, latent_w),
         device=vae.device,
         dtype=weight_dtype,
     )
@@ -157,7 +155,6 @@ def generate_one_image_from_prompt(
     start_guidance = 3
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
-
 
     with torch.no_grad():
         z, latent_image_ids = latent_sample(
