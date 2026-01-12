@@ -201,7 +201,7 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
 
     text_ids = text_ids.to(dtype=torch.bfloat16)
 
-    sigmas = np.linspace(1.0, 1 / timesteps, timesteps)
+    sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
     image_seq_len = latents.shape[1]
     mu = calculate_shift(
         image_seq_len,
