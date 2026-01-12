@@ -110,6 +110,7 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
 
     scheduler.set_timesteps(timesteps, device=transformer.device)
     timesteps_tensor = scheduler.timesteps
+    print(timesteps_tensor)
 
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
