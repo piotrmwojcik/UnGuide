@@ -3,6 +3,7 @@ import argparse
 import torch
 import pandas as pd
 from tqdm import tqdm
+import math
 import time
 import re
 from tools.prompt_process import encode_prompt
