@@ -108,10 +108,10 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
     latent_image_ids = _prepare_latent_image_ids(batch_size, height // 2, width // 2, transformer.device,
                                                  torch.bfloat16)
 
-    print(timesteps)
+    #print(timesteps)
     scheduler.set_train_timesteps(timesteps, device=transformer.device, linear=True)
-    timesteps_tensor = scheduler.timesteps
-    print(timesteps_tensor)
+    #timesteps_tensor = scheduler.timesteps
+    #print(timesteps_tensor)
 
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
