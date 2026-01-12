@@ -170,7 +170,7 @@ def retrieve_timesteps(
 
 @torch.no_grad()
 def inference_latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, timesteps, vae_scale_factor, latents=None):
+                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, latents=None):
     
     height = int(height) // 8
     width = int(width) // 8
@@ -210,9 +210,10 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
         scheduler.config.base_shift,
         scheduler.config.max_shift,
     )
+    timesteps = None
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
         scheduler,
-        timesteps,
+        num_inference_steps,
         device,
         timesteps,
         sigmas,
@@ -319,7 +320,6 @@ def generate_one_image_from_prompt(
             text_ids_p.to(device),
             start_guidance,
             int(num_inference_steps),
-            vae_scale_factor,
         )
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
