@@ -304,7 +304,7 @@ if __name__ == "__main__":
         args.pretrained_model_name_or_path, None, subfolder="text_encoder_2"
     )
 
-    noise_scheduler = CustomFlowMatchEulerDiscreteScheduler.from_pretrained(
+    noise_scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="scheduler"
     )
     noise_scheduler_copy = copy.deepcopy(noise_scheduler)
