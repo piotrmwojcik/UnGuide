@@ -174,10 +174,19 @@ def generate_one_image_from_prompt(
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
     print('!!! ', z.shape)
+    bsz, seq_len, ch = z.shape  # (1, 1024, 64)
+    side = int(math.isqrt(seq_len))
+    assert side * side == seq_len, f"seq_len={seq_len} not square"
+
+    latent_h = side * 2  # 64
+    latent_w = side * 2  # 64
+    img_h = latent_h * vae_scale_factor  # 512 if scale=8
+    img_w = latent_w * vae_scale_factor  # 512
+
     z = FluxPipeline._unpack_latents(
         z,
-        height=model_input.shape[2] * vae_scale_factor,
-        width=model_input.shape[3] * vae_scale_factor,
+        height=img_h,
+        width=img_w,
         vae_scale_factor=vae_scale_factor,
     )
 
