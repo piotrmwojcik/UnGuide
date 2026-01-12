@@ -116,7 +116,14 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
     prompt_embeds = prompt_embeds.bfloat16()
-    text_ids = text_ids.bfloat16()
+    if text_ids.dim() == 3:
+        text_ids = text_ids[0]
+    elif text_ids.dim() == 2:
+        text_ids = text_ids
+    else:
+        raise ValueError(f"Unexpected txt_ids shape: {text_ids.shape}")
+
+    text_ids = text_ids.to(dtype=torch.bfloat16)
 
     for i, t in enumerate(timesteps_tensor):
         timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
