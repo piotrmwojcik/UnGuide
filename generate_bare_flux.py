@@ -195,10 +195,13 @@ def generate_one_image_from_prompt(
     shift = vae.config.shift_factor
     scale = vae.config.scaling_factor
 
-    z = z.to(device=device, dtype=weight_dtype)
     z = z / scale + shift
 
-    decoded = vae.decode(z).sample  # (1, 3, H, W) in [-1, 1] typically
+    # decode in fp32 (matches VAE bias dtype)
+    z = z.to(device=vae.device, dtype=torch.float32)
+    vae = vae.to(device=vae.device, dtype=torch.float32)
+
+    decoded = vae.decode(z).sample
     img = (decoded / 2 + 0.5).clamp(0, 1)
 
     # Convert to PIL
