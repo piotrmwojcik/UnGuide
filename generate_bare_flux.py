@@ -144,10 +144,10 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
     image_seq_len = latents.shape[1]
     mu = calculate_shift(
         image_seq_len,
-        self.scheduler.config.base_image_seq_len,
-        self.scheduler.config.max_image_seq_len,
-        self.scheduler.config.base_shift,
-        self.scheduler.config.max_shift,
+        scheduler.config.base_image_seq_len,
+        scheduler.config.max_image_seq_len,
+        scheduler.config.base_shift,
+        scheduler.config.max_shift,
     )
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
         self.scheduler,
