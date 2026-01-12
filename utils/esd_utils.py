@@ -80,7 +80,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         # print(latents.shape, timestep)
         # self.transformer.config.guidance_embeds False => guidance = None
-        noise_pred, attn_maps = transformer(
+        noise_pred = transformer(
             hidden_states=latents,
             timestep=timestep / 1000,
             guidance=guidance,
