@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 import math
 import time
+import numpy as np
 import re
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
