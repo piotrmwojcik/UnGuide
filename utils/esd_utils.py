@@ -26,6 +26,19 @@ def flux_unpack_latents(latents, height, width, vae_scale_factor):
     return latents
 
 
+def calculate_shift(
+    image_seq_len,
+    base_seq_len: int = 256,
+    max_seq_len: int = 4096,
+    base_shift: float = 0.5,
+    max_shift: float = 1.15,
+):
+    m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+    b = base_shift - m * base_seq_len
+    mu = image_seq_len * m + b
+    return mu
+
+
 def _prepare_latent_image_ids(batch_size, height, width, device, dtype):
     latent_image_ids = torch.zeros(height, width, 3)
     latent_image_ids[..., 1] = latent_image_ids[..., 1] + torch.arange(height)[:, None]
@@ -42,8 +55,7 @@ def _prepare_latent_image_ids(batch_size, height, width, device, dtype):
 
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, timesteps, vae_scale_factor, latents=None,
-                  return_attn=False):
+                  pooled_prompt_embeds, text_ids, guidance, timesteps, latents=None):
     """
         Sample the model
         ESD quick_sample_till_t
@@ -61,11 +73,27 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     latent_image_ids = _prepare_latent_image_ids(batch_size, height // 2, width // 2, transformer.device,
                                                  torch.bfloat16)
 
-    # (B) retrieve prompt embed
+    num_inference_steps = len(timesteps)
+    sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
+    if hasattr(self.scheduler.config, "use_flow_sigmas") and self.scheduler.config.use_flow_sigmas:
+        sigmas = None
+    image_seq_len = latents.shape[1]
+    mu = calculate_shift(
+        image_seq_len,
+        self.scheduler.config.get("base_image_seq_len", 256),
+        self.scheduler.config.get("max_image_seq_len", 4096),
+        self.scheduler.config.get("base_shift", 0.5),
+        self.scheduler.config.get("max_shift", 1.15),
+    )
 
-    # (C) generate latents w.r.t text embedding
-    scheduler.set_train_timesteps(timesteps, device=transformer.device)
-    timesteps = scheduler.timesteps
+    timestep_device = device
+    timesteps, num_inference_steps = retrieve_timesteps(
+        self.scheduler,
+        num_inference_steps,
+        timestep_device,
+        sigmas=sigmas,
+        mu=mu,
+    )
 
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
