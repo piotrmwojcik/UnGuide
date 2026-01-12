@@ -9,7 +9,8 @@ import re
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import CustomFlowMatchEulerDiscreteScheduler
 from tools.ir_concept import UniversalModelCaller, MoE
-from utils.esd_utils import latent_sample, predict_noise
+from utils.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
+from diffusers.utils.torch_utils import randn_tensor
 import copy
 from diffusers import FluxPipeline
 from diffusers import (
@@ -92,6 +93,51 @@ def import_model_class_from_model_name_or_path(
         raise ValueError(f"{model_class} is not supported.")
 
 @torch.no_grad()
+def inference_latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
+                  pooled_prompt_embeds, text_ids, guidance, timesteps, vae_scale_factor, latents=None):
+    
+    height = int(height) // 8
+    width = int(width) // 8
+    shape = (batch_size, num_channels_latents, height, width)
+
+    if latents is None:
+        latents = randn_tensor(shape, generator=None, dtype=torch.bfloat16, device=transformer.device)
+    
+    latents = flux_pack_latents(latents, batch_size, num_channels_latents, height, width)
+    
+    latent_image_ids = _prepare_latent_image_ids(batch_size, height // 2, width // 2, transformer.device,
+                                                 torch.bfloat16)
+
+    scheduler.set_train_timesteps(timesteps, device=transformer.device, linear=True)
+    timesteps_tensor = scheduler.timesteps
+
+    latents = latents.to(transformer.device).bfloat16()
+    pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
+    prompt_embeds = prompt_embeds.bfloat16()
+    text_ids = text_ids.bfloat16()
+
+    for i, t in enumerate(timesteps_tensor):
+        timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
+
+        noise_pred = transformer(
+            hidden_states=latents,
+            timestep=timestep / 1000,
+            guidance=guidance,
+            pooled_projections=pooled_prompt_embeds,
+            encoder_hidden_states=prompt_embeds,
+            txt_ids=text_ids,
+            img_ids=latent_image_ids,
+            return_dict=False,
+        )
+
+        if isinstance(noise_pred, (tuple, list)):
+            noise_pred = noise_pred[0]
+            
+        latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
+
+    return latents, latent_image_ids
+
+@torch.no_grad()
 def generate_one_image_from_prompt(
     prompt: str,
     *,
@@ -158,7 +204,7 @@ def generate_one_image_from_prompt(
     start_guidance = start_guidance.expand(model_input.shape[0])
 
     with torch.no_grad():
-        z, latent_image_ids = latent_sample(
+        z, latent_image_ids = inference_latent_sample(
             transformer,
             noise_scheduler,
             bsz,
