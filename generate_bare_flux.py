@@ -211,7 +211,7 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
         scheduler.config.max_shift,
     )
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
-        self.scheduler,
+        scheduler,
         timesteps,
         device,
         timesteps,
