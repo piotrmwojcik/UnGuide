@@ -7,7 +7,7 @@ import math
 import time
 import re
 from tools.prompt_process import encode_prompt
-from tools.scheduler_process import CustomFlowMatchEulerDiscreteScheduler
+from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from tools.ir_concept import UniversalModelCaller, MoE
 from utils.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
 from diffusers.utils.torch_utils import randn_tensor
