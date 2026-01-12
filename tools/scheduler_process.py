@@ -1,10 +1,3 @@
-import sys
-
-# Force using the pip-installed diffusers, not the local broken checkout.
-bad = "/data/pwojcik/UnGuide/diffusers/src"
-sys.path = [p for p in sys.path if p != bad and not p.startswith(bad + "/")]
-
-
 import torch
 import diffusers
 from diffusers import (
