@@ -171,7 +171,7 @@ def generate_one_image_from_prompt(
             int(num_inference_steps),
             vae_scale_factor,
         )
-
+        print('!!! ', z.shape)
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
     if z.dim() == 3 and hasattr(FluxPipeline, "_unpack_latents"):
