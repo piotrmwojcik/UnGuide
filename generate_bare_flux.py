@@ -109,7 +109,7 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
                                                  torch.bfloat16)
 
     #print(timesteps)
-    scheduler.set_train_timesteps(timesteps, device=transformer.device, linear=True)
+    #scheduler.set_train_timesteps(timesteps, device=transformer.device, linear=True)
     #timesteps_tensor = scheduler.timesteps
     #print(timesteps_tensor)
 
