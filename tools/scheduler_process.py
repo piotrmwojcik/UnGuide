@@ -1,5 +1,4 @@
 import torch
-import diffusers
 from diffusers import (
     AutoencoderKL,
     FlowMatchEulerDiscreteScheduler,
