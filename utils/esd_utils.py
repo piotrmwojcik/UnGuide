@@ -91,7 +91,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
             return_dict=False,
         )
 
-        if isinstance(out, (tuple, list)):
+        if isinstance(noise_pred, (tuple, list)):
             noise_pred = noise_pred[0]
         else:
             noise_pred = noise_pred
