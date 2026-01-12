@@ -174,12 +174,12 @@ def generate_one_image_from_prompt(
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
     if z.dim() == 3 and hasattr(FluxPipeline, "_unpack_latents"):
-        latent_h = height // vae_scale_factor  # <-- e.g., 512//8 = 64
-        latent_w = width // vae_scale_factor  # <-- e.g., 512//8 = 64
+        latent_h = height * vae_scale_factor  # <-- e.g., 512//8 = 64
+        latent_w = width * vae_scale_factor  # <-- e.g., 512//8 = 64
         z = FluxPipeline._unpack_latents(
             z,
-            height=latent_h,
-            width=latent_w,
+            height=model_input.shape[2] * vae_scale_factor,
+            width=model_input.shape[3] * vae_scale_factor,
             vae_scale_factor=vae_scale_factor,
         )
 
