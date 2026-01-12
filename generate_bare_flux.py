@@ -93,6 +93,20 @@ def import_model_class_from_model_name_or_path(
     else:
         raise ValueError(f"{model_class} is not supported.")
 
+
+def calculate_shift(
+    image_seq_len,
+    base_seq_len: int = 256,
+    max_seq_len: int = 4096,
+    base_shift: float = 0.5,
+    max_shift: float = 1.15,
+):
+    m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+    b = base_shift - m * base_seq_len
+    mu = image_seq_len * m + b
+    return mu
+
+
 @torch.no_grad()
 def inference_latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
                   pooled_prompt_embeds, text_ids, guidance, timesteps, vae_scale_factor, latents=None):
