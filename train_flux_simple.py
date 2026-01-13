@@ -29,7 +29,7 @@ from tqdm import tqdm
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
-from utils import get_models, print_trainable_parameters
+from utils import  print_trainable_parameters
 
 
 class CombinedCFGModel:
