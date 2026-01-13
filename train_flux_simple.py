@@ -387,7 +387,7 @@ def main():
     model = FluxTransformer2DModel.from_pretrained(
         pretrained_model_name_or_path, torch_dtype=weight_dtype,
         subfolder="transformer", revision=None, variant=None
-    ).to(device)
+    ).to(accelerator.device)
 
     model.requires_grad_(False)
     vae.requires_grad_(False)
