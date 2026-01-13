@@ -21,6 +21,7 @@ import torch.nn as nn
 import wandb
 import yaml
 from accelerate import Accelerator
+from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
