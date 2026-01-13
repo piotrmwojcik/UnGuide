@@ -266,12 +266,6 @@ def generate_one_image_from_prompt(
     device = transformer.device
     bsz = 1
 
-    # Optional deterministic seed
-    if seed is not None:
-        torch.manual_seed(seed)
-        if device.type == "cuda":
-            torch.cuda.manual_seed_all(seed)
-
     # --- Text embeddings (positive prompt only) ---
     prompts = [prompt]
     emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
@@ -307,7 +301,7 @@ def generate_one_image_from_prompt(
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 
-    seed = int(row.get("evaluation_seed", 0))
+    print('!!! seed: ', seed)
     generator = torch.Generator(device).manual_seed(seed)
 
     with torch.no_grad():
