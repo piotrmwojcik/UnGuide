@@ -867,6 +867,9 @@ def main():
 
                     diag_pipe = diag_pipe.to(device)
 
+                    diag_seed = 12345
+                    generator = torch.Generator(device=device).manual_seed(diag_seed)
+
                     with torch.autocast(device_type="cuda", enabled=False):
                         imgs_per_prompt = diag_pipe(
                             prompt=diag_prompt,
