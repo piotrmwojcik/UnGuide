@@ -855,32 +855,28 @@ def main():
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
-                    device = accelerator.device  # should be cuda:0
+                    device = accelerator.device
                     weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
-                    # Move EVERYTHING the pipeline uses
                     diag_pipe.transformer.to(device=device, dtype=weight_dtype)
                     diag_pipe.text_encoder.to(device=device, dtype=weight_dtype)
                     diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype)
 
-                    # VAE can stay fp32 (recommended)
+                    # VAE must be float32
                     diag_pipe.vae.to(device=device, dtype=torch.float32)
 
-                    # IMPORTANT: set pipeline execution device
                     diag_pipe = diag_pipe.to(device)
 
-                    diag_seed = 12345
-                    generator = torch.Generator(device=device).manual_seed(diag_seed)
-
-                    imgs_per_prompt = diag_pipe(
-                        prompt=diag_prompt,
-                        guidance_scale=guidance_scale,
-                        num_inference_steps=50,
-                        height=resolution,
-                        width=resolution,
-                        generator=generator,
-                        max_sequence_length=256,
-                    ).images
+                    with torch.autocast(device_type="cuda", enabled=False):
+                        imgs_per_prompt = diag_pipe(
+                            prompt=diag_prompt,
+                            guidance_scale=guidance_scale,
+                            num_inference_steps=50,
+                            height=resolution,
+                            width=resolution,
+                            generator=generator,
+                            max_sequence_length=256,
+                        ).images
 
                 if len(imgs_per_prompt) > 0:
                     row_tensors = []
