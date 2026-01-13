@@ -170,14 +170,14 @@ def retrieve_timesteps(
 
 @torch.no_grad()
 def inference_latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, latents=None):
+                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, generator=None, latents=None):
     
     height = int(height) // 8
     width = int(width) // 8
     shape = (batch_size, num_channels_latents, height, width)
 
     if latents is None:
-        latents = randn_tensor(shape, generator=None, dtype=torch.bfloat16, device=transformer.device)
+        latents = randn_tensor(shape, generator=generator, dtype=torch.bfloat16, device=transformer.device)
     
     latents = flux_pack_latents(latents, batch_size, num_channels_latents, height, width)
     
@@ -307,6 +307,9 @@ def generate_one_image_from_prompt(
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 
+    seed = int(row.get("evaluation_seed", 0))
+    generator = torch.Generator(device).manual_seed(seed)
+
     with torch.no_grad():
         z, latent_image_ids = inference_latent_sample(
             transformer,
@@ -320,10 +323,10 @@ def generate_one_image_from_prompt(
             text_ids_p.to(device),
             start_guidance,
             int(num_inference_steps),
+            generator=generator,
         )
     # If your latent_sample returns packed latents, unpack them.
     # (If it already returns (B,C,H,W), this branch will be skipped.)
-    print('!!! ', z.shape)
     bsz, seq_len, ch = z.shape  # (1, 1024, 64)
     side = int(math.isqrt(seq_len))
     assert side * side == seq_len, f"seq_len={seq_len} not square"
@@ -401,7 +404,6 @@ if __name__ == "__main__":
     noise_scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="scheduler"
     )
-    noise_scheduler_copy = copy.deepcopy(noise_scheduler)
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two, args)
     vae = AutoencoderKL.from_pretrained(
         args.pretrained_model_name_or_path,
@@ -471,7 +473,6 @@ if __name__ == "__main__":
             continue
 
         seed = int(row.get("evaluation_seed", 0))
-        generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
 
