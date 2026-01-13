@@ -440,7 +440,7 @@ def main():
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
     
-    optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     gamma = config.get('gamma', 0.9)  # Weight for removal loss
     step_size = config.get('step_size', 300)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
@@ -798,7 +798,7 @@ def main():
 
             # Optimizer step
             if accelerator.sync_gradients:
-                optimizer.step()
+                #optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
         
