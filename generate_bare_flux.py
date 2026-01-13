@@ -8,6 +8,7 @@ import time
 import numpy as np
 import re
 import inspect
+from transformers import CLIPTokenizerFast
 from typing import Any, Callable, Dict, List, Optional, Union
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
@@ -376,7 +377,7 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
-    tokenizer_one = CLIPTokenizer.from_pretrained(
+    tokenizer_one = CLIPTokenizerFast.from_pretrained(
         args.pretrained_model_name_or_path,
         subfolder="tokenizer",
         revision=None,
