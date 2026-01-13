@@ -179,12 +179,12 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
         verbose=False,
     )
 
-def load_text_encoders(class_one, class_two, args):
+def load_text_encoders(class_one, class_two, pretrained_model_name_or_path):
     text_encoder_one = class_one.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="text_encoder", revision=None, variant=None
+        pretrained_model_name_or_path, subfolder="text_encoder", revision=None, variant=None
     )
     text_encoder_two = class_two.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="text_encoder_2", revision=None, variant=None
+        pretrained_model_name_or_path, subfolder="text_encoder_2", revision=None, variant=None
     )
     return text_encoder_one, text_encoder_two
 
@@ -374,7 +374,7 @@ def main():
     noise_scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
         pretrained_model_name_or_path, subfolder="scheduler"
     )
-    text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two, args)
+    text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two, pretrained_model_name_or_path)
     vae = AutoencoderKL.from_pretrained(
         pretrained_model_name_or_path,
         subfolder="vae",
@@ -385,7 +385,7 @@ def main():
     weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
     model = FluxTransformer2DModel.from_pretrained(
-        args.pretrained_model_name_or_path, torch_dtype=weight_dtype,
+        pretrained_model_name_or_path, torch_dtype=weight_dtype,
         subfolder="transformer", revision=None, variant=None
     ).to(device)
 
