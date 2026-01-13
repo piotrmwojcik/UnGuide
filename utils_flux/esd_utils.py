@@ -53,6 +53,7 @@ def _prepare_latent_image_ids(batch_size, height, width, device, dtype):
     return latent_image_ids.to(device=device, dtype=dtype)
 
 
+
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
                   pooled_prompt_embeds, text_ids, guidance, timesteps, latents=None):
