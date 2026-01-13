@@ -413,6 +413,7 @@ if __name__ == "__main__":
 
     # VAE: keep fp32 for decode stability (recommended)
     vae = vae.to(device=device, dtype=torch.float32).eval()
+    noise_scheduler = noise_scheduler.to(device=device, dtype=weight_dtype).eval()
 
     transformer = FluxTransformer2DModel.from_pretrained(
         args.pretrained_model_name_or_path, torch_dtype=weight_dtype,
