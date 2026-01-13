@@ -434,7 +434,7 @@ def main():
     #    layer.set_parent_model(model)
     
     # Setup optimizer
-    trainable_params = list(filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters()))
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
     
     if is_main:
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
