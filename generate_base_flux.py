@@ -58,7 +58,8 @@ if __name__ == "__main__":
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    pipe = pipe.to(device)
+    pipe.enable_model_cpu_offload()
+    #pipe = pipe.to(device)
 
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
