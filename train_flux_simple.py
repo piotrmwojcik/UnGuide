@@ -599,12 +599,12 @@ def main():
         tokenizer_2=tokenizer_two,
     )
 
-    diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
-    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+    #diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
+    #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+    #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
 
     # VAE decode must be fp32
-    diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+    #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
     # Make pipeline execution device CUDA
     diag_pipe = diag_pipe.to(accelerator.device)
