@@ -599,6 +599,16 @@ def main():
         tokenizer_2=tokenizer_two,
     )
 
+    diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
+    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+
+    # VAE decode must be fp32
+    diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+
+    # Make pipeline execution device CUDA
+    diag_pipe = diag_pipe.to(device)
+
     diag_pipe.set_progress_bar_config(disable=True)
 
     pbar = tqdm(range(max_train_steps), disable=not accelerator.is_local_main_process)
@@ -857,16 +867,6 @@ def main():
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
                     device = accelerator.device
-                    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
-
-                    diag_pipe.transformer.to(device=device, dtype=weight_dtype)
-                    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype)
-                    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype)
-
-                    # VAE must be float32
-                    diag_pipe.vae.to(device=device, dtype=torch.float32)
-
-                    diag_pipe = diag_pipe.to(device)
 
                     diag_seed = 12345
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
