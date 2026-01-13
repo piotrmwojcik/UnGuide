@@ -860,7 +860,7 @@ def main():
                     generator = torch.Generator(device=gen_device).manual_seed(diag_seed)
 
                     # Run FLUX pipeline (uses your existing transformer/vae/scheduler/text encoders)
-                    imgs_per_prompt = pipe(
+                    imgs_per_prompt = diag_pipe(
                             prompt=diag_prompt,
                             guidance_scale=guidance_scale,
                             num_inference_steps=50,
