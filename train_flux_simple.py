@@ -171,6 +171,35 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
         verbose=False,
     )
 
+def load_text_encoders(class_one, class_two, args):
+    text_encoder_one = class_one.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="text_encoder", revision=None, variant=None
+    )
+    text_encoder_two = class_two.from_pretrained(
+        args.pretrained_model_name_or_path, subfolder="text_encoder_2", revision=None, variant=None
+    )
+    return text_encoder_one, text_encoder_two
+
+
+def import_model_class_from_model_name_or_path(
+    pretrained_model_name_or_path: str, revision: str, subfolder: str = "text_encoder"
+):
+    text_encoder_config = PretrainedConfig.from_pretrained(
+        pretrained_model_name_or_path, subfolder=subfolder, revision=revision
+    )
+    model_class = text_encoder_config.architectures[0]
+    if model_class == "CLIPTextModel":
+        from transformers import CLIPTextModel
+
+        return CLIPTextModel
+    elif model_class == "T5EncoderModel":
+        from transformers import T5EncoderModel
+
+        return T5EncoderModel
+    else:
+        raise ValueError(f"{model_class} is not supported.")
+
+
 def compute_text_embeddings(prompts, text_encoders, tokenizers):
     # prompts: List[str] or str
     if isinstance(prompts, str):
