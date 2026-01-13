@@ -915,7 +915,7 @@ def main():
             #    if param.requires_grad:
             #        lora_state_dict[name] = param.detach().cpu().clone()
 
-            #lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
+            lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
             accelerator.save(lora_state_dict, lora_path)
             print(f"Model saved to: {lora_path}")
         
