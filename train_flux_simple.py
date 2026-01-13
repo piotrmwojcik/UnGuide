@@ -851,23 +851,23 @@ def main():
                     h_step_tensor = torch.tensor([h_step], device=accelerator.device)
 
                     # Set HyperLoRA context for this hyper-time step
-                    base.hyper.set_context(diag_emb, h_step_tensor)
-                    base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
+                    #base.hyper.set_context(diag_emb, h_step_tensor)
+                    #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
                     gen_device = "cuda" if torch.cuda.is_available() else "cpu"
                     generator = torch.Generator(device=gen_device).manual_seed(diag_seed)
 
                     # Run FLUX pipeline (uses your existing transformer/vae/scheduler/text encoders)
-                    img = pipe(
-                        prompt=diag_prompt,
-                        guidance_scale=guidance_scale,
-                        num_inference_steps=50,
-                        height=resolution,
-                        width=resolution,
-                        generator=generator,
-                        max_sequence_length=256,
-                    ).images[0]
+                    imgs_per_prompt = pipe(
+                            prompt=diag_prompt,
+                            guidance_scale=guidance_scale,
+                            num_inference_steps=50,
+                            height=resolution,
+                            width=resolution,
+                            generator=generator,
+                            max_sequence_length=256,
+                        ).images
 
 
                 if len(imgs_per_prompt) > 0:
