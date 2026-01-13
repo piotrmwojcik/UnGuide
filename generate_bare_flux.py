@@ -408,6 +408,11 @@ if __name__ == "__main__":
     )
 
     weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+    text_encoder_one = text_encoder_one.to(device=device, dtype=weight_dtype).eval()
+    text_encoder_two = text_encoder_two.to(device=device, dtype=weight_dtype).eval()
+
+    # VAE: keep fp32 for decode stability (recommended)
+    vae = vae.to(device=device, dtype=torch.float32).eval()
 
     transformer = FluxTransformer2DModel.from_pretrained(
         args.pretrained_model_name_or_path, torch_dtype=weight_dtype,
