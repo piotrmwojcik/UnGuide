@@ -607,7 +607,7 @@ def main():
     #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
     # Make pipeline execution device CUDA
-    diag_pipe = diag_pipe.to(accelerator.device)
+    #diag_pipe = diag_pipe.to(accelerator.device)
 
     diag_pipe.set_progress_bar_config(disable=True)
 
