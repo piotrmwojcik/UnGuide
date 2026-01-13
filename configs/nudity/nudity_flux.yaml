@@ -96,8 +96,8 @@ UnHype:
   retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_8          # output_dir from args
-  final_save_path: output_nudity_8/LoRA_fusion_model
+  output_dir: output_nudity_flux          # output_dir from args
+  final_save_path: output_nudity_flux/LoRA_fusion_model
 
   # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
