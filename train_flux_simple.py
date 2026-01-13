@@ -855,6 +855,7 @@ def main():
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
+                    diag_seed = 12345
                     gen_device = "cuda" if torch.cuda.is_available() else "cpu"
                     generator = torch.Generator(device=gen_device).manual_seed(diag_seed)
 
