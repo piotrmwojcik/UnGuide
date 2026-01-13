@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # Load Flux pipeline
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
-    pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
+    pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", dtype=torch.bfloat16, cache_dir=cache_dir)
     pipe = pipe.to(device)
 
     # Load prompts
