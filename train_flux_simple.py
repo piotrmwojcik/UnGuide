@@ -382,7 +382,7 @@ def main():
         variant=None,
     )
 
-    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+    weight_dtype = torch.bfloat16 if accelerator.device.type == "cuda" else torch.float32
 
     model = FluxTransformer2DModel.from_pretrained(
         pretrained_model_name_or_path, torch_dtype=weight_dtype,
