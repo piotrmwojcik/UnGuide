@@ -855,16 +855,22 @@ def main():
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
-                    print("pipe exec device:", diag_pipe._execution_device)
-                    print("transformer param device:", next(diag_pipe.transformer.parameters()).device)
-                    print("text_encoder_1 device:", next(diag_pipe.text_encoder.parameters()).device)
-                    print("text_encoder_2 device:", next(diag_pipe.text_encoder_2.parameters()).device)
-                    print("vae device:", next(diag_pipe.vae.parameters()).device)
+                    device = accelerator.device  # should be cuda:0
+                    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
+                    # Move EVERYTHING the pipeline uses
+                    diag_pipe.transformer.to(device=device, dtype=weight_dtype)
+                    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype)
+                    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype)
+
+                    # VAE can stay fp32 (recommended)
+                    diag_pipe.vae.to(device=device, dtype=torch.float32)
+
+                    # IMPORTANT: set pipeline execution device
+                    diag_pipe = diag_pipe.to(device)
 
                     diag_seed = 12345
-                    pipe_device = diag_pipe._execution_device  # torch.device
-                    generator = torch.Generator(device=pipe_device).manual_seed(diag_seed)
+                    generator = torch.Generator(device=device).manual_seed(diag_seed)
 
                     imgs_per_prompt = diag_pipe(
                         prompt=diag_prompt,
