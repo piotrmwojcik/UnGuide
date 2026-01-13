@@ -855,6 +855,13 @@ def main():
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
+                    print("pipe exec device:", diag_pipe._execution_device)
+                    print("transformer param device:", next(diag_pipe.transformer.parameters()).device)
+                    print("text_encoder_1 device:", next(diag_pipe.text_encoder.parameters()).device)
+                    print("text_encoder_2 device:", next(diag_pipe.text_encoder_2.parameters()).device)
+                    print("vae device:", next(diag_pipe.vae.parameters()).device)
+
+
                     diag_seed = 12345
                     pipe_device = diag_pipe._execution_device  # torch.device
                     generator = torch.Generator(device=pipe_device).manual_seed(diag_seed)
