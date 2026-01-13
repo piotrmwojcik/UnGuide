@@ -856,20 +856,18 @@ def main():
 
                     # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
                     diag_seed = 12345
-                    gen_device = "cuda" if torch.cuda.is_available() else "cpu"
-                    generator = torch.Generator(device=gen_device).manual_seed(diag_seed)
+                    pipe_device = diag_pipe._execution_device  # torch.device
+                    generator = torch.Generator(device=pipe_device).manual_seed(diag_seed)
 
-                    # Run FLUX pipeline (uses your existing transformer/vae/scheduler/text encoders)
                     imgs_per_prompt = diag_pipe(
-                            prompt=diag_prompt,
-                            guidance_scale=guidance_scale,
-                            num_inference_steps=50,
-                            height=resolution,
-                            width=resolution,
-                            generator=generator,
-                            max_sequence_length=256,
-                        ).images
-
+                        prompt=diag_prompt,
+                        guidance_scale=guidance_scale,
+                        num_inference_steps=50,
+                        height=resolution,
+                        width=resolution,
+                        generator=generator,
+                        max_sequence_length=256,
+                    ).images
 
                 if len(imgs_per_prompt) > 0:
                     row_tensors = []
