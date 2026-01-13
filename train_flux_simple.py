@@ -258,7 +258,7 @@ def main():
     # Paths
     output_dir = config.get('output_dir', './output')
     final_save_path = config.get('final_save_path', './saved_model/LoRA_fusion_model')
-    pretrained_model_path = config.get('pretrained_model_name_or_path', "black-forest-labs/FLUX.1-dev")
+    pretrained_model_name_or_path = config.get('pretrained_model_name_or_path', "black-forest-labs/FLUX.1-dev")
     
     # Training settings
     ddim_steps = 50
@@ -315,12 +315,12 @@ def main():
         )
 
     tokenizer_one = CLIPTokenizer.from_pretrained(
-        args.pretrained_model_name_or_path,
+        pretrained_model_name_or_path,
         subfolder="tokenizer",
         revision=None,
     )
     tokenizer_two = T5TokenizerFast.from_pretrained(
-        args.pretrained_model_name_or_path,
+        pretrained_model_name_or_path,
         subfolder="tokenizer_2",
         revision=None,
     )
