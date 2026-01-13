@@ -1,0 +1,278 @@
+UnGuide_Celebrity_100:
+  # >>> Primary Settings >>>
+  # Exact 100 celebrities from MACE erase_cele_100.yaml
+
+  # Target celebrities for removal (all 100 from MACE)
+  concepts:
+    - "adam driver"
+    - "adriana lima"
+    - "amber heard"
+    - "amy adams"
+    - "andrew garfield"
+    - "angelina jolie"
+    - "anjelica huston"
+    - "anna faris"
+    - "anna kendrick"
+    - "anne hathaway"
+    - "arnold schwarzenegger"
+    - "barack obama"
+    - "beth behrs"
+    - "bill clinton"
+    - "bob dylan"
+    - "bob marley"
+    - "bradley cooper"
+    - "bruce willis"
+    - "bryan cranston"
+    - "cameron diaz"
+    - "channing tatum"
+    - "charlie sheen"
+    - "charlize theron"
+    - "chris evans"
+    - "chris hemsworth"
+    - "chris pine"
+    - "chuck norris"
+    - "courteney cox"
+    - "demi lovato"
+    - "drake"
+    - "drew barrymore"
+    - "dwayne johnson"
+    - "ed sheeran"
+    - "elon musk"
+    - "elvis presley"
+    - "emma stone"
+    - "frida kahlo"
+    - "george clooney"
+    - "glenn close"
+    - "gwyneth paltrow"
+    - "harrison ford"
+    - "hillary clinton"
+    - "hugh jackman"
+    - "idris elba"
+    - "jake gyllenhaal"
+    - "james franco"
+    - "jared leto"
+    - "jason momoa"
+    - "jennifer aniston"
+    - "jennifer lawrence"
+    - "jennifer lopez"
+    - "jeremy renner"
+    - "jessica biel"
+    - "jessica chastain"
+    - "john oliver"
+    - "john wayne"
+    - "johnny depp"
+    - "julianne hough"
+    - "justin timberlake"
+    - "kate bosworth"
+    - "kate winslet"
+    - "leonardo dicaprio"
+    - "margot robbie"
+    - "mariah carey"
+    - "meryl streep"
+    - "mick jagger"
+    - "mila kunis"
+    - "milla jovovich"
+    - "morgan freeman"
+    - "nick jonas"
+    - "nicolas cage"
+    - "nicole kidman"
+    - "octavia spencer"
+    - "olivia wilde"
+    - "oprah winfrey"
+    - "paul mccartney"
+    - "paul walker"
+    - "peter dinklage"
+    - "philip seymour hoffman"
+    - "reese witherspoon"
+    - "richard gere"
+    - "ricky gervais"
+    - "rihanna"
+    - "robin williams"
+    - "ronald reagan"
+    - "ryan gosling"
+    - "ryan reynolds"
+    - "shia labeouf"
+    - "shirley temple"
+    - "spike lee"
+    - "stan lee"
+    - "theresa may"
+    - "tom cruise"
+    - "tom hanks"
+    - "tom hardy"
+    - "tom hiddleston"
+    - "whoopi goldberg"
+    - "zac efron"
+    - "zayn malik"
+    - "melania trump"
+
+  # Mapping concepts - all map to 'a person'
+  mapping_concept:
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+    - 'a person'
+
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
+  retain_csv_path: ./celebrity_retain_improved.csv
+
+  augment_target: true   # Augment target celebrity prompts
+  augment_retain: false  # Augment retain prompts from CSV
+
+  # Training hyperparameters (matching MACE as closely as possible)
+  learning_rate: 1.0e-04  # MACE: 1.0e-04
+  max_train_steps: 2000  # MACE uses 50 but UnGuide needs more steps for 100 celebrities
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  # LoRA configuration
+  rank: 1  # MACE: 1
+  lora_alpha: 1.0e-05
+  use_pooler: true  # MACE: true
+
+  # Loss weights
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  # Training weights
+  remove_weight: 20.0
+  retain_weight: 2.0
+
+  # Data and paths
+  output_dir: output/celebrity_100
+  final_save_path: output/celebrity_100/LoRA_fusion_model
+
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  # Logging
+  logging_dir: logs
+  report_to: wandb
+
+  # Diagnostic prompts for monitoring training progress
+  diagnostic_prompts:
+    - "a photo of adam driver"
+    - "a portrait of angelina jolie"
+    - "barack obama speaking"
+    - "leonardo dicaprio acting"
+    - "tom cruise in a movie"
+    - "jennifer lawrence smiling"
+    - "chris hemsworth portrait"
+    - "emma stone at event"
+    - "ryan gosling acting"
+    - "margot robbie portrait"
+    - "a photo of a person"
+    - "a portrait of a person"
+    - "a photo of a woman"
+    - "a portrait of a woman"
+    - "a photo of a man"
+    - "a portrait of a man"
+    - "a photo of taylor swift"
+    - "a photo of keanu reeves"
+    - "a portrait of scarlett johansson"
+    - "a photo of robert downey jr"
+
+  # <<< Primary Settings <<<
