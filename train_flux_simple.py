@@ -884,21 +884,35 @@ def main():
                 if len(imgs_per_prompt) > 0:
                     row_tensors = []
 
-                    for imgs in imgs_per_prompt:
-                        if imgs is None:
+                    for item in imgs_per_prompt:
+                        if item is None:
                             continue
-                        # Take the first image in the batch and convert to uint8
-                        img = imgs[0].clamp(0, 1)  # (C, H, W)
-                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
+
+                        # item can be:
+                        #  - PIL.Image
+                        #  - torch.Tensor shaped (3,H,W)
+                        #  - torch.Tensor shaped (B,3,H,W)
+                        if isinstance(item, torch.Tensor):
+                            if item.dim() == 4:
+                                img = item[0]  # (3,H,W)
+                            elif item.dim() == 3:
+                                img = item  # (3,H,W)
+                            else:
+                                raise ValueError(f"Unexpected tensor shape in imgs_per_prompt: {item.shape}")
+
+                            img = img.detach().float().clamp(0, 1).cpu()
+                        else:
+                            # assume PIL
+                            img = to_tensor(item).clamp(0, 1)  # (3,H,W) float in [0,1]
+
+                        im_uint8 = (img * 255).round().to(torch.uint8)  # (3,H,W)
                         row_tensors.append(im_uint8)
 
                     if len(row_tensors) > 0:
-                        # Concatenate horizontally to form a row: (C, H, sum_W)
+                        # Concatenate horizontally: (3, H, sum_W)
                         row = torch.cat(row_tensors, dim=2)
 
-                        # Clean prompt for wandb key (remove spaces and special chars)
                         safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-
                         wandb.log(
                             {
                                 f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
