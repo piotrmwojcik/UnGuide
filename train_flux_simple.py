@@ -765,6 +765,7 @@ def main():
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
                                                         int(ddim_steps))
+                    print('!!!! ', t_enc_ddpm)
                     e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
                                         guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
                                         CPU_only=True)
