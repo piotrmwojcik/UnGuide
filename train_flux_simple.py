@@ -835,7 +835,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 200 == 0:
+        if is_main and use_wandb and (iteration + 1) % 50 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -875,6 +875,8 @@ def main():
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
+
+                    print("generating ", iteration)
 
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
