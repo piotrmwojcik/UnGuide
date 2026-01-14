@@ -25,7 +25,7 @@ from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from torchvision.transforms.functional import to_tensor
 from accelerate import Accelerator
-from tools.scheduler_process import CustomFlowMatchEulerDiscreteScheduler
+from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
@@ -377,7 +377,7 @@ def main():
         pretrained_model_name_or_path, None, subfolder="text_encoder_2"
     )
 
-    noise_scheduler = CustomFlowMatchEulerDiscreteScheduler.from_pretrained(
+    noise_scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
         pretrained_model_name_or_path, subfolder="scheduler"
     )
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two,
@@ -764,8 +764,7 @@ def main():
                                                         pooled_emb_p.to(accelerator.device),
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
-                                                        int(ddim_steps),
-                                                        vae_scale_factor)
+                                                        int(ddim_steps))
                     e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
                                         guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
                                         CPU_only=True)
