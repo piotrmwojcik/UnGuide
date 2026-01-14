@@ -75,8 +75,8 @@ UnHype:
   gradient_accumulation_steps: 1
 
   # LoRA configuration
-  rank: 1
-  lora_alpha: 50.0
+  rank: 9
+  lora_alpha: 1.0
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: 400

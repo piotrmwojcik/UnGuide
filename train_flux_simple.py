@@ -628,13 +628,17 @@ def main():
         # #optimizer.zero_grad(set_to_none=True)
         #
         # # Random timestep
-        # t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
-        # og_num = round((int(t_enc) / ddim_steps) * 100)
-        # og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
-        # t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
+        t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
+        og_num = round((int(t_enc) / ddim_steps) * 100)
+        og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
+        t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
         #
-        # # Starting latent code
-        # start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
+        vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
+
+        # (ESD) start_guidance = 3
+        start_guidance = 3
+        start_guidance = torch.tensor([start_guidance], device=transformer.device)
+        start_guidance = start_guidance.expand(model_input.shape[0])
 
         with accelerator.accumulate(model):
             # # REMOVAL LOSS: Push target concepts towards mapping concepts
