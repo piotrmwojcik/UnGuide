@@ -427,6 +427,7 @@ def main():
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
         use_orig_concat=use_orig_concat,
+        dtype=torch.bfloat16,
     )
 
     hyper_lora_layers = inject_hyper_lora(

@@ -70,15 +70,15 @@ class HypernetworkManager(nn.Module):
 
 
 class TimeFourier(nn.Module):
-    def __init__(self, T, L=16):
+    def __init__(self, T, L=16, dtype=torch.float32):
         super().__init__()
-        k = torch.linspace(0, L - 1, L, dtype=torch.bfloat16)
+        k = torch.linspace(0, L - 1, L, dtype=dtype)
         freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
         self.register_buffer("freqs", freqs)
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
-        t = t.to(dtype=torch.float32).unsqueeze(-1)
-        w = self.freqs.to(dtype=t.dtype)
+        t = t.to(dtype=self.freqs.dtype).unsqueeze(-1)
+        w = self.freqs
         angles = t * w
         return torch.cat([angles.cos(), angles.sin()], dim=-1)
 
@@ -96,7 +96,8 @@ class HyperLora(nn.Module):
         use_scaling=True,
         original_linear = None,
         train_steps: int = None,
-        use_orig_concat: bool = True
+        use_orig_concat: bool = True,
+        dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -106,6 +107,7 @@ class HyperLora(nn.Module):
         self.original = original_linear
         self.train_steps = train_steps
         self.use_orig_concat = use_orig_concat
+        self.dtype = dtype
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
         self._dbg_calls = 0   # to avoid spamming
         ## it should (?) be shared
@@ -115,13 +117,13 @@ class HyperLora(nn.Module):
         #)
         std_dev = 1 / (rank ** 0.5)
         self.register_buffer(
-            "xL_const_flat", torch.rand(1, in_dim * rank, dtype=torch.bfloat16) * std_dev, persistent=False
+            "xL_const_flat", torch.rand(1, in_dim * rank, dtype=self.dtype) * std_dev, persistent=False
         )
         self.register_buffer(
-            "xR_const_flat", torch.zeros(1, out_dim * rank, dtype=torch.bfloat16), persistent=False
+            "xR_const_flat", torch.zeros(1, out_dim * rank, dtype=self.dtype), persistent=False
         )
         self.register_buffer(
-            "alpha_b", torch.tensor(alpha_init, dtype=torch.bfloat16), persistent=False
+            "alpha_b", torch.tensor(alpha_init, dtype=self.dtype), persistent=False
         )
 
         hyper_input_size = clip_size + time_embedd + (out_dim if use_orig_concat else 0)
@@ -130,17 +132,17 @@ class HyperLora(nn.Module):
             nn.Linear(hyper_input_size, 100),
             nn.ReLU(inplace=True),
             nn.Linear(100, in_dim * rank),
-        )
+        ).to(dtype=self.dtype)
         self.right_head = nn.Sequential(
             nn.Linear(hyper_input_size, 100),
             nn.ReLU(inplace=True),
             nn.Linear(100, out_dim * rank),
-        )
-        self.time_feat = TimeFourier(T=self.train_steps + 1)
+        ).to(dtype=self.dtype)
+        self.time_feat = TimeFourier(T=self.train_steps + 1, dtype=self.dtype)
 
         self.use_scaling = use_scaling
         if self.use_scaling:
-            self.alpha = nn.Parameter(torch.tensor(alpha_init))
+            self.alpha = nn.Parameter(torch.tensor(alpha_init, dtype=self.dtype))
 
     def forward_linear_L(self, emb, t):
 
@@ -153,7 +155,7 @@ class HyperLora(nn.Module):
         return self.alpha_b + t[:, None] / self.train_steps * self.alpha
 
     def get_lora_matrices(self, clip, t):
-        t_feats = self.time_feat(t).to(dtype=torch.bfloat16)
+        t_feats = self.time_feat(t).to(dtype=self.dtype)
 
         emb = clip
         if self.use_orig_concat and clip.shape[-1] == self.clip_size:
@@ -200,6 +202,7 @@ class HyperLoRALinear(nn.Module):
         layer_name: str = None,
         train_steps: int = None,
         use_orig_concat: bool = False,
+        dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
         self.original = original_linear
@@ -212,6 +215,7 @@ class HyperLoRALinear(nn.Module):
             train_steps=train_steps,
             original_linear=original_linear,
             use_orig_concat=use_orig_concat,
+            dtype=dtype,
         )
         self.parent_model = None
         self.layer_name = layer_name
