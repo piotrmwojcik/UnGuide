@@ -1,5 +1,6 @@
 import weakref
 from typing import List, Dict, Tuple, Optional
+from contextlib import contextmanager
 
 import torch
 import math
@@ -17,6 +18,22 @@ class HypernetworkManager(nn.Module):
         self.lora_weights_cache = {}
         self.current_context = {'clip_emb': None, 'timestep': None}
         self.auto_mode = False
+        self.lora_enabled = True
+
+    def enable_lora(self):
+        self.lora_enabled = True
+
+    def disable_lora(self):
+        self.lora_enabled = False
+
+    @contextmanager
+    def no_lora(self):
+        old_state = self.lora_enabled
+        self.lora_enabled = False
+        try:
+            yield
+        finally:
+            self.lora_enabled = old_state
 
     def add_hyperlora(self, name: str, hyper_lora):
         idx = len(self.hyper_layers)
@@ -227,6 +244,9 @@ class HyperLoRALinear(nn.Module):
         parent = self.parent_model()
 
         if hasattr(parent, 'hyper') and parent.hyper is not None:
+            if not parent.hyper.lora_enabled:
+                return self.original(x)
+            
             if parent.hyper.auto_mode:
                 clip_embedding, timestep = parent.hyper.get_context()
                 if clip_embedding is None:
