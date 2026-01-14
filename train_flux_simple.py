@@ -662,66 +662,66 @@ def main():
             # # REMOVAL LOSS: Push target concepts towards mapping concepts
             # # Use accelerator process index to select a GPU-specific index
             #
-            # rank = accelerator.process_index
-            # world_size = accelerator.num_processes
-            #
-            # # All valid indices for THIS GPU only: rank, rank+world_size, ...
-            # valid_indices = list(range(rank, len(target_embeddings), world_size))
-            #
-            # if len(valid_indices) == 0:
-            #     # Fallback in case there are fewer samples than processes
-            #     concept_idx = rank % len(target_embeddings)
-            # else:
-            #     # Randomly pick one index from this GPU's slice
-            #     concept_idx = random.choice(valid_indices)
-            #
-            # target_text = target_concepts[concept_idx]
-            # mapping_text = (
-            #     mapping_concept[concept_idx]
-            #     if concept_idx < len(mapping_concept)
-            #     else mapping_concept[0]
-            # )
-            #
-            # # Apply prompt augmentation to target if enabled
-            # # When augmenting, apply the SAME augmentation to both target and mapping
-            # if augment_target:
-            #     augmented_prompts = prompt_augmentation(target_text, augment=True)
-            #
-            #     # Shard augmentation indices per rank as well
-            #     valid_aug_indices = list(range(rank, len(augmented_prompts), world_size))
-            #     if len(valid_aug_indices) == 0:
-            #         aug_idx = rank % len(augmented_prompts)
-            #     else:
-            #         aug_idx = random.choice(valid_aug_indices)
-            #
-            #     target_text_augmented = augmented_prompts[aug_idx]
-            #
-            #     # Apply the SAME augmentation variation to mapping
-            #     augmented_mapping = prompt_augmentation(mapping_text, augment=True)
-            #
-            #     # In case augmented_mapping has fewer variants, wrap aug_idx
-            #     if aug_idx >= len(augmented_mapping):
-            #         aug_idx = aug_idx % len(augmented_mapping)
-            #
-            #     mapping_text_augmented = augmented_mapping[aug_idx]
-            #
-            #     # Recompute target_emb with the same augmentation
-            #     inputs_aug = encode(target_text_augmented)
-            #     with torch.no_grad():
-            #         if use_pooler:
-            #             target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
-            #         else:
-            #             target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
-            # else:
-            #     target_text_augmented = target_text
-            #     mapping_text_augmented = mapping_text
-            #     target_emb = target_embeddings[concept_idx]
-            #
-            # print(
-            #     f"[Rank {rank} | Device {accelerator.device}] "
-            #     f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
-            # )
-            #
+            rank = accelerator.process_index
+            world_size = accelerator.num_processes
+
+            # All valid indices for THIS GPU only: rank, rank+world_size, ...
+            valid_indices = list(range(rank, len(target_embeddings), world_size))
+
+            if len(valid_indices) == 0:
+                # Fallback in case there are fewer samples than processes
+                concept_idx = rank % len(target_embeddings)
+            else:
+                # Randomly pick one index from this GPU's slice
+                concept_idx = random.choice(valid_indices)
+
+            target_text = target_concepts[concept_idx]
+            mapping_text = (
+                mapping_concept[concept_idx]
+                if concept_idx < len(mapping_concept)
+                else mapping_concept[0]
+            )
+
+            # Apply prompt augmentation to target if enabled
+            # When augmenting, apply the SAME augmentation to both target and mapping
+            if augment_target:
+                augmented_prompts = prompt_augmentation(target_text, augment=True)
+
+                # Shard augmentation indices per rank as well
+                valid_aug_indices = list(range(rank, len(augmented_prompts), world_size))
+                if len(valid_aug_indices) == 0:
+                    aug_idx = rank % len(augmented_prompts)
+                else:
+                    aug_idx = random.choice(valid_aug_indices)
+
+                target_text_augmented = augmented_prompts[aug_idx]
+
+                # Apply the SAME augmentation variation to mapping
+                augmented_mapping = prompt_augmentation(mapping_text, augment=True)
+
+                # In case augmented_mapping has fewer variants, wrap aug_idx
+                if aug_idx >= len(augmented_mapping):
+                    aug_idx = aug_idx % len(augmented_mapping)
+
+                mapping_text_augmented = augmented_mapping[aug_idx]
+
+                # Recompute target_emb with the same augmentation
+                inputs_aug = encode(target_text_augmented)
+                with torch.no_grad():
+                    if use_pooler:
+                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
+                    else:
+                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
+            else:
+                target_text_augmented = target_text
+                mapping_text_augmented = mapping_text
+                target_emb = target_embeddings[concept_idx]
+
+            print(
+                f"[Rank {rank} | Device {accelerator.device}] "
+                f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
+            )
+
             # with torch.no_grad():
             #     # Get text conditioning for Stable Diffusion
             #     emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
