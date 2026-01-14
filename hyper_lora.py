@@ -260,7 +260,7 @@ class HyperLoRALinear(nn.Module):
                         f"dtype={orig_out.dtype}, device={orig_out.device} | "
                         f"lora: norm={lora_norm.item():.6f}, "
                         f"dtype={lora_out.dtype}, device={lora_out.device} | "
-                        f"ratio={(lora_norm / (orig_norm + 1e-8)).item():.6f }"
+                        f"ratio={(lora_norm / (orig_norm + 1e-8)).item():.6f}"
                     )
 
                 return orig_out + lora_out
