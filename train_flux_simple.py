@@ -214,13 +214,13 @@ def import_model_class_from_model_name_or_path(
         raise ValueError(f"{model_class} is not supported.")
 
 
-def compute_text_embeddings(prompts, text_encoders, tokenizers):
+def compute_text_embeddings(prompts, text_encoders, tokenizers, max_sequence_length=256):
     # prompts: List[str] or str
     if isinstance(prompts, str):
         prompts = [prompts]
 
     prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
-        text_encoders, tokenizers, prompts, args.max_sequence_length
+        text_encoders, tokenizers, prompts, max_sequence_length
     )
     return (
         prompt_embeds.to(transformer.device),
