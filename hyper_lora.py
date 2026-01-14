@@ -118,7 +118,7 @@ class HyperLora(nn.Module):
             "xL_const_flat", torch.rand(1, in_dim * rank, dtype=torch.bfloat16) * std_dev, persistent=False
         )
         self.register_buffer(
-            "xR_const_flat", torch.rand(1, out_dim * rank, dtype=torch.bfloat16), persistent=False
+            "xR_const_flat", torch.zeros(1, out_dim * rank, dtype=torch.bfloat16), persistent=False
         )
         self.register_buffer(
             "alpha_b", torch.tensor(alpha_init, dtype=torch.bfloat16), persistent=False
