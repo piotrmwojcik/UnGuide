@@ -146,7 +146,7 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
         sigmas,
         mu=mu,
     )
-
+    print('!!! ', timesteps_tensor, timesteps)
     model_pred, _ = transformer(
         hidden_states=latent_code.to(device),
         timestep=(timesteps_tensor / 1000).to(device),
