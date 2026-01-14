@@ -626,7 +626,11 @@ def main():
         base = accelerator.unwrap_model(model)
         #
         # #optimizer.zero_grad(set_to_none=True)
-        #
+
+        vae_config_shift_factor = diag_pipe.vae.config.shift_factor
+        vae_config_scaling_factor = diag_pipe.vae.config.scaling_factor
+        vae_config_block_out_channels = diag_pipe.vae.config.block_out_channels
+
         # # Random timestep
         t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
         og_num = round((int(t_enc) / ddim_steps) * 100)
