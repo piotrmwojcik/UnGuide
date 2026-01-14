@@ -72,7 +72,7 @@ class HypernetworkManager(nn.Module):
 class TimeFourier(nn.Module):
     def __init__(self, T, L=16):
         super().__init__()
-        k = torch.linspace(0, L - 1, L, dtype=torch.float32)
+        k = torch.linspace(0, L - 1, L, dtype=torch.bfloat16)
         freqs = (2.0 * math.pi / T) * torch.pow(torch.tensor(2.0), k)
         self.register_buffer("freqs", freqs)
 
