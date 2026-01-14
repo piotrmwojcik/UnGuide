@@ -859,14 +859,9 @@ def main():
 
                 # 3) Move ONLY what you need to GPU for diagnostics (encoders+VAE), then move back
                 #    Avoid diag_pipe.to(device) if you're tight on VRAM; move components explicitly.
-                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
-                diag_pipe.vae.to(device=device, dtype=torch.float32).eval()  # VAE fp32 avoids bias mismatch
-
-                # 4) Collect only CPU uint8 tensors for W&B (very small memory footprint)
-                row_tensors = []
 
                 diag_seed = 12345  # fixed so noise identical across h_step
+                imgs_per_prompt = []
                 for h_step in diag_time_steps:
                     h_step_tensor = torch.tensor([h_step], device=device)
 
@@ -880,7 +875,8 @@ def main():
 
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
-                        out = diag_pipe(
+                        diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
+                        imgs = diag_pipe(
                             prompt=diag_prompt,
                             guidance_scale=guidance_scale,
                             num_inference_steps=50,
@@ -890,13 +886,7 @@ def main():
                             max_sequence_length=256,
                         ).images
 
-                    # Convert to uint8 on CPU immediately, drop GPU tensor
-                    img_uint8 = (decoded[0].detach().cpu() * 255).round().to(torch.uint8)  # (3,H,W)
-                    row_tensors.append(img_uint8)
-
-                    # Aggressively free per-step tensors
-                    del out, latents, decoded
-                    torch.cuda.empty_cache()  # optional; remove if it slows you too much
+                    imgs_per_prompt.append(imgs)
 
                 # 5) Move encoders/VAE back to CPU to free VRAM for training
                 diag_pipe.text_encoder.to("cpu")
@@ -905,19 +895,33 @@ def main():
                 torch.cuda.empty_cache()
 
                 # 6) Log a single concatenated image to W&B
-                if len(row_tensors) > 0:
-                    row = torch.cat(row_tensors, dim=2)  # (3, H, sum_W)
-                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+                if len(imgs_per_prompt) > 0:
+                    row_tensors = []
 
-                    wandb.log(
-                        {
-                            f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
-                                to_pil_image(row),
-                                caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
-                            )
-                        },
-                        step=iteration,
-                    )
+                    for imgs in imgs_per_prompt:
+                        if imgs is None:
+                            continue
+                        # Take the first image in the batch and convert to uint8
+                        img = imgs[0].clamp(0, 1)  # (C, H, W)
+                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
+                        row_tensors.append(im_uint8)
+
+                    if len(row_tensors) > 0:
+                        # Concatenate horizontally to form a row: (C, H, sum_W)
+                        row = torch.cat(row_tensors, dim=2)
+
+                        # Clean prompt for wandb key (remove spaces and special chars)
+                        safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+
+                        wandb.log(
+                            {
+                                f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                    to_pil_image(row),
+                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                                )
+                            },
+                            step=iteration,
+                        )
 
         # Save model
         accelerator.wait_for_everyone()
