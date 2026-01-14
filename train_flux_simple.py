@@ -633,7 +633,7 @@ def main():
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
         #
-        vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
+        #vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
 
         # (ESD) start_guidance = 3
         start_guidance = 3
