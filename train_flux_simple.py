@@ -21,6 +21,7 @@ import torch
 import torch.nn as nn
 import wandb
 import yaml
+from torchvision.transforms.functional import to_tensor
 from accelerate import Accelerator
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
@@ -907,6 +908,7 @@ def main():
 
                         # Take the first image (assumed to be PIL.Image)
                         img = imgs[0]
+                        img = to_tensor(img).clamp(0, 1)
                         row_tensors.append(img)
 
                     if len(row_tensors) > 0:
