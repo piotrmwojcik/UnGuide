@@ -794,7 +794,7 @@ def main():
                 # Compute LoRAs at t=0
                 hyper.compute_and_cache_loras(
                    batch_prompts,
-                   torch.zeros(B, device=accelerator.device)
+                   torch.zeros(B, device=accelerator.device, dtype=torch.bfloat16)
                 )
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
