@@ -437,9 +437,6 @@ def main():
         layer.set_parent_model(model)
         layer.to(dtype=torch.bfloat16)  # converts parameters + buffers inside the injected module
 
-    for layer_name, layer in hyper_lora_layers:
-        layer.set_parent_model(model)
-
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 

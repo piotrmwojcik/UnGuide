@@ -246,7 +246,24 @@ class HyperLoRALinear(nn.Module):
                     x_L = x_L.expand(batch_size, -1, -1)
                     x_R = x_R.expand(batch_size, -1, -1)
 
-                return self.original(x) + (x @ x_L) @ x_R
+                orig_out = self.original(x)
+                lora_out = (x @ x_L) @ x_R
+
+                # Diagnostic norms (no grad interference)
+                with torch.no_grad():
+                    orig_norm = orig_out.norm()
+                    lora_norm = lora_out.norm()
+
+                    print(
+                        f"[HyperLoRA] "
+                        f"orig: norm={orig_norm.item():.6f}, "
+                        f"dtype={orig_out.dtype}, device={orig_out.device} | "
+                        f"lora: norm={lora_norm.item():.6f}, "
+                        f"dtype={lora_out.dtype}, device={lora_out.device} | "
+                        f"ratio={(lora_norm / (orig_norm + 1e-8)).item():.6f }"
+                    )
+
+                return orig_out + lora_out
         else:
             if not hasattr(parent, 'current_conditioning'):
                 print("WARNING: parent model has neither 'hyper' nor 'current_conditioning'")
@@ -265,15 +282,6 @@ class HyperLoRALinear(nn.Module):
                 hyper_input = clip_embedding
             orig_out = orig
             lora_out = self.hyper_lora(x, hyper_input, timestep)
-
-            # Diagnostic norms (no grad interference)
-            with torch.no_grad():
-                print(
-                    f"[HyperLoRA] "
-                    f"orig norm: {orig_out.norm().item():.6f} | "
-                    f"lora norm: {lora_out.norm().item():.6f} | "
-                    f"ratio (lora/orig): {(lora_out.norm() / (orig_out.norm() + 1e-8)).item():.6f}"
-                )
 
             return orig_out + lora_out
 
