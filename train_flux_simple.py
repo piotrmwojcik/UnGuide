@@ -781,8 +781,10 @@ def main():
                 sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
 
                 # Batch process retain concepts
-                batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
-
+                batch_retain_embs = (
+                    torch.stack(sampled_retain_embs, dim=0)
+                        .to(device=accelerator.device, dtype=torch.bfloat16)
+                )
                 hyper = base.hyper
                 batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
                 B = batch_prompts.shape[0]
