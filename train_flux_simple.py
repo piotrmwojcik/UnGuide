@@ -890,8 +890,8 @@ def main():
                             max_sequence_length=256,
                             output_type="latent",
                         )
-
-                        latents = getattr(out, "latents", None)
+                        print('!!! ', out)
+                        latents = out
                         shift = diag_pipe.vae.config.shift_factor
                         scale = diag_pipe.vae.config.scaling_factor
                         latents = latents / scale + shift
