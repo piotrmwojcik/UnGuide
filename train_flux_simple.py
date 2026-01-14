@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import random
+from torchvision.transforms.functional import to_pil_image
 import copy
 from pathlib import Path
 from functools import partial
@@ -875,8 +876,6 @@ def main():
 
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
-                    print("generating ", iteration)
-
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
                         diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
@@ -900,32 +899,34 @@ def main():
 
                 # 6) Log a single concatenated image to W&B
                 if len(imgs_per_prompt) > 0:
-                    row_tensors = []
+                    row_pils = []
 
                     for imgs in imgs_per_prompt:
-                        if imgs is None:
-                            continue
-                        # Take the first image in the batch and convert to uint8
-                        img = imgs[0].clamp(0, 1)  # (C, H, W)
-                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
-                        row_tensors.append(im_uint8)
+                        x = imgs[0]  # take first image
+                        row_pils.append(to_pil_image(x))
 
-                    if len(row_tensors) > 0:
-                        # Concatenate horizontally to form a row: (C, H, sum_W)
-                        row = torch.cat(row_tensors, dim=2)
+                    # horizontal concat
+                    w = sum(im.width for im in row_pils)
+                    h = row_pils[0].height
+                    row = Image.new(row_pils[0].mode, (w, h))
 
-                        # Clean prompt for wandb key (remove spaces and special chars)
-                        safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+                    xoff = 0
+                    for im in row_pils:
+                        row.paste(im, (xoff, 0))
+                        xoff += im.width
 
-                        wandb.log(
-                            {
-                                f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
-                                    to_pil_image(row),
-                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
-                                )
-                            },
-                            step=iteration,
-                        )
+                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+
+                    wandb.log(
+                        {
+                            f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                row,
+                                caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                            )
+                        },
+                        step=iteration,
+                    )
+
 
         # Save model
         accelerator.wait_for_everyone()
