@@ -21,6 +21,8 @@ import torch
 import torch.nn as nn
 import wandb
 import yaml
+from tools.prompt_process import encode_prompt
+from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from torchvision.transforms.functional import to_tensor
 from accelerate import Accelerator
 from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
