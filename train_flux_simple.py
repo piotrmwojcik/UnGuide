@@ -632,8 +632,7 @@ def main():
         og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
-        #
-        #vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
+        vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
 
         num_channels = vae.config.latent_channels
 
