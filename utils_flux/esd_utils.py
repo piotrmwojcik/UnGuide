@@ -55,7 +55,7 @@ def calculate_shift(
 
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, timesteps, latents=None):
+                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, latents=None):
     """
         Sample the model
         ESD quick_sample_till_t
@@ -84,8 +84,14 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     )
 
     # If you were passing an integer timesteps count, keep it:
-    scheduler.set_timesteps(timesteps, device=transformer.device, mu=mu)
-    timesteps = scheduler.timesteps
+    timesteps_tensor, num_inference_steps = retrieve_timesteps(
+        scheduler,
+        num_inference_steps,
+        device,
+        num_inference_steps,
+        sigmas,
+        mu=mu,
+    )
 
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
@@ -93,7 +99,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     text_ids = text_ids.bfloat16()
 
     # Denoising loop
-    for i, t in enumerate(timesteps):
+    for i, t in enumerate(timesteps_tensor):
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
 
@@ -113,7 +119,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-        return latents, latent_image_ids
+    return latents, latent_image_ids
 
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,
