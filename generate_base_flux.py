@@ -65,10 +65,10 @@ if __name__ == "__main__":
     df = pd.read_csv(args.csv_path, index_col=0)
 
     # Check if this is an NSFW dataset with nudity_percentage column
-    if args.nudity and "nudity_percentage" in df.columns:
-        df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
-        df = df[df["nudity_percentage"].gt(0)]
-        df = df.sort_values(by="nudity_percentage", ascending=False)
+    #if args.nudity and "nudity_percentage" in df.columns:
+    #    df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
+    #    df = df[df["nudity_percentage"].gt(0)]
+    #    df = df.sort_values(by="nudity_percentage", ascending=False)
 
     save_dir = os.path.join(args.output_dir, args.save_folder)
     os.makedirs(save_dir, exist_ok=True)
