@@ -750,9 +750,6 @@ def main():
                 # Sample index into this rank’s slice
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
-            base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
-            _, current_timestep = base.hyper.get_context()
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
 
             with torch.no_grad():
                 with model.hyper.no_lora():
@@ -768,6 +765,10 @@ def main():
                                                         start_guidance,
                                                         int(ddim_steps),
                                                         vae_scale_factor)
+            base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
+            _, current_timestep = base.hyper.get_context()
+            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+
 
             # with torch.no_grad():
             #     # Generate latent using target prompt
