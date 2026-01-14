@@ -888,19 +888,7 @@ def main():
                             width=resolution,
                             generator=generator,
                             max_sequence_length=256,
-                            output_type="latent",
-                        )
-                        print('!!! ', out)
-                        latents = out
-                        shift = diag_pipe.vae.config.shift_factor
-                        scale = diag_pipe.vae.config.scaling_factor
-                        latents = latents / scale + shift
-
-                        latents = latents.to(dtype=torch.float32)
-
-                        with torch.no_grad():
-                            decoded = diag_pipe.vae.decode(latents).sample
-                            decoded = (decoded / 2 + 0.5).clamp(0, 1)  # (B,3,H,W)
+                        ).images
 
                     # Convert to uint8 on CPU immediately, drop GPU tensor
                     img_uint8 = (decoded[0].detach().cpu() * 255).round().to(torch.uint8)  # (3,H,W)
