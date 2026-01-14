@@ -376,7 +376,7 @@ def main():
         pretrained_model_name_or_path, None, subfolder="text_encoder_2"
     )
 
-    noise_scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
+    noise_scheduler = CustomFlowMatchEulerDiscreteScheduler.from_pretrained(
         pretrained_model_name_or_path, subfolder="scheduler"
     )
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two,
