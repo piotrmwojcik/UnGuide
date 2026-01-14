@@ -60,10 +60,18 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     latent_image_ids = _prepare_latent_image_ids(batch_size, height // 2, width // 2, transformer.device,
                                                  torch.bfloat16)
 
-    # (B) retrieve prompt embed
+    image_seq_len = latents.shape[1]
 
-    # (C) generate latents w.r.t text embedding
-    scheduler.set_timesteps(timesteps, device=transformer.device)
+    mu = calculate_shift(
+        image_seq_len,
+        scheduler.config.base_image_seq_len,
+        scheduler.config.max_image_seq_len,
+        scheduler.config.base_shift,
+        scheduler.config.max_shift,
+    )
+
+    # If you were passing an integer timesteps count, keep it:
+    scheduler.set_timesteps(timesteps, device=transformer.device, mu=mu)
     timesteps = scheduler.timesteps
 
     latents = latents.to(transformer.device).bfloat16()
