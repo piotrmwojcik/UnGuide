@@ -63,7 +63,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     # (B) retrieve prompt embed
 
     # (C) generate latents w.r.t text embedding
-    scheduler.set_train_timesteps(timesteps, device=transformer.device)
+    scheduler.set_timesteps(timesteps, device=transformer.device)
     timesteps = scheduler.timesteps
 
     latents = latents.to(transformer.device).bfloat16()
