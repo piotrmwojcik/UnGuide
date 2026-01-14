@@ -899,33 +899,32 @@ def main():
 
                 # 6) Log a single concatenated image to W&B
                 if len(imgs_per_prompt) > 0:
-                    row_pils = []
+                    row_tensors = []
 
                     for imgs in imgs_per_prompt:
-                        x = imgs[0]  # take first image
-                        row_pils.append(to_pil_image(x))
+                        if imgs is None:
+                            continue
+                        # Take the first image in the batch and convert to uint8
+                        img = imgs[0].clamp(0, 1)  # (C, H, W)
+                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
+                        row_tensors.append(im_uint8)
 
-                    # horizontal concat
-                    w = sum(im.width for im in row_pils)
-                    h = row_pils[0].height
-                    row = Image.new(row_pils[0].mode, (w, h))
+                    if len(row_tensors) > 0:
+                        # Concatenate horizontally to form a row: (C, H, sum_W)
+                        row = torch.cat(row_tensors, dim=2)
 
-                    xoff = 0
-                    for im in row_pils:
-                        row.paste(im, (xoff, 0))
-                        xoff += im.width
+                        # Clean prompt for wandb key (remove spaces and special chars)
+                        safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
 
-                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-
-                    wandb.log(
-                        {
-                            f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
-                                row,
-                                caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
-                            )
-                        },
-                        step=iteration,
-                    )
+                        wandb.log(
+                            {
+                                f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                    to_pil_image(row),
+                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                                )
+                            },
+                            step=iteration,
+                        )
 
 
         # Save model
