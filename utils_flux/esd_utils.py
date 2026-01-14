@@ -148,7 +148,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
         scheduler,
         num_inference_steps,
-        device,
+        transformer.device,
         num_inference_steps,
         sigmas,
         mu=mu,
