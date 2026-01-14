@@ -722,30 +722,50 @@ def main():
                 f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
             )
 
-            # with torch.no_grad():
+            with torch.no_grad():
+                emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
+                    target_text_augmented, text_encoders, tokenizers
+                )
+                emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
+                    target_text_augmented, text_encoders, tokenizers
+                )
+
             #     # Get text conditioning for Stable Diffusion
             #     emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
             #     emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
-            #     emb_m = base.get_learned_conditioning([mapping_text_augmented])  # mapping prompt (what target should map to)
+            #     emb_m = base.get_learned_conditioning([target_text_augmented])  # mapping prompt (what target should map to)
             # # Random timestep for HyperLoRA context
-            # rank = accelerator.process_index
-            # world_size = accelerator.num_processes
+            rank = accelerator.process_index
+            world_size = accelerator.num_processes
             #
             # # Timesteps assigned to THIS rank: rank, rank + world_size, ...
-            # valid_timesteps = torch.arange(rank, hyper_train_steps, world_size, device=accelerator.device)
-            #
-            # if valid_timesteps.numel() == 0:
-            #     # Fallback in case hyper_train_steps < world_size
-            #     rtimestep = int(torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
-            # else:
-            #     # Sample index into this rank’s slice
-            #     idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
-            #     rtimestep = int(valid_timesteps[idx])
-            # base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
-            #
-            # _, current_timestep = base.hyper.get_context()
-            # base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            #
+            valid_timesteps = torch.arange(rank, hyper_train_steps, world_size, device=accelerator.device)
+            if valid_timesteps.numel() == 0:
+                # Fallback in case hyper_train_steps < world_size
+                rtimestep = int(torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+            else:
+                # Sample index into this rank’s slice
+                idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
+                rtimestep = int(valid_timesteps[idx])
+            base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
+             _, current_timestep = base.hyper.get_context()
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+
+            with torch.no_grad():
+                with model.hyper.no_lora():
+                    z, latent_image_ids = latent_sample(transformer,
+                                                        noise_scheduler,
+                                                        1,
+                                                        model_input.shape[1],
+                                                        512,
+                                                        512,
+                                                        emb_p.to(transformer.device),
+                                                        pooled_emb_p.to(transformer.device),
+                                                        text_ids_p.to(transformer.device),
+                                                        start_guidance,
+                                                        int(ddim_steps),
+                                                        vae_scale_factor)
+
             # with torch.no_grad():
             #     # Generate latent using target prompt
             #     z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
