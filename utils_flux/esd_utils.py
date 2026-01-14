@@ -135,7 +135,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
                                                  torch.bfloat16)
 
     image_seq_len = latents.shape[1]
-
+    sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
     mu = calculate_shift(
         image_seq_len,
         scheduler.config.base_image_seq_len,
