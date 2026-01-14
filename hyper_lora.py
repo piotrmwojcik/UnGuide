@@ -249,20 +249,6 @@ class HyperLoRALinear(nn.Module):
                 orig_out = self.original(x)
                 lora_out = (x @ x_L) @ x_R
 
-                # Diagnostic norms (no grad interference)
-                with torch.no_grad():
-                    orig_norm = orig_out.norm()
-                    lora_norm = lora_out.norm()
-
-                    print(
-                        f"[HyperLoRA] "
-                        f"orig: norm={orig_norm.item():.6f}, "
-                        f"dtype={orig_out.dtype}, device={orig_out.device} | "
-                        f"lora: norm={lora_norm.item():.6f}, "
-                        f"dtype={lora_out.dtype}, device={lora_out.device} | "
-                        f"ratio={(lora_norm / (orig_norm + 1e-8)).item():.6f}"
-                    )
-
                 return orig_out + lora_out
         else:
             if not hasattr(parent, 'current_conditioning'):
