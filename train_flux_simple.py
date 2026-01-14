@@ -415,23 +415,23 @@ def main():
     #     p.requires_grad = False
     #
     # # Setup HyperLoRA
-    # model.hyper = HypernetworkManager()
+    model.hyper = HypernetworkManager()
 
     # clip_size = 768 if use_pooler else 512
     target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
 
-    # hyper_lora_factory = partial(
-    #    HyperLoRALinear,
-    #    clip_size=clip_size,
-    #    rank=rank,
-    #    alpha=lora_alpha,
-    #    train_steps=hyper_train_steps,
-    #    use_orig_concat=use_orig_concat,
-    # )
+    hyper_lora_factory = partial(
+        HyperLoRALinear,
+        clip_size=clip_size,
+        rank=rank,
+        alpha=lora_alpha,
+        train_steps=hyper_train_steps,
+        use_orig_concat=use_orig_concat,
+    )
 
-    # hyper_lora_layers = inject_hyper_lora(
-    #    model.model.diffusion_model, target_modules, hyper_lora_factory
-    # )
+    hyper_lora_layers = inject_hyper_lora(
+        model.model.diffusion_model, target_modules, hyper_lora_factory
+    )
 
     # for layer_name, layer in hyper_lora_layers:
     #    layer.set_parent_model(model)
