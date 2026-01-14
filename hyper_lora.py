@@ -263,7 +263,19 @@ class HyperLoRALinear(nn.Module):
                 hyper_input = torch.cat([clip_embedding, orig], dim=-1)
             else:
                 hyper_input = clip_embedding
-            return orig + self.hyper_lora(x, hyper_input, timestep)
+            orig_out = orig
+            lora_out = self.hyper_lora(x, hyper_input, timestep)
+
+            # Diagnostic norms (no grad interference)
+            with torch.no_grad():
+                print(
+                    f"[HyperLoRA] "
+                    f"orig norm: {orig_out.norm().item():.6f} | "
+                    f"lora norm: {lora_out.norm().item():.6f} | "
+                    f"ratio (lora/orig): {(lora_out.norm() / (orig_out.norm() + 1e-8)).item():.6f}"
+                )
+
+            return orig_out + lora_out
 
 
 def inject_hyper_lora(
