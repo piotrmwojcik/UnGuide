@@ -454,12 +454,9 @@ def main():
     model, optimizer = accelerator.prepare(model, optimizer)
 
     # Register HyperLoRA layers after prepare
-    # for layer_name, layer in hyper_lora_layers:
-    #    layer.set_parent_model(accelerator.unwrap_model(model))
-    #    accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
-
-    # Create sampler after prepare
-    # sampler = DDIMSampler(accelerator.unwrap_model(model))
+    for layer_name, layer in hyper_lora_layers:
+        layer.set_parent_model(accelerator.unwrap_model(model))
+        accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
     # Setup CLIP for conditioning
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
