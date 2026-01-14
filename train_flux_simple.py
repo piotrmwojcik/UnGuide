@@ -879,7 +879,7 @@ def main():
                     h_step_tensor = torch.tensor([h_step], device=device)
 
                     # Enable these if you want hyper-time to change the result
-                    base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
+                    base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
                     base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
