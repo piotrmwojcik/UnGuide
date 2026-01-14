@@ -115,13 +115,13 @@ class HyperLora(nn.Module):
         #)
         std_dev = 1 / (rank ** 0.5)
         self.register_buffer(
-            "xL_const_flat", torch.rand(1, in_dim * rank) * std_dev, persistent=False
+            "xL_const_flat", torch.rand(1, in_dim * rank, dtype=torch.bfloat16) * std_dev, persistent=False
         )
         self.register_buffer(
-            "xR_const_flat", torch.zeros(1, out_dim * rank), persistent=False
+            "xR_const_flat", torch.zeros(1, out_dim * rank, dtype=torch.bfloat16), persistent=False
         )
         self.register_buffer(
-            "alpha_b", torch.tensor(alpha_init, dtype=torch.float32), persistent=False
+            "alpha_b", torch.tensor(alpha_init, dtype=torch.bfloat16), persistent=False
         )
 
         hyper_input_size = clip_size + time_embedd + (out_dim if use_orig_concat else 0)
