@@ -637,7 +637,7 @@ def main():
 
         # (ESD) start_guidance = 3
         start_guidance = 3
-        start_guidance = torch.tensor([start_guidance], device=transformer.device)
+        start_guidance = torch.tensor([start_guidance], device=accelerator.device)
         start_guidance = start_guidance.expand(model_input.shape[0])
 
         with accelerator.accumulate(model):
