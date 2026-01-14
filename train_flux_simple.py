@@ -890,13 +890,15 @@ def main():
                         )
 
                         latents = getattr(out, "latents", None)
-                        if latents is None:
-                            latents = out.images  # many diffusers versions put latents here for output_type="latent"
+                        shift = diag_pipe.vae.config.shift_factor
+                        scale = diag_pipe.vae.config.scaling_factor
+                        latents = latents / scale + shift
 
-                        # Decode manually in fp32
                         latents = latents.to(dtype=torch.float32)
-                        decoded = diag_pipe.vae.decode(latents).sample  # (B,3,H,W) fp32
-                        decoded = (decoded / 2 + 0.5).clamp(0, 1)
+
+                        with torch.no_grad():
+                            decoded = diag_pipe.vae.decode(latents).sample
+                            decoded = (decoded / 2 + 0.5).clamp(0, 1)  # (B,3,H,W)
 
                     # Convert to uint8 on CPU immediately, drop GPU tensor
                     img_uint8 = (decoded[0].detach().cpu() * 255).round().to(torch.uint8)  # (3,H,W)
