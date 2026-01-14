@@ -871,8 +871,8 @@ def main():
                     h_step_tensor = torch.tensor([h_step], device=device)
 
                     # Enable these if you want hyper-time to change the result
-                    base.hyper.set_context(diag_emb, h_step_tensor)
-                    base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
+                    #base.hyper.set_context(diag_emb, h_step_tensor)
+                    #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
