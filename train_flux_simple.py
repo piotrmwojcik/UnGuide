@@ -430,7 +430,7 @@ def main():
     )
 
     hyper_lora_layers = inject_hyper_lora(
-        model.model.diffusion_model, target_modules, hyper_lora_factory
+        model, target_modules, hyper_lora_factory
     )
 
     # for layer_name, layer in hyper_lora_layers:
