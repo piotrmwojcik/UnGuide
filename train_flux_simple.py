@@ -599,7 +599,7 @@ def main():
         tokenizer_2=tokenizer_two,
     )
 
-    diag_pipe.to(accelerator.device)
+    #diag_pipe.to(accelerator.device)
 
     #diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
     #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
@@ -838,7 +838,9 @@ def main():
         if is_main and use_wandb and (iteration + 1) % 200 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
-                # Encode the diagnostic prompt
+
+                # 1) Compute diag_emb on GPU only if you need HyperLoRA context from CLIP.
+                # If clip_text_encoder is huge, consider moving it to GPU only for this block.
                 inputs_diag = encode(diag_prompt)
                 with torch.no_grad():
                     if use_pooler:
@@ -846,70 +848,84 @@ def main():
                     else:
                         diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
 
-                # Choose a few hyper-steps to visualize: start, middle, end
-                diag_time_steps = [
-                    0,
-                    hyper_train_steps // 2,
-                    hyper_train_steps,
-                ]
+                diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
 
-                # Use the same start_code so differences come only from hyper-time
-                # start_code = torch.randn(
-                #    (1, 4, resolution // 8, resolution // 8), device=accelerator.device
-                # )
+                device = accelerator.device
+                weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
-                imgs_per_prompt = []  # will hold images for this prompt across time steps
+                # 2) Ensure pipeline uses the *live* transformer (no copies)
+                base = accelerator.unwrap_model(model)
+                diag_pipe.transformer = base  # make sure pipe uses current model
 
+                # 3) Move ONLY what you need to GPU for diagnostics (encoders+VAE), then move back
+                #    Avoid diag_pipe.to(device) if you're tight on VRAM; move components explicitly.
+                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                diag_pipe.vae.to(device=device, dtype=torch.float32).eval()  # VAE fp32 avoids bias mismatch
+
+                # 4) Collect only CPU uint8 tensors for W&B (very small memory footprint)
+                row_tensors = []
+
+                diag_seed = 12345  # fixed so noise identical across h_step
                 for h_step in diag_time_steps:
-                    h_step_tensor = torch.tensor([h_step], device=accelerator.device)
+                    h_step_tensor = torch.tensor([h_step], device=device)
 
-                    # Set HyperLoRA context for this hyper-time step
-                    # base.hyper.set_context(diag_emb, h_step_tensor)
-                    # base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
+                    # Enable these if you want hyper-time to change the result
+                    base.hyper.set_context(diag_emb, h_step_tensor)
+                    base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
-                    # IMPORTANT: same seed for every h_step -> same initial noise -> differences come from hyper-time
-                    device = accelerator.device
-
-                    diag_seed = 12345
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
-                    imgs_per_prompt = diag_pipe(
-                        prompt=diag_prompt,
-                        guidance_scale=guidance_scale,
-                        num_inference_steps=50,
-                        height=resolution,
-                        width=resolution,
-                        generator=generator,
-                        max_sequence_length=256,
-                    ).images
-
-                if len(imgs_per_prompt) > 0:
-                    row_tensors = []
-
-                    for imgs in imgs_per_prompt:
-                        if imgs is None:
-                            continue
-                        # Take the first image in the batch and convert to uint8
-                        img = imgs[0].clamp(0, 1)  # (C, H, W)
-                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
-                        row_tensors.append(im_uint8)
-
-                    if len(row_tensors) > 0:
-                        # Concatenate horizontally to form a row: (C, H, sum_W)
-                        row = torch.cat(row_tensors, dim=2)
-
-                        # Clean prompt for wandb key (remove spaces and special chars)
-                        safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-
-                        wandb.log(
-                            {
-                                f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
-                                    to_pil_image(row),
-                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
-                                )
-                            },
-                            step=iteration,
+                    with torch.no_grad():
+                        # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
+                        out = diag_pipe(
+                            prompt=diag_prompt,
+                            guidance_scale=guidance_scale,
+                            num_inference_steps=50,
+                            height=resolution,
+                            width=resolution,
+                            generator=generator,
+                            max_sequence_length=256,
+                            output_type="latent",
                         )
+
+                        latents = getattr(out, "latents", None)
+                        if latents is None:
+                            latents = out.images  # many diffusers versions put latents here for output_type="latent"
+
+                        # Decode manually in fp32
+                        latents = latents.to(dtype=torch.float32)
+                        decoded = diag_pipe.vae.decode(latents).sample  # (B,3,H,W) fp32
+                        decoded = (decoded / 2 + 0.5).clamp(0, 1)
+
+                    # Convert to uint8 on CPU immediately, drop GPU tensor
+                    img_uint8 = (decoded[0].detach().cpu() * 255).round().to(torch.uint8)  # (3,H,W)
+                    row_tensors.append(img_uint8)
+
+                    # Aggressively free per-step tensors
+                    del out, latents, decoded
+                    torch.cuda.empty_cache()  # optional; remove if it slows you too much
+
+                # 5) Move encoders/VAE back to CPU to free VRAM for training
+                diag_pipe.text_encoder.to("cpu")
+                diag_pipe.text_encoder_2.to("cpu")
+                diag_pipe.vae.to("cpu")
+                torch.cuda.empty_cache()
+
+                # 6) Log a single concatenated image to W&B
+                if len(row_tensors) > 0:
+                    row = torch.cat(row_tensors, dim=2)  # (3, H, sum_W)
+                    safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
+
+                    wandb.log(
+                        {
+                            f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                to_pil_image(row),
+                                caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                            )
+                        },
+                        step=iteration,
+                    )
 
         # Save model
         accelerator.wait_for_everyone()
