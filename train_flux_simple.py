@@ -214,7 +214,7 @@ def import_model_class_from_model_name_or_path(
         raise ValueError(f"{model_class} is not supported.")
 
 
-def compute_text_embeddings(prompts, text_encoders, tokenizers, max_sequence_length=256):
+def compute_text_embeddings(prompts, text_encoders, tokenizers, device, max_sequence_length=256):
     # prompts: List[str] or str
     if isinstance(prompts, str):
         prompts = [prompts]
@@ -223,9 +223,9 @@ def compute_text_embeddings(prompts, text_encoders, tokenizers, max_sequence_len
         text_encoders, tokenizers, prompts, max_sequence_length
     )
     return (
-        prompt_embeds.to(transformer.device),
-        pooled_prompt_embeds.to(transformer.device),
-        text_ids.to(transformer.device),
+        prompt_embeds.to(device),
+        pooled_prompt_embeds.to(device),
+        text_ids.to(device),
     )
 
 
@@ -727,10 +727,10 @@ def main():
 
             with torch.no_grad():
                 emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
-                    target_text_augmented, text_encoders, tokenizers
+                    target_text_augmented, text_encoders, tokenizers, accelerator.device
                 )
                 emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
-                    target_text_augmented, text_encoders, tokenizers
+                    target_text_augmented, text_encoders, tokenizers, accelerator.device
                 )
 
             #     # Get text conditioning for Stable Diffusion
