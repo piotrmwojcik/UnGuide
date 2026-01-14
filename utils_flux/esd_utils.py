@@ -1,5 +1,6 @@
 import torch
 from diffusers.utils.torch_utils import randn_tensor
+import numpy as np
 
 from typing import Any, Callable, Dict, List, Optional, Union
 
