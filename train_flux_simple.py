@@ -869,6 +869,10 @@ def main():
                     #base.hyper.set_context(diag_emb, h_step_tensor)
                     #base.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
 
+                    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                    diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
                     print("generating ", iteration)
