@@ -748,7 +748,7 @@ def main():
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
             base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
-             _, current_timestep = base.hyper.get_context()
+            _, current_timestep = base.hyper.get_context()
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
 
             with torch.no_grad():
