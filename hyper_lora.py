@@ -143,6 +143,12 @@ class HyperLora(nn.Module):
             self.alpha = nn.Parameter(torch.tensor(alpha_init))
 
     def forward_linear_L(self, emb, t):
+        print(
+            self.xL_const_flat.dtype,
+            t.dtype,
+            self.left_head(emb).dtype
+        )
+
         return self.xL_const_flat + t[:, None] / self.train_steps * self.left_head(emb)
 
     def forward_linear_R(self, emb, t):
