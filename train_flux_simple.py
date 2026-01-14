@@ -824,7 +824,7 @@ def main():
 
             # Optimizer step
             if accelerator.sync_gradients:
-                # optimizer.step()
+                optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
 
