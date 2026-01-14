@@ -433,8 +433,8 @@ def main():
         model, target_modules, hyper_lora_factory
     )
 
-    # for layer_name, layer in hyper_lora_layers:
-    #    layer.set_parent_model(model)
+    for layer_name, layer in hyper_lora_layers:
+        layer.set_parent_model(model)
 
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
