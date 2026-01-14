@@ -152,7 +152,7 @@ class HyperLora(nn.Module):
         return self.alpha_b + t[:, None] / self.train_steps * self.alpha
 
     def get_lora_matrices(self, clip, t):
-        t_feats = self.time_feat(t)
+        t_feats = self.time_feat(t).to(dtype=torch.bfloat16)
 
         emb = clip
         if self.use_orig_concat and clip.shape[-1] == self.clip_size:
