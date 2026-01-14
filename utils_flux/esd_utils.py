@@ -129,9 +129,27 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
 
     # print("PE 20241127",text_ids.shape, latent_image_ids.shape)
 
+    sigmas = np.linspace(1.0, 1 / timesteps, timesteps)
+    image_seq_len = latents.shape[1]
+    mu = calculate_shift(
+        image_seq_len,
+        scheduler.config.base_image_seq_len,
+        scheduler.config.max_image_seq_len,
+        scheduler.config.base_shift,
+        scheduler.config.max_shift,
+    )
+    timesteps_tensor, _ = retrieve_timesteps(
+        scheduler,
+        num_inference_steps,
+        device,
+        timesteps,
+        sigmas,
+        mu=mu,
+    )
+
     model_pred, _ = transformer(
         hidden_states=latent_code.to(device),
-        timestep=(timesteps / 1000).to(device),
+        timestep=(timesteps_tensor / 1000).to(device),
         guidance=guidance,
         pooled_projections=pooled_prompt_embeds.to(device),
         encoder_hidden_states=prompt_embeds.to(device),
