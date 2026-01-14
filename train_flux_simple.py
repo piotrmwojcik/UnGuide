@@ -904,10 +904,10 @@ def main():
                     for imgs in imgs_per_prompt:
                         if imgs is None:
                             continue
-                        # Take the first image in the batch and convert to uint8
-                        img = imgs[0].clamp(0, 1)  # (C, H, W)
-                        im_uint8 = (img * 255).round().to(torch.uint8).cpu()
-                        row_tensors.append(im_uint8)
+
+                        # Take the first image (assumed to be PIL.Image)
+                        img = imgs[0]
+                        row_tensors.append(img)
 
                     if len(row_tensors) > 0:
                         # Concatenate horizontally to form a row: (C, H, sum_W)
