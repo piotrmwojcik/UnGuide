@@ -146,6 +146,7 @@ class HyperLora(nn.Module):
         print(
             self.xL_const_flat.dtype,
             t.dtype,
+            emb.dtype,
             self.left_head(emb).dtype
         )
 
