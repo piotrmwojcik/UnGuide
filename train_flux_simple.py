@@ -635,6 +635,21 @@ def main():
         #
         #vae_scale_factor = 2 ** (len(vae_config_block_out_channels))
 
+        num_channels = vae.config.latent_channels
+
+        image_h = 512
+        image_w = 512
+
+        latent_h = image_h // vae_scale_factor
+        latent_w = image_w // vae_scale_factor
+        bsz = 1
+        # --- Create dummy latent ---
+        model_input = torch.zeros(
+            (bsz, num_channels, latent_h, latent_w),
+            device=vae.device,
+            dtype=weight_dtype,
+        )
+
         # (ESD) start_guidance = 3
         start_guidance = 3
         start_guidance = torch.tensor([start_guidance], device=accelerator.device)
