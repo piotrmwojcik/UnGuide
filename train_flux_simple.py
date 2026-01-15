@@ -908,7 +908,7 @@ def main():
 
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
-        if is_main and use_wandb:
+        if accelerator.is_main_process and use_wandb:
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item())
