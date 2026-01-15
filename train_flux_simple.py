@@ -921,7 +921,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 50 == 0:
+        if is_main and use_wandb and (iteration + 1) % 20 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
