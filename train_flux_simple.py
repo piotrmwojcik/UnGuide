@@ -966,6 +966,24 @@ def main():
                     diag_pipe.transformer = base
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
+                    down = 8  # typical VAE downsample; Flux is usually 8
+                    latent_h = resolution // down
+                    latent_w = resolution // down
+
+                    # Flux often uses 16 latent channels; try to read it if available
+                    latent_c = getattr(getattr(base, "config", None), "in_channels", None)
+                    if latent_c is None:
+                        latent_c = getattr(getattr(diag_pipe.transformer, "config", None), "in_channels", 16)
+                    if latent_c is None:
+                        latent_c = 16
+
+                    latents = torch.randn(
+                        (1, latent_c, latent_h, latent_w),
+                        device=device,
+                        dtype=weight_dtype,
+                        generator=generator,
+                    )
+
                     with torch.no_grad():
                         imgs = diag_pipe(
                             prompt=diag_prompt,
@@ -973,6 +991,7 @@ def main():
                             num_inference_steps=50,
                             height=resolution,
                             width=resolution,
+                            latents=latents,
                             generator=generator,
                             max_sequence_length=256,
                         ).images
