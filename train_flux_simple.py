@@ -975,9 +975,9 @@ def main():
                     imgs_per_prompt.append(imgs)
 
                 # 5) Move encoders/VAE back to CPU to free VRAM for training
-                diag_pipe.text_encoder.to("cpu")
-                diag_pipe.text_encoder_2.to("cpu")
-                diag_pipe.vae.to("cpu")
+                #diag_pipe.text_encoder.to("cpu")
+                #diag_pipe.text_encoder_2.to("cpu")
+                #diag_pipe.vae.to("cpu")
                 torch.cuda.empty_cache()
 
                 # 6) Log a single concatenated image to W&B
