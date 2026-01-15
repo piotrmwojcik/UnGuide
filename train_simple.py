@@ -569,7 +569,7 @@ def main():
         if is_main:
             pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.6f}", "remove": f"{float(loss_remove_reduced.item()):.6f}"})
         
-        if is_main and use_wandb and (iteration + 1) % 200 == 0:
+        if is_main and use_wandb and (iteration + 1) % 100 == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 inputs_diag = encode(diag_prompt)
                 with torch.no_grad():
