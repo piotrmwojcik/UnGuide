@@ -145,6 +145,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         scheduler.config.max_shift,
     )
 
+    timesteps = None
     # If you were passing an integer timesteps count, keep it:
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
         scheduler,
