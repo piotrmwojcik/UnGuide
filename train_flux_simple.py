@@ -842,6 +842,7 @@ def main():
 
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
             delta_live = tensors_flat_t1 - tensors_flat_t
+            print('!!!! ', delta_live.shape, grads_flat_t.shape)
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove)
 
