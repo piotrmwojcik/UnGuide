@@ -965,7 +965,7 @@ def main():
                     diag_pipe.transformer = base
 
                     # Make pipeline execute on same device for this call
-                    diag_pipe.to(device)
+                    diag_pipe._execution_device = device  # works for most diffusers pipelines
 
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
