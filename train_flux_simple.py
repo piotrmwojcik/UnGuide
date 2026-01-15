@@ -793,8 +793,8 @@ def main():
             e_p.requires_grad = False
 
 
-            loss_aux = criterion(e_n.to(transformer.device), e_0.to(transformer.device) - (
-                        negative_guidance * (e_p.to(transformer.device) - e_0.to(transformer.device))))
+            loss_aux = criterion(e_n.to(accelerator.device), e_0.to(accelerato.device) - (
+                        negative_guidance * (e_p.to(accelerato.device) - e_0.to(accelerato.device))))
 
 
             # with torch.no_grad():

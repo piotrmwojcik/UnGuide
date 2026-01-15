@@ -210,6 +210,15 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
     if timesteps.dtype in (torch.bfloat16, torch.float16):
         timesteps = timesteps.to(torch.float32)
 
+    if text_ids.dim() == 3:
+        text_ids = text_ids[0]
+    elif text_ids.dim() == 2:
+        text_ids = text_ids
+    else:
+        raise ValueError(f"Unexpected txt_ids shape: {text_ids.shape}")
+
+    text_ids = text_ids.to(dtype=torch.bfloat16)
+
     model_pred= transformer(
         hidden_states=latent_code.to(device),
         timestep=(timesteps / 1000).to(device),
