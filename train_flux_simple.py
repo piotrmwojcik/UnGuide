@@ -771,13 +771,13 @@ def main():
                     t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
                     e_0 = predict_noise(
-                        model, z, emb_0, pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
+                        model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
                         timesteps=t_ddpm,
                         CPU_only=True,
                     )
                     e_p = predict_noise(
-                        model, z, emb_p, pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                        model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                         guidance=start_guidance,
                         timesteps=t_ddpm,
                         CPU_only=True,
@@ -787,7 +787,7 @@ def main():
             _, current_timestep = base.hyper.get_context()
             base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
 
-            e_n = predict_noise(transformer, z, emb_p, pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+            e_n = predict_noise(transformer, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                                 guidance=start_guidance, timesteps=t, CPU_only=True)
             e_0.requires_grad = False
             e_p.requires_grad = False
