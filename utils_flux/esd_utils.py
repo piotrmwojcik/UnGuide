@@ -210,7 +210,7 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
     if timesteps.dtype in (torch.bfloat16, torch.float16):
         timesteps = timesteps.to(torch.float32)
 
-    model_pred, _ = transformer(
+    model_pred= transformer(
         hidden_states=latent_code.to(device),
         timestep=(timesteps / 1000).to(device),
         guidance=guidance,
