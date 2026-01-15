@@ -629,7 +629,7 @@ def main():
             "max_train_steps": max_train_steps,
             "final_loss": losses[-1],
         }
-        with open(os.path.join(final_save_path, "train_config_2.json"), "w") as f:
+        with open(os.path.join(final_save_path, "train_config.json"), "w") as f:
             json.dump(config_save, f, indent=2)
     
     if is_main and use_wandb:
