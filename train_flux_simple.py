@@ -754,19 +754,20 @@ def main():
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
 
+
             with torch.no_grad():
-                z, latent_image_ids = latent_sample(model,
-                                                    noise_scheduler,
-                                                    1,
-                                                    model_input.shape[1],
-                                                    512,
-                                                    512,
-                                                    emb_p.to(accelerator.device),
-                                                    pooled_emb_p.to(accelerator.device),
-                                                    text_ids_p.to(accelerator.device),
-                                                    start_guidance,
-                                                    int(t_enc))
                 with model.hyper.no_lora():
+                    z, latent_image_ids = latent_sample(model,
+                                                        noise_scheduler,
+                                                        1,
+                                                        model_input.shape[1],
+                                                        512,
+                                                        512,
+                                                        emb_p.to(accelerator.device),
+                                                        pooled_emb_p.to(accelerator.device),
+                                                        text_ids_p.to(accelerator.device),
+                                                        start_guidance,
+                                                        int(t_enc))
                     t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
                     e_0 = predict_noise(
