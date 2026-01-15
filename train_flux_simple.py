@@ -958,15 +958,12 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
 
+                    base = accelerator.unwrap_model(model)
                     device = accelerator.device
-                    base = accelerator.unwrap_model(model)  # training model (stays on GPU)
-
-                    # Attach live model
+                    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+                    diag_pipe.transformer = None
+                    diag_pipe.to(device)
                     diag_pipe.transformer = base
-
-                    # Make pipeline execute on same device for this call
-                    #diag_pipe._execution_device = device  # works for most diffusers pipelines
-
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
                     with torch.no_grad():
@@ -980,10 +977,9 @@ def main():
                             max_sequence_length=256,
                         ).images
 
-                    imgs_per_prompt.append(imgs)
-                    diag_pipe.text_encoder.to("cpu")
-                    diag_pipe.text_encoder_2.to("cpu")
-                    diag_pipe.vae.to("cpu")
+                    diag_pipe.transformer = None
+                    diag_pipe.to("cpu")
+                    diag_pipe.transformer = base
 
                     # keep cache from accumulating between steps
                     if hasattr(base.hyper, "clear_cache"):
