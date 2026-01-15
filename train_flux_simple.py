@@ -955,9 +955,9 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
 
-                    #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                    #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
-                    #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+                    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                    diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
                     generator = torch.Generator(device="cpu").manual_seed(diag_seed)
 
@@ -977,8 +977,8 @@ def main():
                     imgs_per_prompt.append(imgs)
 
                 # 5) Move encoders/VAE back to CPU to free VRAM for training
-                #diag_pipe.text_encoder.to("cpu")
-                #diag_pipe.text_encoder_2.to("cpu")
+                diag_pipe.text_encoder.to("cpu")
+                diag_pipe.text_encoder_2.to("cpu")
                 diag_pipe.vae.to("cpu")
                 torch.cuda.empty_cache()
                 import gc
