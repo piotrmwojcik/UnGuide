@@ -29,7 +29,7 @@ UnGuide_Dog:
   gradient_accumulation_steps: 1
 
   # LoRA configuration
-  rank: 1
+  rank: 3
   lora_alpha: 5.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
   
