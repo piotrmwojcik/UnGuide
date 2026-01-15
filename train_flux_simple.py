@@ -980,6 +980,8 @@ def main():
                             max_sequence_length=256,
                         ).images
 
+                    imgs_per_prompt.append(imgs)
+
                     # keep cache from accumulating between steps
                     if hasattr(base.hyper, "clear_cache"):
                         base.hyper.clear_cache()
