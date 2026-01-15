@@ -952,46 +952,42 @@ def main():
                 #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
                 #diag_pipe.vae.to(device=device, dtype=weight_dtype).eval()  # single dtype
 
+                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+
                 for h_step in diag_time_steps:
                     h_step_tensor = torch.tensor([h_step], device=device, dtype=weight_dtype)
 
-                    base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
-                    base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
+                    # Enable these if you want hyper-time to change the result
+                    base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
+                    base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype),
+                                                       h_step_tensor.to(dtype=weight_dtype))
 
-                    for h_step in diag_time_steps:
-                        h_step_tensor = torch.tensor([h_step], device=device)
 
-                        # Enable these if you want hyper-time to change the result
-                        base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
-                        base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype),
-                                                           h_step_tensor.to(dtype=weight_dtype))
+                    #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
-                        diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                        diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
-                        #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+                    generator = torch.Generator(device=device).manual_seed(diag_seed)
 
-                        generator = torch.Generator(device=device).manual_seed(diag_seed)
+                    with torch.no_grad():
+                        # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
+                        diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
+                        imgs = diag_pipe(
+                            prompt=diag_prompt,
+                            guidance_scale=guidance_scale,
+                            num_inference_steps=50,
+                            height=resolution,
+                            width=resolution,
+                            generator=generator,
+                            max_sequence_length=256,
+                        ).images
 
-                        with torch.no_grad():
-                            # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
-                            diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
-                            imgs = diag_pipe(
-                                prompt=diag_prompt,
-                                guidance_scale=guidance_scale,
-                                num_inference_steps=50,
-                                height=resolution,
-                                width=resolution,
-                                generator=generator,
-                                max_sequence_length=256,
-                            ).images
-
-                        imgs_per_prompt.append(imgs)
+                    imgs_per_prompt.append(imgs)
 
                     # 5) Move encoders/VAE back to CPU to free VRAM for training
                     # diag_pipe.text_encoder.to("cpu")
                     # diag_pipe.text_encoder_2.to("cpu")
                     # diag_pipe.vae.to("cpu")
-                    torch.cuda.empty_cache()
+                    #torch.cuda.empty_cache()
 
                     # 6) Log a single concatenated image to W&B
                     if len(imgs_per_prompt) > 0:
@@ -1003,12 +999,12 @@ def main():
 
                             # Take the first image (assumed to be PIL.Image)
                             img = imgs[0]
-                            img = to_tensor(img).clamp(0, 1)
+                            img = to_tensor(img).clamp(0, 1).cpu()
                             row_tensors.append(img)
 
                         if len(row_tensors) > 0:
                             # Concatenate horizontally to form a row: (C, H, sum_W)
-                            row = torch.cat(row_tensors, dim=2)
+                            row = torch.cat(row_tensors, dim=2).cpu()
 
                             # Clean prompt for wandb key (remove spaces and special chars)
                             safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
