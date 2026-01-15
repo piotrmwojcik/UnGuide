@@ -921,7 +921,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 5 == 0:
+        if is_main and use_wandb and (iteration + 1) % 2 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -958,7 +958,7 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
 
-                    generator = torch.Generator(device="cpu").manual_seed(diag_seed)
+                    generator = torch.Generator(device=device).manual_seed(diag_seed)
 
                     with torch.no_grad():
                         imgs = diag_pipe(
