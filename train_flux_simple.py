@@ -307,7 +307,7 @@ def main():
     pretrained_model_name_or_path = config.get('pretrained_model_name_or_path', "black-forest-labs/FLUX.1-dev")
 
     # Training settings
-    ddim_steps = 50
+    ddim_steps = 28
     ddim_eta = 0.0
     negative_guidance = config.get('negative_guidance', 2.0)
     guidance_scale = config.get('guidance_scale', 7.5)
