@@ -921,7 +921,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 20 == 0:
+        if is_main and use_wandb and (iteration + 1) % 5 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -959,7 +959,7 @@ def main():
                     #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
                     #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
-                    generator = torch.Generator(device=device).manual_seed(diag_seed)
+                    generator = torch.Generator(device=cpu).manual_seed(diag_seed)
 
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
@@ -979,7 +979,7 @@ def main():
                 # 5) Move encoders/VAE back to CPU to free VRAM for training
                 #diag_pipe.text_encoder.to("cpu")
                 #diag_pipe.text_encoder_2.to("cpu")
-                #diag_pipe.vae.to("cpu")
+                diag_pipe.vae.to("cpu")
                 torch.cuda.empty_cache()
                 import gc
                 gc.collect()
