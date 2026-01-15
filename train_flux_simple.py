@@ -384,8 +384,8 @@ def main():
     )
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two,
                                                             pretrained_model_name_or_path)
-    text_encoder_one =text_encoder_one.to(accelerator.device)
-    text_encoder_two = text_encoder_two.to(accelerator.device)
+    #text_encoder_one =text_encoder_one.to(accelerator.device)
+    #text_encoder_two = text_encoder_two.to(accelerator.device)
     vae = AutoencoderKL.from_pretrained(
         pretrained_model_name_or_path,
         subfolder="vae",
@@ -955,9 +955,9 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
 
-                    diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                    diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
-                    diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
+                    #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                    #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                    #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
@@ -981,6 +981,8 @@ def main():
                 #diag_pipe.text_encoder_2.to("cpu")
                 #diag_pipe.vae.to("cpu")
                 torch.cuda.empty_cache()
+                import gc
+                gc.collect()
 
                 # 6) Log a single concatenated image to W&B
                 if len(imgs_per_prompt) > 0:
