@@ -638,7 +638,7 @@ def main():
         vae_config_block_out_channels = diag_pipe.vae.config.block_out_channels
 
         # # Random timestep
-        t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
+        t_enc = torch.randint(1, ddim_steps, (1,), device=accelerator.device)
         og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
@@ -754,20 +754,19 @@ def main():
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
 
-
             with torch.no_grad():
+                z, latent_image_ids = latent_sample(model,
+                                                    noise_scheduler,
+                                                    1,
+                                                    model_input.shape[1],
+                                                    512,
+                                                    512,
+                                                    emb_p.to(accelerator.device),
+                                                    pooled_emb_p.to(accelerator.device),
+                                                    text_ids_p.to(accelerator.device),
+                                                    start_guidance,
+                                                    int(t_enc))
                 with model.hyper.no_lora():
-                    z, latent_image_ids = latent_sample(model,
-                                                        noise_scheduler,
-                                                        1,
-                                                        model_input.shape[1],
-                                                        512,
-                                                        512,
-                                                        emb_p.to(accelerator.device),
-                                                        pooled_emb_p.to(accelerator.device),
-                                                        text_ids_p.to(accelerator.device),
-                                                        start_guidance,
-                                                        int(t_enc))
                     t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
                     e_0 = predict_noise(
