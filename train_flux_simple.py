@@ -787,7 +787,7 @@ def main():
             _, current_timestep = base.hyper.get_context()
             base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
 
-            e_n = predict_noise(transformer, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+            e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                                 guidance=start_guidance, timesteps=t, CPU_only=True)
             e_0.requires_grad = False
             e_p.requires_grad = False
