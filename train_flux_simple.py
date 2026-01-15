@@ -958,67 +958,70 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
 
-                    base = accelerator.unwrap_model(model)
-                    device = accelerator.device
-                    weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
-                    diag_pipe.transformer = None
-                    diag_pipe.to(device)
-                    diag_pipe.transformer = base
-                    generator = torch.Generator(device=device).manual_seed(diag_seed)
+                    for h_step in diag_time_steps:
+                        h_step_tensor = torch.tensor([h_step], device=device)
 
-                    down = 8  # typical VAE downsample; Flux is usually 8
-                    latent_h = resolution // down
-                    latent_w = resolution // down
+                        # Enable these if you want hyper-time to change the result
+                        base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
+                        base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype),
+                                                           h_step_tensor.to(dtype=weight_dtype))
 
-                    # Flux often uses 16 latent channels; try to read it if available
-                    latent_c = getattr(getattr(base, "config", None), "in_channels", None)
-                    if latent_c is None:
-                        latent_c = getattr(getattr(diag_pipe.transformer, "config", None), "in_channels", 16)
-                    if latent_c is None:
-                        latent_c = 16
+                        diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                        diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                        #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
-                    latents = torch.randn(
-                        (1, latent_c, latent_h, latent_w),
-                        device=device,
-                        dtype=weight_dtype,
-                        generator=generator,
-                    )
+                        generator = torch.Generator(device=device).manual_seed(diag_seed)
 
-                    with torch.no_grad():
-                        imgs = diag_pipe(
-                            prompt=diag_prompt,
-                            guidance_scale=guidance_scale,
-                            num_inference_steps=50,
-                            height=resolution,
-                            width=resolution,
-                            latents=latents,
-                            generator=generator,
-                            max_sequence_length=256,
-                        ).images
+                        with torch.no_grad():
+                            # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
+                            diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
+                            imgs = diag_pipe(
+                                prompt=diag_prompt,
+                                guidance_scale=guidance_scale,
+                                num_inference_steps=50,
+                                height=resolution,
+                                width=resolution,
+                                generator=generator,
+                                max_sequence_length=256,
+                            ).images
 
-                    imgs_per_prompt.append(imgs)
+                        imgs_per_prompt.append(imgs)
 
-                    diag_pipe.transformer = None
-                    diag_pipe.to("cpu")
-                    diag_pipe.transformer = base
+                    # 5) Move encoders/VAE back to CPU to free VRAM for training
+                    # diag_pipe.text_encoder.to("cpu")
+                    # diag_pipe.text_encoder_2.to("cpu")
+                    # diag_pipe.vae.to("cpu")
+                    torch.cuda.empty_cache()
 
-                    # keep cache from accumulating between steps
-                    if hasattr(base.hyper, "clear_cache"):
-                        base.hyper.clear_cache()
+                    # 6) Log a single concatenated image to W&B
+                    if len(imgs_per_prompt) > 0:
+                        row_tensors = []
 
+                        for imgs in imgs_per_prompt:
+                            if imgs is None:
+                                continue
 
-                # Reset hyper context so training is "clean"
-                if hasattr(base.hyper, "reset_context"):
-                    base.hyper.reset_context()
+                            # Take the first image (assumed to be PIL.Image)
+                            img = imgs[0]
+                            img = to_tensor(img).clamp(0, 1)
+                            row_tensors.append(img)
 
-                # DO NOT do this every time; it often causes slowdown
-                # torch.cuda.empty_cache()
+                        if len(row_tensors) > 0:
+                            # Concatenate horizontally to form a row: (C, H, sum_W)
+                            row = torch.cat(row_tensors, dim=2)
 
-                import gc
-                gc.collect()
+                            # Clean prompt for wandb key (remove spaces and special chars)
+                            safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
 
-                # Restore training mode (important)
-                base.train()
+                            wandb.log(
+                                {
+                                    f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
+                                        to_pil_image(row),
+                                        caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
+                                    )
+                                },
+                                step=iteration,
+                            )
 
                 # 6) Log a single concatenated image to W&B
                 if len(imgs_per_prompt) > 0:
