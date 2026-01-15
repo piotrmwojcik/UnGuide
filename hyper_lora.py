@@ -153,7 +153,7 @@ class HyperLora(nn.Module):
         self.right_head = nn.Sequential(
             nn.Linear(hyper_input_size, 100),
             nn.ReLU(inplace=True),
-            nn.Linear(300, out_dim * rank),
+            nn.Linear(100, out_dim * rank),
         ).to(dtype=self.dtype)
         self.time_feat = TimeFourier(T=self.train_steps + 1, dtype=self.dtype)
 
