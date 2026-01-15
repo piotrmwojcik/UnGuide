@@ -610,7 +610,21 @@ def main():
                         row = torch.cat(row_tensors, dim=2)
                         safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
                         wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(row), caption=f"{diag_prompt} | hyper steps: {diag_time_steps}")}, step=iteration)
-    
+
+            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(final_save_path, exist_ok=True)
+
+            # Save LoRA weights
+            lora_state_dict = {}
+            model_unwrapped = accelerator.unwrap_model(model)
+            for name, param in model_unwrapped.model.diffusion_model.named_parameters():
+                if param.requires_grad:
+                    lora_state_dict[name] = param.detach().cpu().clone()
+
+            lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
+            accelerator.save(lora_state_dict, lora_path)
+            print(f"Model saved to: {lora_path}")
+
     accelerator.wait_for_everyone()
     if is_main:
         print(f"Final loss: {losses[-1]:.6f}")
