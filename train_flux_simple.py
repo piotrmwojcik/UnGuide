@@ -384,6 +384,8 @@ def main():
     )
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two,
                                                             pretrained_model_name_or_path)
+    text_encoder_one =text_encoder_one.to(accelerator.device)
+    text_encoder_two = text_encoder_two.to(accelerator.device)
     vae = AutoencoderKL.from_pretrained(
         pretrained_model_name_or_path,
         subfolder="vae",
