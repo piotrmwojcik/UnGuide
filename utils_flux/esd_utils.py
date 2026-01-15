@@ -150,7 +150,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         scheduler,
         num_inference_steps,
         transformer.device,
-        num_inference_steps,
+        timesteps,
         sigmas,
         mu=mu,
     )
