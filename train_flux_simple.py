@@ -958,7 +958,7 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
 
-                    generator = torch.Generator(device=cpu).manual_seed(diag_seed)
+                    generator = torch.Generator(device="cpu").manual_seed(diag_seed)
 
                     with torch.no_grad():
                         imgs = diag_pipe(
