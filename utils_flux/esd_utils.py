@@ -180,7 +180,9 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
             return_dict=False,
         )
 
-        # compute the previous noisy sample x_t -> x_t-1
+        if isinstance(noise_pred, (tuple, list)):
+            noise_pred = noise_pred[0]
+
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
     return latents, latent_image_ids
