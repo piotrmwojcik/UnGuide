@@ -832,12 +832,12 @@ def main():
             #        p.grad = None
 
             _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-            base.hyper.set_context(target_emb, current_timestep)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            base.hyper.set_context(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
             tensors_flat_t = base.hyper.flatten_cached_from_cache()
 
-            base.hyper.set_context(target_emb, current_timestep + 1)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
+            base.hyper.set_context(target_emb.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
+            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
             tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
 
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
@@ -865,7 +865,7 @@ def main():
                 dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
 
                 hyper.compute_and_cache_loras(
-                    batch_prompts.to(dtype=dtype),
+                    batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
                     torch.zeros(B, device=accelerator.device, dtype=dtype),
                 )
 
