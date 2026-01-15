@@ -981,6 +981,9 @@ def main():
                         ).images
 
                     imgs_per_prompt.append(imgs)
+                    diag_pipe.text_encoder.to("cpu")
+                    diag_pipe.text_encoder_2.to("cpu")
+                    diag_pipe.vae.to("cpu")
 
                     # keep cache from accumulating between steps
                     if hasattr(base.hyper, "clear_cache"):
