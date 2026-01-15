@@ -768,17 +768,29 @@ def main():
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
                                                         int(ddim_steps))
-                    print('!!!! ', t_enc_ddpm)
+                    t = t_enc_ddpm.to(accelerator.device)  # keep dtype
+                    # or force int64 explicitly:
+                    t = t.to(torch.int64)
                     e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
-                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device, dtype=weight_dtype),
+                                        guidance=start_guidance, timesteps=t,
                                         CPU_only=True)
                     e_p = predict_noise(model, z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids,
-                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device, dtype=weight_dtype),
+                                        guidance=start_guidance, timesteps=t,
                                         CPU_only=True)
 
             base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
             base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+
+            e_n = predict_noise(transformer, z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids,
+                                guidance=start_guidance, timesteps=t, CPU_only=True)
+            e_0.requires_grad = False
+            e_p.requires_grad = False
+
+
+            loss_aux = criterion(e_n.to(transformer.device), e_0.to(transformer.device) - (
+                        negative_guidance * (e_p.to(transformer.device) - e_0.to(transformer.device))))
+
 
             # with torch.no_grad():
             #     # Generate latent using target prompt
@@ -799,35 +811,34 @@ def main():
             # target = e_m - (negative_guidance * (e_p - e_m))
             # loss_aux = criterion(e_n, target)
             #
-            # accelerator.backward(loss_aux)
-            #
-            # # --- use cached LoRA grads instead of live-tensor grads ---
-            # grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
-            # if grads_flat_t is None:
-            #     raise RuntimeError(
-            #         "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
-            #
-            # # Target step: Δθ ≈ -lr * g_t  (keep target detached)
-            # grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
-            #
-            # #for p in trainable_params:
-            # #    if p.grad is not None:
-            # #        p.grad = None
-            #
-            # _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-            # base.hyper.set_context(target_emb, current_timestep)
-            # base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            # tensors_flat_t = base.hyper.flatten_cached_from_cache()
-            #
-            # base.hyper.set_context(target_emb, current_timestep + 1)
-            # base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
-            # tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
-            #
-            # # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
-            # delta_live = tensors_flat_t1 - tensors_flat_t
-            # loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
-            # accelerator.backward(loss_remove)
-            loss_remove = torch.tensor(0.0, device=accelerator.device)
+            accelerator.backward(loss_aux)
+
+            # --- use cached LoRA grads instead of live-tensor grads ---
+            grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
+            if grads_flat_t is None:
+                raise RuntimeError(
+                    "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
+
+            # Target step: Δθ ≈ -lr * g_t  (keep target detached)
+            grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
+
+            #for p in trainable_params:
+            #    if p.grad is not None:
+            #        p.grad = None
+
+            _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
+            base.hyper.set_context(target_emb, current_timestep)
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            tensors_flat_t = base.hyper.flatten_cached_from_cache()
+
+            base.hyper.set_context(target_emb, current_timestep + 1)
+            base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
+            tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
+
+            # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
+            delta_live = tensors_flat_t1 - tensors_flat_t
+            loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+            accelerator.backward(loss_remove)
 
             if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
