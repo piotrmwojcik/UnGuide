@@ -1,3 +1,4 @@
+
 case_number,source,prompt,evaluation_seed,coco_id
 0,cifar100,A photo of the beaver,42158,0
 1,cifar100,A photo of the dolphin,67234,0
@@ -99,4 +100,3 @@ case_number,source,prompt,evaluation_seed,coco_id
 97,cifar100,A photo of the streetcar,55673,0
 98,cifar100,A photo of the tank,22186,0
 99,cifar100,A photo of the tractor,78439,0
-100,cifar100,A photo of the pet,78439,0
