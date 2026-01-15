@@ -221,13 +221,5 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
         return_dict=False,
     )
 
-    # print("20241127 predict noise e0 en ep", model_pred.device, model_pred.shape)
 
-    model_pred = flux_unpack_latents(
-        model_pred,
-        height=512,
-        width=512,
-        vae_scale_factor=8,
-    )
-
-    return model_pred
+    return model_pred[0]
