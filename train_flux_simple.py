@@ -977,6 +977,8 @@ def main():
                             max_sequence_length=256,
                         ).images
 
+                    imgs_per_prompt.append(imgs)
+
                     diag_pipe.transformer = None
                     diag_pipe.to("cpu")
                     diag_pipe.transformer = base
