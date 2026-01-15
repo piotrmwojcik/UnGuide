@@ -959,7 +959,7 @@ def main():
                     #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
                     #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
-                    generator = torch.Generator(device=cpu).manual_seed(diag_seed)
+                    generator = torch.Generator(device="cpu").manual_seed(diag_seed)
 
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
