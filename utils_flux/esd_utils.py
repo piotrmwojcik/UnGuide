@@ -146,6 +146,15 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         scheduler.config.max_shift,
     )
 
+    if text_ids.dim() == 3:
+        text_ids = text_ids[0]
+    elif text_ids.dim() == 2:
+        text_ids = text_ids
+    else:
+        raise ValueError(f"Unexpected txt_ids shape: {text_ids.shape}")
+
+    text_ids = text_ids.to(dtype=torch.bfloat16)
+
     timesteps = None
     # If you were passing an integer timesteps count, keep it:
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
@@ -199,29 +208,10 @@ def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds,
     else:
         device = torch.device("cuda:1")
 
-    # print("PE 20241127",text_ids.shape, latent_image_ids.shape)
 
-    sigmas = np.linspace(1.0, 1 / timesteps, timesteps)
-    image_seq_len = latents.shape[1]
-    mu = calculate_shift(
-        image_seq_len,
-        scheduler.config.base_image_seq_len,
-        scheduler.config.max_image_seq_len,
-        scheduler.config.base_shift,
-        scheduler.config.max_shift,
-    )
-    timesteps_tensor, _ = retrieve_timesteps(
-        scheduler,
-        num_inference_steps,
-        device,
-        timesteps,
-        sigmas,
-        mu=mu,
-    )
-    print('!!! ', timesteps_tensor, timesteps)
     model_pred, _ = transformer(
         hidden_states=latent_code.to(device),
-        timestep=(timesteps_tensor / 1000).to(device),
+        timestep=(timesteps / 1000).to(device),
         guidance=guidance,
         pooled_projections=pooled_prompt_embeds.to(device),
         encoder_hidden_states=prompt_embeds.to(device),
