@@ -948,9 +948,9 @@ def main():
 
                 diag_seed = 12345  # fixed so noise identical across h_step
                 imgs_per_prompt = []
-                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
-                diag_pipe.vae.to(device=device, dtype=weight_dtype).eval()  # single dtype
+                #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                #diag_pipe.vae.to(device=device, dtype=weight_dtype).eval()  # single dtype
 
                 for h_step in diag_time_steps:
                     h_step_tensor = torch.tensor([h_step], device=device, dtype=weight_dtype)
@@ -1021,8 +1021,8 @@ def main():
                             step=iteration,
                         )
             # Move back to CPU (fine)
-            diag_pipe.text_encoder.to("cpu")
-            diag_pipe.text_encoder_2.to("cpu")
+            #diag_pipe.text_encoder.to("cpu")
+            #diag_pipe.text_encoder_2.to("cpu")
             diag_pipe.vae.to("cpu")
 
         # Save model
