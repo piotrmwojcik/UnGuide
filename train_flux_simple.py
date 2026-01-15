@@ -958,6 +958,15 @@ def main():
                     base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor)
                     base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype), h_step_tensor)
 
+                    device = accelerator.device
+                    base = accelerator.unwrap_model(model)  # training model (stays on GPU)
+
+                    # Attach live model
+                    diag_pipe.transformer = base
+
+                    # Make pipeline execute on same device for this call
+                    diag_pipe.to(device)
+
                     generator = torch.Generator(device=device).manual_seed(diag_seed)
 
                     with torch.no_grad():
@@ -970,8 +979,6 @@ def main():
                             generator=generator,
                             max_sequence_length=256,
                         ).images
-
-                    imgs_per_prompt.append(imgs)
 
                     # keep cache from accumulating between steps
                     if hasattr(base.hyper, "clear_cache"):
