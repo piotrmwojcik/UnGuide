@@ -767,7 +767,7 @@ def main():
                                                         pooled_emb_p.to(accelerator.device),
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
-                                                        int(ddim_steps))
+                                                        int(t_enc))
                     t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
                     e_0 = predict_noise(
