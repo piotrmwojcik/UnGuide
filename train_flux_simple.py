@@ -754,34 +754,27 @@ def main():
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
 
-            latent_image_ids = FluxPipeline._prepare_latent_image_ids(
-                model_input.shape[0],
-                model_input.shape[2] // 2,
-                model_input.shape[3] // 2,
-                transformer.device,
-                weight_dtype,
-            )
 
-            # with torch.no_grad():
-            #     with model.hyper.no_lora():
-            #         z, latent_image_ids = latent_sample(model,
-            #                                             noise_scheduler,
-            #                                             1,
-            #                                             model_input.shape[1],
-            #                                             512,
-            #                                             512,
-            #                                             emb_p.to(accelerator.device),
-            #                                             pooled_emb_p.to(accelerator.device),
-            #                                             text_ids_p.to(accelerator.device),
-            #                                             start_guidance,
-            #                                             int(ddim_steps))
-            #         print('!!!! ', t_enc_ddpm)
-            #         e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
-            #                             guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
-            #                             CPU_only=True)
-            #         e_p = predict_noise(model, z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids,
-            #                             guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
-            #                             CPU_only=True)
+            with torch.no_grad():
+                with model.hyper.no_lora():
+                    z, latent_image_ids = latent_sample(model,
+                                                        noise_scheduler,
+                                                        1,
+                                                        model_input.shape[1],
+                                                        512,
+                                                        512,
+                                                        emb_p.to(accelerator.device),
+                                                        pooled_emb_p.to(accelerator.device),
+                                                        text_ids_p.to(accelerator.device),
+                                                        start_guidance,
+                                                        int(ddim_steps))
+                    print('!!!! ', t_enc_ddpm)
+                    e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
+                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
+                                        CPU_only=True)
+                    e_p = predict_noise(model, z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids,
+                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
+                                        CPU_only=True)
 
             base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
