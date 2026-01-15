@@ -770,10 +770,10 @@ def main():
                                                         int(ddim_steps))
                     print('!!!! ', t_enc_ddpm)
                     e_0 = predict_noise(model, z, emb_0, pooled_emb_0, text_ids_0, latent_image_ids,
-                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
+                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device, dtype=weight_dtype),
                                         CPU_only=True)
                     e_p = predict_noise(model, z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids,
-                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device),
+                                        guidance=start_guidance, timesteps=t_enc_ddpm.to(accelerator.device, dtype=weight_dtype),
                                         CPU_only=True)
 
             base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
