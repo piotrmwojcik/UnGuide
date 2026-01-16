@@ -242,6 +242,21 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
 
     return latents, latent_image_ids
 
+
+def compute_text_embeddings_short(prompts, text_encoders, tokenizers):
+    # prompts: List[str] or str
+    if isinstance(prompts, str):
+        prompts = [prompts]
+
+    prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
+        text_encoders, tokenizers, prompts, args.max_sequence_length
+    )
+    return (
+        prompt_embeds.to(transformer.device),
+        pooled_prompt_embeds.to(transformer.device),
+        text_ids.to(transformer.device),
+    )
+
 @torch.no_grad()
 def generate_one_image_from_prompt(
     prompt: str,
@@ -269,7 +284,7 @@ def generate_one_image_from_prompt(
 
     # --- Text embeddings (positive prompt only) ---
     prompts = [prompt]
-    emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
+    emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings_short(
         prompts, text_encoders, tokenizers
     )
 
@@ -427,19 +442,6 @@ if __name__ == "__main__":
     tokenizers = [tokenizer_one, tokenizer_two]
     text_encoders = [text_encoder_one, text_encoder_two]
 
-    def compute_text_embeddings(prompts, text_encoders, tokenizers):
-        # prompts: List[str] or str
-        if isinstance(prompts, str):
-            prompts = [prompts]
-
-        prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
-            text_encoders, tokenizers, prompts, args.max_sequence_length
-        )
-        return (
-            prompt_embeds.to(transformer.device),
-            pooled_prompt_embeds.to(transformer.device),
-            text_ids.to(transformer.device),
-        )
 
     # Load Flux pipeline
     #cache_dir = "./models"
