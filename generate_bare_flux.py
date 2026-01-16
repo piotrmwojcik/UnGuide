@@ -317,7 +317,6 @@ def generate_one_image_from_prompt(
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 
-    print('!!! seed: ', seed)
     generator = torch.Generator(device).manual_seed(seed)
 
     with torch.no_grad():
