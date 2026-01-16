@@ -969,20 +969,20 @@ def main():
                                                             text_ids_p.to(accelerator.device),
                                                             start_guidance,
                                                             int(t_enc))
-                    t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
+                        t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
-                    e_0 = predict_noise(
-                        model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
-                        guidance=start_guidance,
-                        timesteps=t_ddpm,
-                        CPU_only=True,
-                    )
-                    e_p = predict_noise(
-                        model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                        guidance=start_guidance,
-                        timesteps=t_ddpm,
-                        CPU_only=True,
-                    )
+                        e_0 = predict_noise(
+                            model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
+                            guidance=start_guidance,
+                            timesteps=t_ddpm,
+                            CPU_only=True,
+                        )
+                        e_p = predict_noise(
+                            model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                            guidance=start_guidance,
+                            timesteps=t_ddpm,
+                            CPU_only=True,
+                        )
 
             base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
