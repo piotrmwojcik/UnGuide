@@ -249,7 +249,7 @@ def compute_text_embeddings_short(prompts, text_encoders, tokenizers):
         prompts = [prompts]
 
     prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
-        text_encoders, tokenizers, prompts, args.max_sequence_length
+        text_encoders, tokenizers, prompts, 256
     )
     return (
         prompt_embeds.to(transformer.device),
