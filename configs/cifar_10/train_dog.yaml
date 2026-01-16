@@ -44,7 +44,7 @@ UnGuide_Dog:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 1.0  # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 0.5  # Weight for retain loss (regularization to preserve other concepts)
   
   # Data and paths
   output_dir: output_pw/dog_pw  # output_dir from args
