@@ -969,7 +969,7 @@ def main():
 
                     imgs = generate_one_image_from_prompt(
                         prompt=diag_prompt,
-                        transformer=transformer,
+                        transformer=base,
                         vae=vae,
                         noise_scheduler=noise_scheduler,
                         text_encoders=text_encoders,
