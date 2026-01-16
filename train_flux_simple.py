@@ -952,8 +952,8 @@ def main():
                 #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
                 #diag_pipe.vae.to(device=device, dtype=weight_dtype).eval()  # single dtype
 
-                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
 
                 for h_step in diag_time_steps:
                     h_step_tensor = torch.tensor([h_step], device=device, dtype=weight_dtype)
