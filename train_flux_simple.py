@@ -26,6 +26,7 @@ from diffusers import FluxPipeline
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from torchvision.transforms.functional import to_tensor
+from generate_bare_flux import retrieve_timesteps, inference_latent_sample, generate_one_image_from_prompt
 from accelerate import Accelerator
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
@@ -966,21 +967,19 @@ def main():
 
                     #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
 
-                    generator = torch.Generator(device=device).manual_seed(diag_seed)
-
-                    with torch.no_grad():
-                        # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
-                        diag_pipe.vae = diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
-                        diag_pipe.vae.eval()
-                        imgs = diag_pipe(
-                            prompt=diag_prompt,
-                            guidance_scale=guidance_scale,
-                            num_inference_steps=50,
-                            height=resolution,
-                            width=resolution,
-                            generator=generator,
-                            max_sequence_length=256,
-                        ).images
+                    imgs = generate_one_image_from_prompt(
+                        prompt=diag_prompt,
+                        transformer=transformer,
+                        vae=vae,
+                        noise_scheduler=noise_scheduler,
+                        text_encoders=text_encoders,
+                        tokenizers=tokenizers,
+                        height=256,
+                        width=256,
+                        num_inference_steps=28,
+                        weight_dtype=weight_dtype,
+                        seed=seed,  # uses your per-row seed
+                    )
 
                     imgs_per_prompt.append(imgs)
 
