@@ -74,6 +74,8 @@ UnHype:
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
 
+  use_latent_cache: false
+
   # LoRA configuration
   rank: 9
   lora_alpha: 9.0
