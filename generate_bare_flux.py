@@ -243,7 +243,7 @@ def inference_latent_sample(transformer, scheduler, batch_size, num_channels_lat
     return latents, latent_image_ids
 
 
-def compute_text_embeddings_short(prompts, text_encoders, tokenizers):
+def compute_text_embeddings_short(prompts, text_encoders, tokenizers, device="cpu"):
     # prompts: List[str] or str
     if isinstance(prompts, str):
         prompts = [prompts]
@@ -252,9 +252,9 @@ def compute_text_embeddings_short(prompts, text_encoders, tokenizers):
         text_encoders, tokenizers, prompts, 256
     )
     return (
-        prompt_embeds.to(transformer.device),
-        pooled_prompt_embeds.to(transformer.device),
-        text_ids.to(transformer.device),
+        prompt_embeds.to(device),
+        pooled_prompt_embeds.to(device),
+        text_ids.to(device),
     )
 
 @torch.no_grad()
@@ -285,7 +285,7 @@ def generate_one_image_from_prompt(
     # --- Text embeddings (positive prompt only) ---
     prompts = [prompt]
     emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings_short(
-        prompts, text_encoders, tokenizers
+        prompts, text_encoders, tokenizers, transformer.device
     )
 
     # --- VAE scale factor (same as your snippet) ---
