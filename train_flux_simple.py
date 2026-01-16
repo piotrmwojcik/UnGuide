@@ -970,7 +970,8 @@ def main():
 
                     with torch.no_grad():
                         # IMPORTANT: avoid internal VAE decode to prevent bf16->fp32 mismatch + extra VRAM
-                        diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
+                        diag_pipe.vae = diag_pipe.vae.to(device=device, dtype=torch.bfloat16)
+                        diag_pipe.vae.eval()
                         imgs = diag_pipe(
                             prompt=diag_prompt,
                             guidance_scale=guidance_scale,
