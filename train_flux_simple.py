@@ -998,7 +998,7 @@ def main():
                                 continue
 
                             # Take the first image (assumed to be PIL.Image)
-                            img = imgs[0]
+                            #img = imgs[0]
                             img = to_tensor(img).clamp(0, 1).cpu()
                             row_tensors.append(img)
 
