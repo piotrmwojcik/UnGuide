@@ -48,6 +48,165 @@ from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
 from utils import print_trainable_parameters
+from diffusers.utils.torch_utils import randn_tensor
+
+
+class LatentCache:
+    def __init__(
+        self,
+        prompts: List[str],
+        transformer,
+        noise_scheduler,
+        text_encoders: List,
+        tokenizers: List,
+        device: torch.device,
+        max_ddim_steps: int = 28,
+        height: int = 512,
+        width: int = 512,
+        num_channels_latents: int = 16,
+        seed: int = 42,
+        weight_dtype: torch.dtype = torch.bfloat16,
+        guidance: float = 3.0,
+    ):
+        self.prompts = prompts
+        self.max_ddim_steps = max_ddim_steps
+        self.device = device
+        self.weight_dtype = weight_dtype
+        self.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(prompts)}
+
+        vae_scale_factor = 8
+        latent_h = height // vae_scale_factor
+        latent_w = width // vae_scale_factor
+        self.latent_image_ids = self._prepare_latent_image_ids(
+            1, latent_h // 2, latent_w // 2, device, weight_dtype
+        )
+
+        print(f"[LatentCache] Caching {len(prompts)} prompts × {max_ddim_steps} steps...")
+        self.text_embeddings = self._compute_all_text_embeddings(prompts, text_encoders, tokenizers, device)
+        self.latents = self._compute_all_latents(
+            transformer, noise_scheduler, num_channels_latents,
+            height, width, seed, guidance
+        )
+        self._print_memory_usage()
+
+    def _prepare_latent_image_ids(self, batch_size, height, width, device, dtype):
+        latent_image_ids = torch.zeros(height, width, 3)
+        latent_image_ids[..., 1] = latent_image_ids[..., 1] + torch.arange(height)[:, None]
+        latent_image_ids[..., 2] = latent_image_ids[..., 2] + torch.arange(width)[None, :]
+        latent_image_ids = latent_image_ids.reshape(height * width, 3)
+        return latent_image_ids.to(device=device, dtype=dtype)
+
+    def _compute_all_text_embeddings(self, prompts, text_encoders, tokenizers, device):
+        embeddings = {'prompt_embeds': [], 'pooled_prompt_embeds': [], 'text_ids': []}
+        for prompt in tqdm(prompts, desc="Text embeddings"):
+            prompt_embeds, pooled_prompt_embeds, text_ids = compute_text_embeddings(
+                prompt, text_encoders, tokenizers, device
+            )
+            embeddings['prompt_embeds'].append(prompt_embeds.cpu())
+            embeddings['pooled_prompt_embeds'].append(pooled_prompt_embeds.cpu())
+            embeddings['text_ids'].append(text_ids.cpu())
+
+        embeddings['prompt_embeds'] = torch.cat(embeddings['prompt_embeds'], dim=0)
+        embeddings['pooled_prompt_embeds'] = torch.cat(embeddings['pooled_prompt_embeds'], dim=0)
+        embeddings['text_ids'] = torch.cat(embeddings['text_ids'], dim=0)
+        return embeddings
+
+    def _compute_all_latents(self, transformer, noise_scheduler, num_channels_latents, height, width, seed, guidance):
+        from utils_flux.esd_utils import flux_pack_latents, calculate_shift, retrieve_timesteps
+        import numpy as np
+
+        num_prompts = len(self.prompts)
+        vae_scale_factor = 8
+        latent_h = height // vae_scale_factor
+        latent_w = width // vae_scale_factor
+        packed_seq_len = (latent_h // 2) * (latent_w // 2)
+        packed_channels = num_channels_latents * 4
+
+        latents_cache = torch.zeros(
+            num_prompts, self.max_ddim_steps, packed_seq_len, packed_channels,
+            dtype=self.weight_dtype, device='cpu'
+        )
+
+        generator = torch.Generator(device=self.device).manual_seed(seed)
+        shape = (1, num_channels_latents, latent_h, latent_w)
+        initial_noise = randn_tensor(shape, generator=generator, dtype=self.weight_dtype, device=self.device)
+        guidance_tensor = torch.tensor([guidance], device=self.device, dtype=self.weight_dtype)
+
+        pbar = tqdm(total=num_prompts * self.max_ddim_steps, desc="Latents")
+
+        with torch.no_grad():
+            for prompt_idx in range(num_prompts):
+                prompt_embeds = self.text_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
+                pooled_prompt_embeds = self.text_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
+                text_ids = self.text_embeddings['text_ids'][prompt_idx:prompt_idx+1].to(self.device)
+                if text_ids.dim() == 3:
+                    text_ids = text_ids[0]
+                text_ids = text_ids.to(dtype=self.weight_dtype)
+
+                for ddim_step in range(1, self.max_ddim_steps + 1):
+                    latents = flux_pack_latents(initial_noise.clone(), 1, num_channels_latents, latent_h, latent_w)
+                    image_seq_len = latents.shape[1]
+                    sigmas = np.linspace(1.0, 1 / ddim_step, ddim_step)
+                    mu = calculate_shift(
+                        image_seq_len,
+                        noise_scheduler.config.base_image_seq_len,
+                        noise_scheduler.config.max_image_seq_len,
+                        noise_scheduler.config.base_shift,
+                        noise_scheduler.config.max_shift,
+                    )
+                    timesteps_tensor, _ = retrieve_timesteps(noise_scheduler, ddim_step, transformer.device, None, sigmas, mu=mu)
+                    latents = latents.to(transformer.device).to(self.weight_dtype)
+
+                    for i, t in enumerate(timesteps_tensor):
+                        timestep = t.expand(latents.shape[0]).to(self.weight_dtype)
+                        noise_pred = transformer(
+                            hidden_states=latents,
+                            timestep=timestep / 1000,
+                            guidance=guidance_tensor,
+                            pooled_projections=pooled_prompt_embeds.to(self.weight_dtype),
+                            encoder_hidden_states=prompt_embeds.to(self.weight_dtype),
+                            txt_ids=text_ids,
+                            img_ids=self.latent_image_ids,
+                            return_dict=False,
+                        )
+                        if isinstance(noise_pred, (tuple, list)):
+                            noise_pred = noise_pred[0]
+                        latents = noise_scheduler.step(noise_pred, t, latents, return_dict=False)[0]
+
+                    latents_cache[prompt_idx, ddim_step - 1] = latents.cpu()
+                    pbar.update(1)
+
+        pbar.close()
+        return latents_cache
+
+    def get(self, prompt: str, ddim_step: int) -> tuple:
+        prompt_idx = self.prompt_to_idx[prompt]
+        latent = self.latents[prompt_idx, ddim_step - 1]
+        prompt_embeds = self.text_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1]
+        pooled_prompt_embeds = self.text_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1]
+        text_ids = self.text_embeddings['text_ids'][prompt_idx:prompt_idx+1]
+        return latent, prompt_embeds, pooled_prompt_embeds, text_ids, self.latent_image_ids
+
+    def get_to_device(self, prompt: str, ddim_step: int, device: torch.device) -> tuple:
+        latent, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids = self.get(prompt, ddim_step)
+        return (
+            latent.unsqueeze(0).to(device),
+            prompt_embeds.to(device),
+            pooled_prompt_embeds.to(device),
+            text_ids.to(device),
+            latent_image_ids.to(device),
+        )
+
+    def _print_memory_usage(self):
+        latent_mem = self.latents.element_size() * self.latents.nelement() / (1024 ** 2)
+        emb_mem = sum(t.element_size() * t.nelement() for t in self.text_embeddings.values()) / (1024 ** 2)
+        print(f"[LatentCache] Memory: latents={latent_mem:.1f}MB, embeddings={emb_mem:.1f}MB, total={latent_mem + emb_mem:.1f}MB")
+
+    def __contains__(self, prompt: str) -> bool:
+        return prompt in self.prompt_to_idx
+
+    def __len__(self) -> int:
+        return len(self.prompts) * self.max_ddim_steps
 
 
 class CombinedCFGModel:
@@ -587,11 +746,41 @@ def main():
     else:
         print("No retain CSV path provided or file not found. Skipping retain loss.")
 
-    print(f"Mapping concepts: {mapping_concept[:2]}...")  # Show first 2
-    print(f"Retain prompts: {retain_prompts[:20]} prompts loaded")
+    print(f"Mapping concepts: {mapping_concept[:2]}...")
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
 
-    # Training loop
+    all_augmented_prompts = []
+    if augment_target:
+        for concept in target_concepts:
+            all_augmented_prompts.extend(prompt_augmentation(concept, augment=True))
+    else:
+        all_augmented_prompts = target_concepts.copy()
+    print(f"Total augmented prompts for caching: {len(all_augmented_prompts)}")
+
+    use_latent_cache = config.get('use_latent_cache', True)
+    latent_cache = None
+
+    if use_latent_cache and is_main:
+        base_for_cache = accelerator.unwrap_model(model)
+        with base_for_cache.hyper.no_lora():
+            latent_cache = LatentCache(
+                prompts=all_augmented_prompts,
+                transformer=base_for_cache,
+                noise_scheduler=noise_scheduler,
+                text_encoders=text_encoders,
+                tokenizers=tokenizers,
+                device=accelerator.device,
+                max_ddim_steps=ddim_steps,
+                height=512,
+                width=512,
+                num_channels_latents=vae.config.latent_channels,
+                seed=seed if seed else 42,
+                weight_dtype=weight_dtype,
+                guidance=3.0,
+            )
+
+    accelerator.wait_for_everyone()
+
     criterion = torch.nn.MSELoss()
     losses = []
 
@@ -731,13 +920,21 @@ def main():
                 f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
             )
 
-            with torch.no_grad():
-                emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
-                    target_text_augmented, text_encoders, tokenizers, accelerator.device
+            if latent_cache is not None and target_text_augmented in latent_cache:
+                z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = latent_cache.get_to_device(
+                    target_text_augmented, int(t_enc), accelerator.device
                 )
-                emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
-                    target_text_augmented, text_encoders, tokenizers, accelerator.device
-                )
+                emb_0, pooled_emb_0, text_ids_0 = emb_p, pooled_emb_p, text_ids_p
+                use_cached_latent = True
+            else:
+                use_cached_latent = False
+                with torch.no_grad():
+                    emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
+                        target_text_augmented, text_encoders, tokenizers, accelerator.device
+                    )
+                    emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings(
+                        target_text_augmented, text_encoders, tokenizers, accelerator.device
+                    )
 
             #     # Get text conditioning for Stable Diffusion
             #     emb_p = base.get_learned_conditioning([target_text_augmented])  # target prompt (positive)
@@ -759,19 +956,20 @@ def main():
 
 
             with torch.no_grad():
-                with model.hyper.no_lora():
-                    z, latent_image_ids = latent_sample(model,
-                                                        noise_scheduler,
-                                                        1,
-                                                        model_input.shape[1],
-                                                        512,
-                                                        512,
-                                                        emb_p.to(accelerator.device),
-                                                        pooled_emb_p.to(accelerator.device),
-                                                        text_ids_p.to(accelerator.device),
-                                                        start_guidance,
-                                                        int(t_enc))
-                    t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
+                if not use_cached_latent:
+                    with model.hyper.no_lora():
+                        z, latent_image_ids = latent_sample(model,
+                                                            noise_scheduler,
+                                                            1,
+                                                            model_input.shape[1],
+                                                            512,
+                                                            512,
+                                                            emb_p.to(accelerator.device),
+                                                            pooled_emb_p.to(accelerator.device),
+                                                            text_ids_p.to(accelerator.device),
+                                                            start_guidance,
+                                                            int(t_enc))
+                t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
 
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
