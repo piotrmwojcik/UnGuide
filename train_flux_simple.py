@@ -1226,9 +1226,8 @@ def main():
                             continue
 
                         # Take the first image (assumed to be PIL.Image)
-                        img = imgs[0]
-                        img = to_tensor(img).clamp(0, 1)
-                        row_tensors.append(img)
+                        imgs = to_tensor(imgs).clamp(0, 1)
+                        row_tensors.append(imgs)
 
                     if len(row_tensors) > 0:
                         # Concatenate horizontally to form a row: (C, H, sum_W)
