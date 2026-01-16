@@ -233,21 +233,6 @@ def compute_text_embeddings(prompts, text_encoders, tokenizers, device, max_sequ
     )
 
 
-def compute_text_embeddings(prompts, text_encoders, tokenizers):
-    # prompts: List[str] or str
-    if isinstance(prompts, str):
-        prompts = [prompts]
-
-    prompt_embeds, pooled_prompt_embeds, text_ids = encode_prompt(
-        text_encoders, tokenizers, prompts, args.max_sequence_length
-    )
-    return (
-        prompt_embeds.to(transformer.device),
-        pooled_prompt_embeds.to(transformer.device),
-        text_ids.to(transformer.device),
-    )
-
-
 def generate_images(
         sampler,
         model,
