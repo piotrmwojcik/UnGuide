@@ -70,6 +70,7 @@ class LatentCache:
     ):
         self.prompts = prompts
         self.max_ddim_steps = max_ddim_steps
+        self.seed = seed
         self.device = device
         self.weight_dtype = weight_dtype
         self.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(prompts)}
@@ -81,7 +82,7 @@ class LatentCache:
             1, latent_h // 2, latent_w // 2, device, weight_dtype
         )
 
-        print(f"[LatentCache] Caching {len(prompts)} prompts × {max_ddim_steps} steps...")
+        print(f"[LatentCache] Caching {len(prompts)} prompts × {max_ddim_steps} steps (seed={seed})...")
         self.text_embeddings = self._compute_all_text_embeddings(prompts, text_encoders, tokenizers, device)
         self.latents = self._compute_all_latents(
             transformer, noise_scheduler, num_channels_latents,
@@ -207,6 +208,153 @@ class LatentCache:
 
     def __len__(self) -> int:
         return len(self.prompts) * self.max_ddim_steps
+
+    def save(self, path: str):
+        dirname = os.path.dirname(path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        data = {
+            'prompts': self.prompts,
+            'max_ddim_steps': self.max_ddim_steps,
+            'seed': self.seed,
+            'latents': self.latents,
+            'text_embeddings': self.text_embeddings,
+            'latent_image_ids': self.latent_image_ids.cpu(),
+        }
+        torch.save(data, path)
+        print(f"[LatentCache] Saved to {path}")
+
+    @classmethod
+    def load(cls, path: str, device: torch.device, weight_dtype: torch.dtype = torch.bfloat16,
+             expected_prompts: List[str] = None, expected_ddim_steps: int = None, expected_seed: int = None):
+        print(f"[LatentCache] Loading from {path}...")
+        data = torch.load(path, map_location='cpu', weights_only=False)
+        if expected_prompts is not None and set(data['prompts']) != set(expected_prompts):
+            raise ValueError(f"Prompt mismatch: cache has {len(data['prompts'])} prompts, expected {len(expected_prompts)}")
+        if expected_ddim_steps is not None and data['max_ddim_steps'] != expected_ddim_steps:
+            raise ValueError(f"DDIM steps mismatch: cache has {data['max_ddim_steps']}, expected {expected_ddim_steps}")
+        if expected_seed is not None and data.get('seed') != expected_seed:
+            raise ValueError(f"Seed mismatch: cache has {data.get('seed')}, expected {expected_seed}")
+        instance = object.__new__(cls)
+        instance.prompts = data['prompts']
+        instance.max_ddim_steps = data['max_ddim_steps']
+        instance.seed = data.get('seed')
+        instance.device = device
+        instance.weight_dtype = weight_dtype
+        instance.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.prompts)}
+        instance.latents = data['latents']
+        instance.text_embeddings = data['text_embeddings']
+        instance.latent_image_ids = data['latent_image_ids'].to(device=device, dtype=weight_dtype)
+        instance._print_memory_usage()
+        return instance
+
+
+class DiagnosticCache:
+    def __init__(
+        self,
+        prompts: List[str],
+        clip_text_encoder,
+        clip_tokenizer,
+        text_encoders: List,
+        tokenizers: List,
+        device: torch.device,
+        use_pooler: bool = True,
+        weight_dtype: torch.dtype = torch.bfloat16,
+    ):
+        self.prompts = prompts
+        self.device = device
+        self.weight_dtype = weight_dtype
+        self.use_pooler = use_pooler
+        self.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(prompts)}
+
+        print(f"[DiagnosticCache] Caching {len(prompts)} diagnostic prompts...")
+        self.clip_embeddings = self._compute_clip_embeddings(prompts, clip_text_encoder, clip_tokenizer, device)
+        self.text_embeddings = self._compute_text_embeddings(prompts, text_encoders, tokenizers, device)
+        self._print_memory_usage()
+
+    def _compute_clip_embeddings(self, prompts, clip_text_encoder, clip_tokenizer, device):
+        embeddings = []
+        for prompt in tqdm(prompts, desc="CLIP embeddings"):
+            inputs = clip_tokenizer(
+                prompt,
+                max_length=clip_tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(device).input_ids
+            with torch.no_grad():
+                if self.use_pooler:
+                    emb = clip_text_encoder(inputs).pooler_output.detach()
+                else:
+                    emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            embeddings.append(emb.cpu())
+        return torch.cat(embeddings, dim=0)
+
+    def _compute_text_embeddings(self, prompts, text_encoders, tokenizers, device):
+        embeddings = {'prompt_embeds': [], 'pooled_prompt_embeds': [], 'text_ids': []}
+        for prompt in tqdm(prompts, desc="Text embeddings"):
+            prompt_embeds, pooled_prompt_embeds, text_ids = compute_text_embeddings(
+                prompt, text_encoders, tokenizers, device
+            )
+            embeddings['prompt_embeds'].append(prompt_embeds.cpu())
+            embeddings['pooled_prompt_embeds'].append(pooled_prompt_embeds.cpu())
+            embeddings['text_ids'].append(text_ids.cpu())
+
+        embeddings['prompt_embeds'] = torch.cat(embeddings['prompt_embeds'], dim=0)
+        embeddings['pooled_prompt_embeds'] = torch.cat(embeddings['pooled_prompt_embeds'], dim=0)
+        embeddings['text_ids'] = torch.cat(embeddings['text_ids'], dim=0)
+        return embeddings
+
+    def get_clip_embedding(self, prompt: str, device: torch.device):
+        idx = self.prompt_to_idx[prompt]
+        return self.clip_embeddings[idx:idx+1].to(device)
+
+    def get_text_embeddings(self, prompt: str, device: torch.device):
+        idx = self.prompt_to_idx[prompt]
+        return (
+            self.text_embeddings['prompt_embeds'][idx:idx+1].to(device),
+            self.text_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device),
+            self.text_embeddings['text_ids'][idx:idx+1].to(device),
+        )
+
+    def _print_memory_usage(self):
+        clip_mem = self.clip_embeddings.element_size() * self.clip_embeddings.nelement() / (1024 ** 2)
+        emb_mem = sum(t.element_size() * t.nelement() for t in self.text_embeddings.values()) / (1024 ** 2)
+        print(f"[DiagnosticCache] Memory: clip={clip_mem:.1f}MB, text={emb_mem:.1f}MB, total={clip_mem + emb_mem:.1f}MB")
+
+    def __contains__(self, prompt: str) -> bool:
+        return prompt in self.prompt_to_idx
+
+    def save(self, path: str):
+        dirname = os.path.dirname(path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        data = {
+            'prompts': self.prompts,
+            'use_pooler': self.use_pooler,
+            'clip_embeddings': self.clip_embeddings,
+            'text_embeddings': self.text_embeddings,
+        }
+        torch.save(data, path)
+        print(f"[DiagnosticCache] Saved to {path}")
+
+    @classmethod
+    def load(cls, path: str, device: torch.device, weight_dtype: torch.dtype = torch.bfloat16,
+             expected_prompts: List[str] = None):
+        print(f"[DiagnosticCache] Loading from {path}...")
+        data = torch.load(path, map_location='cpu', weights_only=False)
+        if expected_prompts is not None and set(data['prompts']) != set(expected_prompts):
+            raise ValueError(f"[DiagnosticCache] Prompt mismatch: cache has {len(data['prompts'])} prompts, expected {len(expected_prompts)}")
+        instance = object.__new__(cls)
+        instance.prompts = data['prompts']
+        instance.device = device
+        instance.weight_dtype = weight_dtype
+        instance.use_pooler = data['use_pooler']
+        instance.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.prompts)}
+        instance.clip_embeddings = data['clip_embeddings']
+        instance.text_embeddings = data['text_embeddings']
+        instance._print_memory_usage()
+        return instance
 
 
 class CombinedCFGModel:
@@ -760,24 +908,72 @@ def main():
     use_latent_cache = config.get('use_latent_cache', True)
     latent_cache = None
 
+    cache_dir = config.get('cache_dir', 'latents_cache')
+    default_cache_name = concepts[0].replace(' ', '_').replace(',', '')[:30] if concepts else 'default'
+    cache_name = config.get('cache_name', default_cache_name)
+    latent_cache_path = os.path.join(cache_dir, f"{cache_name}_latent.pt")
+    diagnostic_cache_path = os.path.join(cache_dir, f"{cache_name}_diagnostic.pt")
+
     if use_latent_cache and is_main:
-        base_for_cache = accelerator.unwrap_model(model)
-        with base_for_cache.hyper.no_lora():
-            latent_cache = LatentCache(
-                prompts=all_augmented_prompts,
-                transformer=base_for_cache,
-                noise_scheduler=noise_scheduler,
+        cache_seed = seed if seed else 42
+        if os.path.exists(latent_cache_path):
+            try:
+                latent_cache = LatentCache.load(
+                    latent_cache_path, accelerator.device, weight_dtype,
+                    expected_prompts=all_augmented_prompts, expected_ddim_steps=ddim_steps,
+                    expected_seed=cache_seed
+                )
+            except ValueError as e:
+                print(f"[LatentCache] Cache invalid: {e}")
+                print("[LatentCache] Recomputing cache...")
+                os.remove(latent_cache_path)
+                latent_cache = None
+        if latent_cache is None:
+            base_for_cache = accelerator.unwrap_model(model)
+            with base_for_cache.hyper.no_lora():
+                latent_cache = LatentCache(
+                    prompts=all_augmented_prompts,
+                    transformer=base_for_cache,
+                    noise_scheduler=noise_scheduler,
+                    text_encoders=text_encoders,
+                    tokenizers=tokenizers,
+                    device=accelerator.device,
+                    max_ddim_steps=ddim_steps,
+                    height=512,
+                    width=512,
+                    num_channels_latents=vae.config.latent_channels,
+                    seed=seed if seed else 42,
+                    weight_dtype=weight_dtype,
+                    guidance=3.0,
+                )
+            latent_cache.save(latent_cache_path)
+
+    diagnostic_cache = None
+    use_diagnostic_cache = config.get('use_diagnostic_cache', True)
+    if use_diagnostic_cache and is_main and diagnostic_prompts:
+        if os.path.exists(diagnostic_cache_path):
+            try:
+                diagnostic_cache = DiagnosticCache.load(
+                    diagnostic_cache_path, accelerator.device, weight_dtype,
+                    expected_prompts=diagnostic_prompts
+                )
+            except ValueError as e:
+                print(f"[DiagnosticCache] Cache invalid: {e}")
+                print("[DiagnosticCache] Recomputing cache...")
+                os.remove(diagnostic_cache_path)
+                diagnostic_cache = None
+        if diagnostic_cache is None:
+            diagnostic_cache = DiagnosticCache(
+                prompts=diagnostic_prompts,
+                clip_text_encoder=clip_text_encoder,
+                clip_tokenizer=tokenizer,
                 text_encoders=text_encoders,
                 tokenizers=tokenizers,
                 device=accelerator.device,
-                max_ddim_steps=ddim_steps,
-                height=512,
-                width=512,
-                num_channels_latents=vae.config.latent_channels,
-                seed=seed if seed else 42,
+                use_pooler=use_pooler,
                 weight_dtype=weight_dtype,
-                guidance=3.0,
             )
+            diagnostic_cache.save(diagnostic_cache_path)
 
     accelerator.wait_for_everyone()
 
@@ -1126,12 +1322,17 @@ def main():
 
                 # 1) Compute diag_emb on GPU only if you need HyperLoRA context from CLIP.
                 # If clip_text_encoder is huge, consider moving it to GPU only for this block.
-                inputs_diag = encode(diag_prompt)
-                with torch.no_grad():
-                    if use_pooler:
-                        diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
-                    else:
-                        diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                if diagnostic_cache is not None and diag_prompt in diagnostic_cache:
+                    diag_emb = diagnostic_cache.get_clip_embedding(diag_prompt, accelerator.device)
+                    cached_text_emb = diagnostic_cache.get_text_embeddings(diag_prompt, accelerator.device)
+                else:
+                    inputs_diag = encode(diag_prompt)
+                    with torch.no_grad():
+                        if use_pooler:
+                            diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
+                        else:
+                            diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                    cached_text_emb = None
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
 
@@ -1177,6 +1378,7 @@ def main():
                         num_inference_steps=28,
                         weight_dtype=weight_dtype,
                         seed=seed,  # uses your per-row seed
+                        cached_embeddings=cached_text_emb,
                     )
 
                     imgs_per_prompt.append(imgs)
