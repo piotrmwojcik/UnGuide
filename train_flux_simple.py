@@ -1120,7 +1120,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 5 == 0:
+        if is_main and use_wandb and (iteration + 1) % 2 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -1197,7 +1197,7 @@ def main():
 
                             # Take the first image (assumed to be PIL.Image)
                             #img = imgs[0]
-                            img = to_tensor(img).clamp(0, 1).cpu()
+                            img = to_tensor(imgs).clamp(0, 1).cpu()
                             row_tensors.append(img)
 
                         if len(row_tensors) > 0:
