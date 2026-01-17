@@ -1119,7 +1119,9 @@ def main():
                 z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = latent_cache.get_to_device(
                     target_text_augmented, int(t_enc), accelerator.device
                 )
-                emb_0, pooled_emb_0, text_ids_0 = emb_p, pooled_emb_p, text_ids_p
+                emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
+                    mapping_text_augmented, text_encoders, tokenizers, accelerator.device
+                )
                 use_cached_latent = True
             else:
                 use_cached_latent = False
