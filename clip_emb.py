@@ -6,8 +6,14 @@ import numpy as np
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model_name = "openai/clip-vit-base-patch32"
 
+model_name = "openai/clip-vit-base-patch32"
 tokenizer = CLIPTokenizer.from_pretrained(model_name)
-text_model = CLIPTextModel.from_pretrained(model_name).to(device).eval()
+
+text_model = CLIPTextModel.from_pretrained(
+    model_name,
+    use_safetensors=True,   # require safetensors
+).to(device).eval()
+
 
 cifar100 = [
  'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
