@@ -1115,7 +1115,6 @@ def main():
                 f"[Rank {rank} | Device {accelerator.device}] "
                 f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
             )
-            print('!!! ', target_text_augmented in latent_cache)
             if latent_cache is not None and target_text_augmented in latent_cache:
                 z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = latent_cache.get_to_device(
                     target_text_augmented, int(t_enc), accelerator.device
@@ -1167,18 +1166,18 @@ def main():
                                                             start_guidance,
                                                             int(t_enc))
 
-                        e_0 = predict_noise(
-                            model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
-                            guidance=start_guidance,
-                            timesteps=t_ddpm,
-                            CPU_only=True,
-                        )
-                        e_p = predict_noise(
-                            model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                            guidance=start_guidance,
-                            timesteps=t_ddpm,
-                            CPU_only=True,
-                        )
+                e_0 = predict_noise(
+                    model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
+                    guidance=start_guidance,
+                    timesteps=t_ddpm,
+                    CPU_only=True,
+                )
+                e_p = predict_noise(
+                    model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                    guidance=start_guidance,
+                    timesteps=t_ddpm,
+                    CPU_only=True,
+                )
 
             base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
