@@ -715,6 +715,8 @@ def main():
 
     tokenizers = [tokenizer_one, tokenizer_two]
     text_encoders = [text_encoder_one, text_encoder_two]
+    text_encoder_one = text_encoder_one.to(accelerator.device)
+    text_encoder_twi = text_encoder_two.to(accelerator.device)
 
     # # Load models
     # model_orig, sampler_orig, model, sampler_unused = get_models(
