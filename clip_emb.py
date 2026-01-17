@@ -25,7 +25,7 @@ cifar100 = [
  'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
  'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
  'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
- 'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
+ 'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm', 'cat'
 ]
 
 prompts = [f"A photo of a {c}" for c in cifar100] + ["A photo of a dog"]
