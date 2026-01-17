@@ -925,6 +925,7 @@ def main():
                     expected_prompts=all_augmented_prompts, expected_ddim_steps=ddim_steps,
                     expected_seed=cache_seed
                 )
+                print('!!!! ')
             except ValueError as e:
                 print(f"[LatentCache] Cache invalid: {e}")
                 print("[LatentCache] Recomputing cache...")
