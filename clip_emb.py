@@ -12,20 +12,7 @@ text_model = CLIPTextModel.from_pretrained(
     use_safetensors=True,   # require safetensors
 ).to(device).eval()
 
-cifar100 = [
- 'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
- 'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
- 'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
- 'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
- 'lamp','lawn mower','leopard','lion','lizard','lobster','man','maple tree','motorcycle','mountain',
- 'mouse','mushroom','oak tree','orange','orchid','otter','palm tree','pear','pickup truck','pine tree',
- 'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
- 'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
- 'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
- 'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm', 'cat'
-]
-
-# A "lot" of dog synonyms / related terms (some are near-synonyms / hyponyms)
+# Candidate "synonyms"/near-synonyms for dog (you can add more)
 dog_synonyms = [
     "dog", "dogs", "domestic dog", "pet dog", "canine", "canid", "hound", "pooch", "puppy", "pup",
     "mutt", "mongrel", "cur", "stray dog", "street dog", "guard dog", "watchdog", "shepherd dog",
@@ -38,50 +25,30 @@ dog_synonyms = [
 
 @torch.no_grad()
 def get_text_embeddings(texts, batch_size=64):
-    all_feats = []
+    feats_all = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
         enc = tokenizer(batch, padding=True, truncation=True, return_tensors="pt")
         enc = {k: v.to(device) for k, v in enc.items()}
         feats = text_model(**enc).pooler_output
         feats = feats / feats.norm(dim=-1, keepdim=True)
-        all_feats.append(feats.detach().cpu())
-    return torch.cat(all_feats, dim=0).numpy()
+        feats_all.append(feats.detach().cpu())
+    return torch.cat(feats_all, dim=0).numpy()
 
-# CIFAR prompts
-cifar_prompts = [f"A photo of a {c}" for c in cifar100]
+# Embed the target prompt ("dog") and candidate synonyms
+target_prompt = "A photo of a dog"
+syn_prompts = [f"A photo of a {s}" for s in dog_synonyms]
 
-# Multiple dog prompts (synonyms)
-dog_prompts = [f"A photo of a {s}" for s in dog_synonyms]
+E = get_text_embeddings([target_prompt] + syn_prompts)  # [1+S, D]
+dog_vec = E[0]
+syn_vecs = E[1:]
 
-# Embed everything
-E_cifar = get_text_embeddings(cifar_prompts)     # [100, D]
-E_dogs  = get_text_embeddings(dog_prompts)       # [S, D]
-
-# Compute: for each dog synonym prompt, find nearest CIFAR classes
-# We'll rank dog prompts by how close they get to the *best* CIFAR match.
-best_per_syn = []
-for si in range(E_dogs.shape[0]):
-    sims = E_cifar @ E_dogs[si]          # [100]
-    dists = 1.0 - sims
-    best_idx = int(np.argmin(dists))
-    best_dist = float(dists[best_idx])
-    best_per_syn.append((best_dist, si, best_idx))
-
-best_per_syn.sort(key=lambda x: x[0])
-
-top_syn = 10  # show best 10 synonym prompts
-print(f"Top {top_syn} dog-synonym prompts whose nearest CIFAR-100 class is closest (cosine distance):")
-for rank, (best_dist, si, best_idx) in enumerate(best_per_syn[:top_syn], 1):
-    print(f"{rank:2d}. '{dog_prompts[si]}'  ->  '{cifar100[best_idx]}'   dist={best_dist:.6f}")
-
-# Also: using the single best synonym prompt, print top-5 CIFAR matches
-best_dist, best_si, _ = best_per_syn[0]
-sims = E_cifar @ E_dogs[best_si]
+# Cosine distance to "dog" (vectors are normalized)
+sims = syn_vecs @ dog_vec
 dists = 1.0 - sims
 order = np.argsort(dists)
 
-print("\nTop 5 CIFAR-100 classes closest to the BEST dog synonym prompt:")
-print(f"Best synonym prompt: '{dog_prompts[best_si]}'")
-for i in order[:5]:
-    print(f"{cifar100[i]:15s}  cosine distance = {float(dists[i]):.6f}")
+topk = 10
+print(f"Top {topk} 'synonyms' closest to '{target_prompt}' (cosine distance):")
+for idx in order[:topk]:
+    print(f"{dog_synonyms[idx]:20s}  dist={float(dists[idx]):.6f}")
