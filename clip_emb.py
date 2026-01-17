@@ -1,19 +1,14 @@
-# pip install --upgrade torch transformers
-from transformers import CLIPTextModel, CLIPTokenizer
-import torch
+# pip install --upgrade sentence-transformers
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model_name = "openai/clip-vit-base-patch32"
+# Load semantic embedding model
+model_name = "all-MiniLM-L6-v2"
+model = SentenceTransformer(model_name)
 
-tokenizer = CLIPTokenizer.from_pretrained(model_name)
-
-text_model = CLIPTextModel.from_pretrained(
-    model_name,
-    use_safetensors=True,   # IMPORTANT
-).to(device).eval()
-
+# Same CIFAR-100 list (plus cat)
 cifar100 = [
- 'corgie', 'a golden retriever', 'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
+ 'apple', 'hound', 'golden retriever', 'corgie', 'aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
  'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
  'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
  'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
@@ -22,28 +17,23 @@ cifar100 = [
  'plain','plate','poppy','porcupine','possum','rabbit','raccoon','ray','road','rocket',
  'rose','sea','seal','shark','shrew','skunk','skyscraper','snail','snake','spider',
  'squirrel','streetcar','sunflower','sweet pepper','table','tank','telephone','television','tiger','tractor',
- 'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
+ 'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm', 'cat'
 ]
 
-prompts = [f"A photo of a {c}" for c in cifar100] + ["A photo of a dog"]
+# Embed CIFAR words + query word "dog"
+texts = cifar100 + ["dog"]
 
-@torch.no_grad()
-def get_text_embeddings(texts):
-    enc = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
-    enc = {k: v.to(device) for k, v in enc.items()}
-    feats = text_model(**enc).pooler_output
-    feats = feats / feats.norm(dim=-1, keepdim=True)
-    return feats.cpu().numpy()
-
-E = get_text_embeddings(prompts)
+# Compute normalized semantic embeddings
+E = model.encode(texts, normalize_embeddings=True)
 
 dog_vec = E[-1]
 others = E[:-1]
 
+# Cosine distance
 sims = others @ dog_vec
 dists = 1.0 - sims
 order = np.argsort(dists)
 
-print("Top 100 CIFAR-100 classes closest to 'A photo of a dog':")
-for i in order[:100]:
+print("Top 10 CIFAR-100 classes closest to 'dog' (semantic embedding):")
+for i in order[:10]:
     print(f"{cifar100[i]:15s}  cosine distance = {dists[i]:.6f}")
