@@ -1,9 +1,11 @@
-# pip install --upgrade torch transformers matplotlib
+# pip install --upgrade torch transformers
 from transformers import CLIPTextModel, CLIPTokenizer
-import torch, numpy as np, matplotlib.pyplot as plt
+import torch
+import numpy as np
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model_name = "openai/clip-vit-base-patch32"
+
 tokenizer = CLIPTokenizer.from_pretrained(model_name)
 text_model = CLIPTextModel.from_pretrained(model_name).to(device).eval()
 
@@ -20,45 +22,25 @@ cifar100 = [
  'train','trout','tulip','turtle','wardrobe','whale','willow tree','wolf','woman','worm'
 ]
 
-prompts = [f"A photo of a {c}" for c in cifar100] + ["A photo of a cat"]
+prompts = [f"A photo of a {c}" for c in cifar100] + ["A photo of a dog"]
 
 @torch.no_grad()
 def get_text_embeddings(texts):
     enc = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
     enc = {k: v.to(device) for k, v in enc.items()}
-    out = text_model(**enc)
-    feats = out.pooler_output           # [N, D]
+    feats = text_model(**enc).pooler_output
     feats = feats / feats.norm(dim=-1, keepdim=True)
     return feats.cpu().numpy()
 
-E = get_text_embeddings(prompts)        # [101, D]
+E = get_text_embeddings(prompts)
 
-# ----- nearest to "cat" by cosine distance -----
-cat_vec = E[-1]
+dog_vec = E[-1]
 others = E[:-1]
-sims = others @ cat_vec                  # cosine sim because normalized
+
+sims = others @ dog_vec
 dists = 1.0 - sims
-order = np.argsort(dists)               # ascending => closest first
-topk = 10
-print("Top 10 categories closest to 'A photo of a cat' (cosine distance):")
-for i in order[:topk]:
-    print(f"{cifar100[i]:15s}  {dists[i]:.6f}")
+order = np.argsort(dists)
 
-# ----- PCA to 2D and plot -----
-X = E - E.mean(axis=0, keepdims=True)
-U, S, Vt = np.linalg.svd(X, full_matrices=False)
-X2 = X @ Vt[:2].T
-
-plt.figure(figsize=(10,10))
-plt.scatter(X2[:-1,0], X2[:-1,1], s=20, label="CIFAR-100 prompts")
-plt.scatter(X2[-1,0], X2[-1,1], s=80, marker='*', label="A photo of a cat")
-# optional: annotate a few random points to avoid clutter
-rng = np.random.default_rng(0)
-for i in rng.choice(len(cifar100), size=20, replace=False):
-    plt.annotate(cifar100[i], (X2[i,0], X2[i,1]), fontsize=8)
-plt.annotate("cat", (X2[-1,0], X2[-1,1]), fontsize=10, weight='bold')
-plt.legend()
-plt.title("CLIP text embeddings: CIFAR-100 prompts + 'A photo of a cat' (PCA)")
-plt.tight_layout()
-plt.savefig("cifar100_clip_text_prompts_plot.png", dpi=200)
-print("Saved plot to cifar100_clip_text_prompts_plot.png")
+print("Top 5 CIFAR-100 classes closest to 'A photo of a dog':")
+for i in order[:5]:
+    print(f"{cifar100[i]:15s}  cosine distance = {dists[i]:.6f}")
