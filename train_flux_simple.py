@@ -918,6 +918,7 @@ def main():
 
     if use_latent_cache and is_main:
         cache_seed = seed if seed else 42
+        print('!!! ', latent_cache_path, os.path.exists(latent_cache_path))
         if os.path.exists(latent_cache_path):
             try:
                 latent_cache = LatentCache.load(
