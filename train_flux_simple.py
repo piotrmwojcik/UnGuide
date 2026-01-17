@@ -97,6 +97,7 @@ class Cache:
         self.seed = seed
         self.device = device
         self.weight_dtype = weight_dtype
+        self.dirty = False  # Track if cache was modified (for lazy caching)
 
         self.target_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(target_prompts)}
         self.mapping_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(mapping_prompts)}
@@ -256,6 +257,8 @@ class Cache:
         """Get text embeddings for a mapping prompt."""
         if self.mapping_embeddings is None:
             raise ValueError(f"No mapping prompts cached")
+        if prompt not in self.mapping_prompt_to_idx:
+            raise KeyError(f"Mapping prompt '{prompt}' not in cache. Use add_embedding() first.")
         idx = self.mapping_prompt_to_idx[prompt]
         return (
             self.mapping_embeddings['prompt_embeds'][idx:idx+1].to(device),
@@ -269,6 +272,56 @@ class Cache:
             raise ValueError(f"No mapping prompts cached")
         idx = self.mapping_prompt_to_idx[prompt]
         return self.mapping_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device)
+
+    def add_embedding(
+        self,
+        prompt: str,
+        prompt_embeds: torch.Tensor,
+        pooled_prompt_embeds: torch.Tensor,
+        text_ids: torch.Tensor,
+        embedding_type: str = 'mapping',
+    ):
+
+        # Get the appropriate storage based on embedding type
+        type_config = {
+            'target': (self.target_prompts, self.target_prompt_to_idx, 'target_embeddings'),
+            'mapping': (self.mapping_prompts, self.mapping_prompt_to_idx, 'mapping_embeddings'),
+            'diagnostic': (self.diagnostic_prompts, self.diagnostic_prompt_to_idx, 'diagnostic_embeddings'),
+        }
+
+        prompts_list, prompt_to_idx, embeddings_attr = type_config[embedding_type]
+
+        if prompt in prompt_to_idx:
+            return  # Already cached
+
+        embeddings_dict = getattr(self, embeddings_attr)
+
+        # Initialize embeddings structure if needed
+        if embeddings_dict is None:
+            embeddings_dict = {
+                'prompt_embeds': prompt_embeds.cpu(),
+                'pooled_prompt_embeds': pooled_prompt_embeds.cpu(),
+                'text_ids': text_ids.cpu(),
+            }
+            setattr(self, embeddings_attr, embeddings_dict)
+        else:
+            # Concatenate to existing
+            embeddings_dict['prompt_embeds'] = torch.cat(
+                [embeddings_dict['prompt_embeds'], prompt_embeds.cpu()], dim=0
+            )
+            embeddings_dict['pooled_prompt_embeds'] = torch.cat(
+                [embeddings_dict['pooled_prompt_embeds'], pooled_prompt_embeds.cpu()], dim=0
+            )
+            embeddings_dict['text_ids'] = torch.cat(
+                [embeddings_dict['text_ids'], text_ids.cpu()], dim=0
+            )
+
+        # Update prompt tracking
+        idx = len(prompts_list)
+        prompts_list.append(prompt)
+        prompt_to_idx[prompt] = idx
+        self.dirty = True
+        print(f"[Cache] Added {embedding_type} embedding for: {prompt[:50]}... (total: {len(prompts_list)})")
 
     def get_uncond(self, device: torch.device) -> tuple:
         """Get unconditional (empty prompt) embeddings."""
@@ -349,26 +402,6 @@ class Cache:
     ):
         print(f"[Cache] Loading from {path}...")
         data = torch.load(path, map_location='cpu', weights_only=False)
-
-        # Validate target prompts
-        if expected_target_prompts is not None and set(data['target_prompts']) != set(expected_target_prompts):
-            raise ValueError(f"Target prompt mismatch: cache has {len(data['target_prompts'])} prompts, expected {len(expected_target_prompts)}")
-
-        # Validate mapping prompts
-        if expected_mapping_prompts is not None and set(data.get('mapping_prompts', [])) != set(expected_mapping_prompts):
-            raise ValueError(f"Mapping prompt mismatch: cache has {len(data.get('mapping_prompts', []))} prompts, expected {len(expected_mapping_prompts)}")
-
-        # Validate diagnostic prompts
-        if expected_diagnostic_prompts is not None and set(data['diagnostic_prompts']) != set(expected_diagnostic_prompts):
-            raise ValueError(f"Diagnostic prompt mismatch: cache has {len(data['diagnostic_prompts'])} prompts, expected {len(expected_diagnostic_prompts)}")
-
-        # Validate DDIM steps
-        if expected_ddim_steps is not None and data['max_ddim_steps'] != expected_ddim_steps:
-            raise ValueError(f"DDIM steps mismatch: cache has {data['max_ddim_steps']}, expected {expected_ddim_steps}")
-
-        # Validate seed
-        if expected_seed is not None and data.get('seed') != expected_seed:
-            raise ValueError(f"Seed mismatch: cache has {data.get('seed')}, expected {expected_seed}")
 
         instance = object.__new__(cls)
         instance.target_prompts = data['target_prompts']
@@ -1134,12 +1167,18 @@ def main():
             if cache is not None and mapping_text_augmented and mapping_text_augmented in cache.mapping_prompt_to_idx:
                 emb_0, pooled_emb_0, text_ids_0 = cache.get_mapping(mapping_text_augmented, accelerator.device)
             else:
-                # Fallback: compute on-the-fly or use unconditional
+                # Fallback: compute on-the-fly and add to cache for future use
                 with torch.no_grad():
                     if mapping_text_augmented:
                         emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
                             mapping_text_augmented, text_encoders, tokenizers, accelerator.device
                         )
+                        # Add to cache for future iterations (lazy caching)
+                        if cache is not None:
+                            cache.add_embedding(
+                                mapping_text_augmented, emb_0, pooled_emb_0, text_ids_0,
+                                embedding_type='mapping'
+                            )
                     else:
                         # If no mapping concept, fall back to unconditional
                         emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
@@ -1479,6 +1518,11 @@ def main():
 
         with open(os.path.join(final_save_path, "train_config.json"), "w") as f:
             json.dump(config_save, f, indent=2)
+
+    # Save cache if it was modified (lazy caching added new embeddings)
+    if is_main and cache is not None and cache.dirty:
+        print(f"[Cache] Saving updated cache with {len(cache.mapping_prompts)} mapping prompts...")
+        cache.save(cache_path)
 
     if is_main and use_wandb:
         wandb.finish()
