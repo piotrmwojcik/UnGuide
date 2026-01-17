@@ -4,9 +4,9 @@ UnGuide_Dog:
   # Target concepts for removal
   concepts:
     - "a dog"
-    - "a puppy"
-    - "a pet dog"
-    - "a mutt"
+    #- "a puppy"
+    #- "a pet dog"
+    #- "a mutt"
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
