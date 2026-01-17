@@ -1115,7 +1115,7 @@ def main():
                 f"[Rank {rank} | Device {accelerator.device}] "
                 f"idx={concept_idx} | Mapping {target_text_augmented} --> {mapping_text_augmented}"
             )
-            print('!!! ', latent_cache.keys())
+            print('!!! ', target_text_augmented in latent_cache)
             if latent_cache is not None and target_text_augmented in latent_cache:
                 z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = latent_cache.get_to_device(
                     target_text_augmented, int(t_enc), accelerator.device
