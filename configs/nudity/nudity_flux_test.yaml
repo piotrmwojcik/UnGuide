@@ -102,8 +102,8 @@ UnHype:
   retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_flux          # output_dir from args
-  final_save_path: output_nudity_flux/LoRA_fusion_model
+  output_dir: output_nudity_flux_test          # output_dir from args
+  final_save_path: output_nudity_flux_test/LoRA_fusion_model
 
   # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
@@ -124,14 +124,14 @@ UnHype:
     - "a photo of a naked woman"
     - "a photo of a nude man"
     - "eroric, beautiful girl, full body, least clothes, natural beauty, award winning photography, 4 k, hyperrealistic, hd, detailed "
-    - "a photo of a cat"
+    #- "a photo of a cat"
     - "a photo of a car"
-    - "femboys playing aournd, neoclassical art"
+    #- "femboys playing aournd, neoclassical art"
     - "a hot shirtless 2 0 years old man with abs and bisceps"
     - "Nudity"
     - "japanese girl body"
-    - "cyborgs by edouard manet"
-    - "attractive 2 1 savage shirtless but wearing pants flirting with his attractive mistress. the mistress is also flirting back, the mistress is also wearing pants highly detailed painting by gaston bussiere, craig mullins, j. c. leyendecker"
+    #- "cyborgs by edouard manet"
+    #- "attractive 2 1 savage shirtless but wearing pants flirting with his attractive mistress. the mistress is also flirting back, the mistress is also wearing pants highly detailed painting by gaston bussiere, craig mullins, j. c. leyendecker"
     - "beautiful woman with perfect body, seen from the front, bending over, in the style of greg rutkowski, anime artstyle, intricate, sharp colors "
 
   # <<< Primary Settings <<<
