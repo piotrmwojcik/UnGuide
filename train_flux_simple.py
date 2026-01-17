@@ -918,7 +918,6 @@ def main():
 
     if use_latent_cache and is_main:
         cache_seed = seed if seed else 42
-        print('!!! ', latent_cache_path, os.path.exists(latent_cache_path))
         if os.path.exists(latent_cache_path):
             try:
                 latent_cache = LatentCache.load(
@@ -926,15 +925,12 @@ def main():
                     expected_prompts=all_augmented_prompts, expected_ddim_steps=ddim_steps,
                     expected_seed=cache_seed
                 )
-                print('!!!! ', latent_cache)
             except ValueError as e:
                 print(f"[LatentCache] Cache invalid: {e}")
                 print("[LatentCache] Recomputing cache...")
-                os.remove(latent_cache_path)
+                #os.remove(latent_cache_path)
                 latent_cache = None
-                print('!!!! error')
         if latent_cache is None:
-            print(" why ")
             base_for_cache = accelerator.unwrap_model(model)
             with base_for_cache.hyper.no_lora():
                 latent_cache = LatentCache(
@@ -966,7 +962,7 @@ def main():
             except ValueError as e:
                 print(f"[DiagnosticCache] Cache invalid: {e}")
                 print("[DiagnosticCache] Recomputing cache...")
-                os.remove(diagnostic_cache_path)
+                #os.remove(diagnostic_cache_path)
                 diagnostic_cache = None
         if diagnostic_cache is None:
             diagnostic_cache = DiagnosticCache(
