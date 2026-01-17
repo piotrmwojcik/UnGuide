@@ -1,16 +1,19 @@
 # pip install --upgrade torch transformers
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
-import numpy as np
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model_name = "openai/clip-vit-base-patch32"
 
 tokenizer = CLIPTokenizer.from_pretrained(model_name)
-text_model = CLIPTextModel.from_pretrained(model_name).to(device).eval()
+
+text_model = CLIPTextModel.from_pretrained(
+    model_name,
+    use_safetensors=True,   # IMPORTANT
+).to(device).eval()
 
 cifar100 = [
- 'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
+ 'corgie', 'a golden retriever', 'apple','aquarium fish','baby','bear','beaver','bed','bee','beetle','bicycle','bottle',
  'bowl','boy','bridge','bus','butterfly','camel','can','castle','caterpillar','cattle',
  'chair','chimpanzee','clock','cloud','cockroach','couch','crab','crocodile','cup','dinosaur',
  'dolphin','elephant','flatfish','forest','fox','girl','hamster','house','kangaroo','keyboard',
@@ -41,6 +44,6 @@ sims = others @ dog_vec
 dists = 1.0 - sims
 order = np.argsort(dists)
 
-print("Top 5 CIFAR-100 classes closest to 'A photo of a dog':")
-for i in order[:5]:
+print("Top 100 CIFAR-100 classes closest to 'A photo of a dog':")
+for i in order[:100]:
     print(f"{cifar100[i]:15s}  cosine distance = {dists[i]:.6f}")
