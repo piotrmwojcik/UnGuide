@@ -20,8 +20,16 @@ from functools import partial
 import pandas as pd
 import torch
 import torch.nn as nn
-import wandb
 import yaml
+
+# Try to import wandb, but handle gracefully if not available
+try:
+    import wandb
+    WANDB_AVAILABLE = hasattr(wandb, 'init')
+except ImportError:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 from diffusers import FluxPipeline
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
@@ -33,7 +41,6 @@ from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
-from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
 
 from diffusers import FluxPipeline
@@ -51,16 +58,29 @@ from utils import print_trainable_parameters
 from diffusers.utils.torch_utils import randn_tensor
 
 
-class LatentCache:
+class Cache:
+    """
+    Unified cache for all text embeddings and latents.
+
+    Stores:
+    - Target prompts: latents + text embeddings (prompt_embeds, pooled_prompt_embeds, text_ids)
+    - Mapping prompts: text embeddings for mapping concepts (what targets should map to)
+    - Diagnostic prompts: text embeddings only (no latents)
+    - Unconditional: text embeddings for empty prompt
+
+    Uses Flux's built-in pooled_prompt_embeds (768-dim from CLIP text_encoder_one) for HyperLoRA context,
+    eliminating the need for a separate CLIP model.
+    """
+
     def __init__(
         self,
-        prompts: List[str],
+        target_prompts: List[str],
+        mapping_prompts: List[str],
+        diagnostic_prompts: List[str],
         transformer,
         noise_scheduler,
         text_encoders: List,
         tokenizers: List,
-        clip_text_encoder,
-        clip_tokenizer,
         device: torch.device,
         max_ddim_steps: int = 28,
         height: int = 512,
@@ -69,15 +89,18 @@ class LatentCache:
         seed: int = 42,
         weight_dtype: torch.dtype = torch.bfloat16,
         guidance: float = 3.0,
-        use_pooler: bool = True,
     ):
-        self.prompts = prompts
+        self.target_prompts = target_prompts
+        self.mapping_prompts = mapping_prompts
+        self.diagnostic_prompts = diagnostic_prompts
         self.max_ddim_steps = max_ddim_steps
         self.seed = seed
         self.device = device
         self.weight_dtype = weight_dtype
-        self.use_pooler = use_pooler
-        self.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(prompts)}
+
+        self.target_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(target_prompts)}
+        self.mapping_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(mapping_prompts)}
+        self.diagnostic_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(diagnostic_prompts)}
 
         vae_scale_factor = 8
         latent_h = height // vae_scale_factor
@@ -86,13 +109,43 @@ class LatentCache:
             1, latent_h // 2, latent_w // 2, device, weight_dtype
         )
 
-        print(f"[LatentCache] Caching {len(prompts)} prompts × {max_ddim_steps} steps (seed={seed})...")
-        self.text_embeddings = self._compute_all_text_embeddings(prompts, text_encoders, tokenizers, device)
-        self.clip_embeddings = self._compute_clip_embeddings(prompts, clip_text_encoder, clip_tokenizer, device)
+        print(f"[Cache] Caching {len(target_prompts)} target prompts × {max_ddim_steps} steps (seed={seed})...")
+        print(f"[Cache] Caching {len(mapping_prompts)} mapping prompts...")
+        print(f"[Cache] Caching {len(diagnostic_prompts)} diagnostic prompts...")
+
+        self.target_embeddings = self._compute_text_embeddings(
+            target_prompts, text_encoders, tokenizers, device, desc="Target embeddings"
+        )
+
+        if mapping_prompts:
+            self.mapping_embeddings = self._compute_text_embeddings(
+                mapping_prompts, text_encoders, tokenizers, device, desc="Mapping embeddings"
+            )
+        else:
+            self.mapping_embeddings = None
+
+        print("[Cache] Computing unconditional embeddings...")
+        uncond_embeds, uncond_pooled, uncond_text_ids = compute_text_embeddings(
+            "", text_encoders, tokenizers, device
+        )
+        self.uncond_embeddings = {
+            'prompt_embeds': uncond_embeds.cpu(),
+            'pooled_prompt_embeds': uncond_pooled.cpu(),
+            'text_ids': uncond_text_ids.cpu(),
+        }
+
+        if diagnostic_prompts:
+            self.diagnostic_embeddings = self._compute_text_embeddings(
+                diagnostic_prompts, text_encoders, tokenizers, device, desc="Diagnostic embeddings"
+            )
+        else:
+            self.diagnostic_embeddings = None
+
         self.latents = self._compute_all_latents(
             transformer, noise_scheduler, num_channels_latents,
             height, width, seed, guidance
         )
+
         self._print_memory_usage()
 
     def _prepare_latent_image_ids(self, batch_size, height, width, device, dtype):
@@ -102,9 +155,9 @@ class LatentCache:
         latent_image_ids = latent_image_ids.reshape(height * width, 3)
         return latent_image_ids.to(device=device, dtype=dtype)
 
-    def _compute_all_text_embeddings(self, prompts, text_encoders, tokenizers, device):
+    def _compute_text_embeddings(self, prompts, text_encoders, tokenizers, device, desc="Text embeddings"):
         embeddings = {'prompt_embeds': [], 'pooled_prompt_embeds': [], 'text_ids': []}
-        for prompt in tqdm(prompts, desc="Text embeddings"):
+        for prompt in tqdm(prompts, desc=desc):
             prompt_embeds, pooled_prompt_embeds, text_ids = compute_text_embeddings(
                 prompt, text_encoders, tokenizers, device
             )
@@ -117,26 +170,11 @@ class LatentCache:
         embeddings['text_ids'] = torch.cat(embeddings['text_ids'], dim=0)
         return embeddings
 
-    def _compute_clip_embeddings(self, prompts, clip_text_encoder, clip_tokenizer, device):
-        embeddings = []
-        for prompt in tqdm(prompts, desc="CLIP embeddings"):
-            inputs = clip_tokenizer(
-                prompt, max_length=clip_tokenizer.model_max_length,
-                padding="max_length", truncation=True, return_tensors="pt",
-            ).to(device).input_ids
-            with torch.no_grad():
-                if self.use_pooler:
-                    emb = clip_text_encoder(inputs).pooler_output.detach()
-                else:
-                    emb = clip_text_encoder(inputs).last_hidden_state.detach()
-            embeddings.append(emb.cpu())
-        return torch.cat(embeddings, dim=0)
-
     def _compute_all_latents(self, transformer, noise_scheduler, num_channels_latents, height, width, seed, guidance):
         from utils_flux.esd_utils import flux_pack_latents, calculate_shift, retrieve_timesteps
         import numpy as np
 
-        num_prompts = len(self.prompts)
+        num_prompts = len(self.target_prompts)
         vae_scale_factor = 8
         latent_h = height // vae_scale_factor
         latent_w = width // vae_scale_factor
@@ -157,9 +195,9 @@ class LatentCache:
 
         with torch.no_grad():
             for prompt_idx in range(num_prompts):
-                prompt_embeds = self.text_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
-                pooled_prompt_embeds = self.text_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
-                text_ids = self.text_embeddings['text_ids'][prompt_idx:prompt_idx+1].to(self.device)
+                prompt_embeds = self.target_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
+                pooled_prompt_embeds = self.target_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1].to(self.device)
+                text_ids = self.target_embeddings['text_ids'][prompt_idx:prompt_idx+1].to(self.device)
                 if text_ids.dim() == 3:
                     text_ids = text_ids[0]
                 text_ids = text_ids.to(dtype=self.weight_dtype)
@@ -200,190 +238,155 @@ class LatentCache:
         pbar.close()
         return latents_cache
 
-    def get(self, prompt: str, ddim_step: int) -> tuple:
-        prompt_idx = self.prompt_to_idx[prompt]
-        latent = self.latents[prompt_idx, ddim_step - 1]
-        prompt_embeds = self.text_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1]
-        pooled_prompt_embeds = self.text_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1]
-        text_ids = self.text_embeddings['text_ids'][prompt_idx:prompt_idx+1]
-        return latent, prompt_embeds, pooled_prompt_embeds, text_ids, self.latent_image_ids
+    def get_target(self, prompt: str, ddim_step: int, device: torch.device) -> tuple:
+        """Get latent and embeddings for a target prompt."""
+        prompt_idx = self.target_prompt_to_idx[prompt]
+        latent = self.latents[prompt_idx, ddim_step - 1].unsqueeze(0).to(device)
+        prompt_embeds = self.target_embeddings['prompt_embeds'][prompt_idx:prompt_idx+1].to(device)
+        pooled_prompt_embeds = self.target_embeddings['pooled_prompt_embeds'][prompt_idx:prompt_idx+1].to(device)
+        text_ids = self.target_embeddings['text_ids'][prompt_idx:prompt_idx+1].to(device)
+        return latent, prompt_embeds, pooled_prompt_embeds, text_ids, self.latent_image_ids.to(device)
 
-    def get_to_device(self, prompt: str, ddim_step: int, device: torch.device) -> tuple:
-        latent, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids = self.get(prompt, ddim_step)
+    def get_target_pooled(self, prompt: str, device: torch.device) -> torch.Tensor:
+        """Get pooled_prompt_embeds for HyperLoRA context (768-dim)."""
+        idx = self.target_prompt_to_idx[prompt]
+        return self.target_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device)
+
+    def get_mapping(self, prompt: str, device: torch.device) -> tuple:
+        """Get text embeddings for a mapping prompt."""
+        if self.mapping_embeddings is None:
+            raise ValueError(f"No mapping prompts cached")
+        idx = self.mapping_prompt_to_idx[prompt]
         return (
-            latent.unsqueeze(0).to(device),
-            prompt_embeds.to(device),
-            pooled_prompt_embeds.to(device),
-            text_ids.to(device),
-            latent_image_ids.to(device),
+            self.mapping_embeddings['prompt_embeds'][idx:idx+1].to(device),
+            self.mapping_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device),
+            self.mapping_embeddings['text_ids'][idx:idx+1].to(device),
         )
 
-    def get_clip_embedding(self, prompt: str, device: torch.device) -> torch.Tensor:
-        idx = self.prompt_to_idx[prompt]
-        return self.clip_embeddings[idx:idx+1].to(device)
+    def get_mapping_pooled(self, prompt: str, device: torch.device) -> torch.Tensor:
+        """Get pooled_prompt_embeds for a mapping prompt (for HyperLoRA context)."""
+        if self.mapping_embeddings is None:
+            raise ValueError(f"No mapping prompts cached")
+        idx = self.mapping_prompt_to_idx[prompt]
+        return self.mapping_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device)
+
+    def get_uncond(self, device: torch.device) -> tuple:
+        """Get unconditional (empty prompt) embeddings."""
+        return (
+            self.uncond_embeddings['prompt_embeds'].to(device),
+            self.uncond_embeddings['pooled_prompt_embeds'].to(device),
+            self.uncond_embeddings['text_ids'].to(device),
+        )
+
+    def get_diagnostic(self, prompt: str, device: torch.device) -> tuple:
+        """Get text embeddings for a diagnostic prompt."""
+        if self.diagnostic_embeddings is None:
+            raise ValueError(f"No diagnostic prompts cached")
+        idx = self.diagnostic_prompt_to_idx[prompt]
+        return (
+            self.diagnostic_embeddings['prompt_embeds'][idx:idx+1].to(device),
+            self.diagnostic_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device),
+            self.diagnostic_embeddings['text_ids'][idx:idx+1].to(device),
+        )
+
+    def get_diagnostic_pooled(self, prompt: str, device: torch.device) -> torch.Tensor:
+        """Get pooled_prompt_embeds for a diagnostic prompt (for HyperLoRA context)."""
+        if self.diagnostic_embeddings is None:
+            raise ValueError(f"No diagnostic prompts cached")
+        idx = self.diagnostic_prompt_to_idx[prompt]
+        return self.diagnostic_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device)
+
+    def __contains__(self, prompt: str) -> bool:
+        return prompt in self.target_prompt_to_idx
+
+    def __len__(self) -> int:
+        return len(self.target_prompts) * self.max_ddim_steps
 
     def _print_memory_usage(self):
         latent_mem = self.latents.element_size() * self.latents.nelement() / (1024 ** 2)
-        emb_mem = sum(t.element_size() * t.nelement() for t in self.text_embeddings.values()) / (1024 ** 2)
-        clip_mem = self.clip_embeddings.element_size() * self.clip_embeddings.nelement() / (1024 ** 2)
-        print(f"[LatentCache] Memory: latents={latent_mem:.1f}MB, text={emb_mem:.1f}MB, clip={clip_mem:.1f}MB")
-
-    def __contains__(self, prompt: str) -> bool:
-        return prompt in self.prompt_to_idx
-
-    def __len__(self) -> int:
-        return len(self.prompts) * self.max_ddim_steps
+        target_mem = sum(t.element_size() * t.nelement() for t in self.target_embeddings.values()) / (1024 ** 2)
+        mapping_mem = 0
+        if self.mapping_embeddings:
+            mapping_mem = sum(t.element_size() * t.nelement() for t in self.mapping_embeddings.values()) / (1024 ** 2)
+        uncond_mem = sum(t.element_size() * t.nelement() for t in self.uncond_embeddings.values()) / (1024 ** 2)
+        diag_mem = 0
+        if self.diagnostic_embeddings:
+            diag_mem = sum(t.element_size() * t.nelement() for t in self.diagnostic_embeddings.values()) / (1024 ** 2)
+        total = latent_mem + target_mem + mapping_mem + uncond_mem + diag_mem
+        print(f"[Cache] Memory: latents={latent_mem:.1f}MB, target={target_mem:.1f}MB, mapping={mapping_mem:.1f}MB, uncond={uncond_mem:.1f}MB, diag={diag_mem:.1f}MB, total={total:.1f}MB")
 
     def save(self, path: str):
         dirname = os.path.dirname(path)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
         data = {
-            'prompts': self.prompts,
+            'target_prompts': self.target_prompts,
+            'mapping_prompts': self.mapping_prompts,
+            'diagnostic_prompts': self.diagnostic_prompts,
             'max_ddim_steps': self.max_ddim_steps,
             'seed': self.seed,
-            'use_pooler': self.use_pooler,
             'latents': self.latents,
-            'text_embeddings': self.text_embeddings,
-            'clip_embeddings': self.clip_embeddings,
+            'target_embeddings': self.target_embeddings,
+            'mapping_embeddings': self.mapping_embeddings,
+            'uncond_embeddings': self.uncond_embeddings,
+            'diagnostic_embeddings': self.diagnostic_embeddings,
             'latent_image_ids': self.latent_image_ids.cpu(),
         }
         torch.save(data, path)
-        print(f"[LatentCache] Saved to {path}")
+        print(f"[Cache] Saved to {path}")
 
     @classmethod
-    def load(cls, path: str, device: torch.device, weight_dtype: torch.dtype = torch.bfloat16,
-             expected_prompts: List[str] = None, expected_ddim_steps: int = None, expected_seed: int = None):
-        print(f"[LatentCache] Loading from {path}...")
+    def load(
+        cls,
+        path: str,
+        device: torch.device,
+        weight_dtype: torch.dtype = torch.bfloat16,
+        expected_target_prompts: List[str] = None,
+        expected_mapping_prompts: List[str] = None,
+        expected_diagnostic_prompts: List[str] = None,
+        expected_ddim_steps: int = None,
+        expected_seed: int = None,
+    ):
+        print(f"[Cache] Loading from {path}...")
         data = torch.load(path, map_location='cpu', weights_only=False)
-        if expected_prompts is not None and set(data['prompts']) != set(expected_prompts):
-            raise ValueError(f"Prompt mismatch: cache has {len(data['prompts'])} prompts, expected {len(expected_prompts)}")
+
+        # Validate target prompts
+        if expected_target_prompts is not None and set(data['target_prompts']) != set(expected_target_prompts):
+            raise ValueError(f"Target prompt mismatch: cache has {len(data['target_prompts'])} prompts, expected {len(expected_target_prompts)}")
+
+        # Validate mapping prompts
+        if expected_mapping_prompts is not None and set(data.get('mapping_prompts', [])) != set(expected_mapping_prompts):
+            raise ValueError(f"Mapping prompt mismatch: cache has {len(data.get('mapping_prompts', []))} prompts, expected {len(expected_mapping_prompts)}")
+
+        # Validate diagnostic prompts
+        if expected_diagnostic_prompts is not None and set(data['diagnostic_prompts']) != set(expected_diagnostic_prompts):
+            raise ValueError(f"Diagnostic prompt mismatch: cache has {len(data['diagnostic_prompts'])} prompts, expected {len(expected_diagnostic_prompts)}")
+
+        # Validate DDIM steps
         if expected_ddim_steps is not None and data['max_ddim_steps'] != expected_ddim_steps:
             raise ValueError(f"DDIM steps mismatch: cache has {data['max_ddim_steps']}, expected {expected_ddim_steps}")
+
+        # Validate seed
         if expected_seed is not None and data.get('seed') != expected_seed:
             raise ValueError(f"Seed mismatch: cache has {data.get('seed')}, expected {expected_seed}")
-        if 'clip_embeddings' not in data:
-            raise ValueError("Cache missing clip_embeddings, please regenerate")
+
         instance = object.__new__(cls)
-        instance.prompts = data['prompts']
+        instance.target_prompts = data['target_prompts']
+        instance.mapping_prompts = data.get('mapping_prompts', [])
+        instance.diagnostic_prompts = data['diagnostic_prompts']
         instance.max_ddim_steps = data['max_ddim_steps']
         instance.seed = data.get('seed')
-        instance.use_pooler = data.get('use_pooler', True)
         instance.device = device
         instance.weight_dtype = weight_dtype
-        instance.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.prompts)}
+        instance.target_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.target_prompts)}
+        instance.mapping_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.mapping_prompts)}
+        instance.diagnostic_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.diagnostic_prompts)}
         instance.latents = data['latents']
-        instance.text_embeddings = data['text_embeddings']
-        instance.clip_embeddings = data['clip_embeddings']
+        instance.target_embeddings = data['target_embeddings']
+        instance.mapping_embeddings = data.get('mapping_embeddings', None)
+        instance.uncond_embeddings = data['uncond_embeddings']
+        instance.diagnostic_embeddings = data['diagnostic_embeddings']
         instance.latent_image_ids = data['latent_image_ids'].to(device=device, dtype=weight_dtype)
-        instance._print_memory_usage()
-        return instance
-
-
-class DiagnosticCache:
-    def __init__(
-        self,
-        prompts: List[str],
-        clip_text_encoder,
-        clip_tokenizer,
-        text_encoders: List,
-        tokenizers: List,
-        device: torch.device,
-        use_pooler: bool = True,
-        weight_dtype: torch.dtype = torch.bfloat16,
-    ):
-        self.prompts = prompts
-        self.device = device
-        self.weight_dtype = weight_dtype
-        self.use_pooler = use_pooler
-        self.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(prompts)}
-
-        print(f"[DiagnosticCache] Caching {len(prompts)} diagnostic prompts...")
-        self.clip_embeddings = self._compute_clip_embeddings(prompts, clip_text_encoder, clip_tokenizer, device)
-        self.text_embeddings = self._compute_text_embeddings(prompts, text_encoders, tokenizers, device)
-        self._print_memory_usage()
-
-    def _compute_clip_embeddings(self, prompts, clip_text_encoder, clip_tokenizer, device):
-        embeddings = []
-        for prompt in tqdm(prompts, desc="CLIP embeddings"):
-            inputs = clip_tokenizer(
-                prompt,
-                max_length=clip_tokenizer.model_max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            ).to(device).input_ids
-            with torch.no_grad():
-                if self.use_pooler:
-                    emb = clip_text_encoder(inputs).pooler_output.detach()
-                else:
-                    emb = clip_text_encoder(inputs).last_hidden_state.detach()
-            embeddings.append(emb.cpu())
-        return torch.cat(embeddings, dim=0)
-
-    def _compute_text_embeddings(self, prompts, text_encoders, tokenizers, device):
-        embeddings = {'prompt_embeds': [], 'pooled_prompt_embeds': [], 'text_ids': []}
-        for prompt in tqdm(prompts, desc="Text embeddings"):
-            prompt_embeds, pooled_prompt_embeds, text_ids = compute_text_embeddings(
-                prompt, text_encoders, tokenizers, device
-            )
-            embeddings['prompt_embeds'].append(prompt_embeds.cpu())
-            embeddings['pooled_prompt_embeds'].append(pooled_prompt_embeds.cpu())
-            embeddings['text_ids'].append(text_ids.cpu())
-
-        embeddings['prompt_embeds'] = torch.cat(embeddings['prompt_embeds'], dim=0)
-        embeddings['pooled_prompt_embeds'] = torch.cat(embeddings['pooled_prompt_embeds'], dim=0)
-        embeddings['text_ids'] = torch.cat(embeddings['text_ids'], dim=0)
-        return embeddings
-
-    def get_clip_embedding(self, prompt: str, device: torch.device):
-        idx = self.prompt_to_idx[prompt]
-        return self.clip_embeddings[idx:idx+1].to(device)
-
-    def get_text_embeddings(self, prompt: str, device: torch.device):
-        idx = self.prompt_to_idx[prompt]
-        return (
-            self.text_embeddings['prompt_embeds'][idx:idx+1].to(device),
-            self.text_embeddings['pooled_prompt_embeds'][idx:idx+1].to(device),
-            self.text_embeddings['text_ids'][idx:idx+1].to(device),
-        )
-
-    def _print_memory_usage(self):
-        clip_mem = self.clip_embeddings.element_size() * self.clip_embeddings.nelement() / (1024 ** 2)
-        emb_mem = sum(t.element_size() * t.nelement() for t in self.text_embeddings.values()) / (1024 ** 2)
-        print(f"[DiagnosticCache] Memory: clip={clip_mem:.1f}MB, text={emb_mem:.1f}MB, total={clip_mem + emb_mem:.1f}MB")
-
-    def __contains__(self, prompt: str) -> bool:
-        return prompt in self.prompt_to_idx
-
-    def save(self, path: str):
-        dirname = os.path.dirname(path)
-        if dirname:
-            os.makedirs(dirname, exist_ok=True)
-        data = {
-            'prompts': self.prompts,
-            'use_pooler': self.use_pooler,
-            'clip_embeddings': self.clip_embeddings,
-            'text_embeddings': self.text_embeddings,
-        }
-        torch.save(data, path)
-        print(f"[DiagnosticCache] Saved to {path}")
-
-    @classmethod
-    def load(cls, path: str, device: torch.device, weight_dtype: torch.dtype = torch.bfloat16,
-             expected_prompts: List[str] = None):
-        print(f"[DiagnosticCache] Loading from {path}...")
-        data = torch.load(path, map_location='cpu', weights_only=False)
-        if expected_prompts is not None and set(data['prompts']) != set(expected_prompts):
-            raise ValueError(f"[DiagnosticCache] Prompt mismatch: cache has {len(data['prompts'])} prompts, expected {len(expected_prompts)}")
-        instance = object.__new__(cls)
-        instance.prompts = data['prompts']
-        instance.device = device
-        instance.weight_dtype = weight_dtype
-        instance.use_pooler = data['use_pooler']
-        instance.prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.prompts)}
-        instance.clip_embeddings = data['clip_embeddings']
-        instance.text_embeddings = data['text_embeddings']
         instance._print_memory_usage()
         return instance
 
@@ -627,7 +630,6 @@ def main():
     lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
-    use_pooler = config.get('use_pooler', True)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
 
@@ -681,23 +683,27 @@ def main():
         logging_dir=config.get('logging_dir', 'logs'),
     )
 
+    # Only pass log_with if wandb is available
+    log_with = config.get('report_to', 'wandb') if WANDB_AVAILABLE else None
     accelerator = Accelerator(
         gradient_accumulation_steps=gradient_accumulation_steps,
         mixed_precision=config.get('mixed_precision', None),
-        log_with=config.get('report_to', 'wandb'),
+        log_with=log_with,
         project_config=accelerator_project_config,
     )
 
     is_main = accelerator.is_main_process
 
-    # Initialize W&B if needed
-    use_wandb = config.get('report_to') == 'wandb'
+    # Initialize W&B if needed and available
+    use_wandb = config.get('report_to') == 'wandb' and WANDB_AVAILABLE
     if is_main and use_wandb:
         wandb.init(
             project="UnGuide",
             name=f"{config_name}_training",
             config=config
         )
+    elif is_main and config.get('report_to') == 'wandb' and not WANDB_AVAILABLE:
+        print("Warning: wandb requested but not available. Disabling wandb logging.")
 
     tokenizer_one = CLIPTokenizer.from_pretrained(
         pretrained_model_name_or_path,
@@ -766,7 +772,8 @@ def main():
     # # Setup HyperLoRA
     model.hyper = HypernetworkManager()
 
-    clip_size = 768 if use_pooler else 512
+    # Flux's pooled_prompt_embeds is always 768-dim (from built-in CLIP text_encoder_one)
+    clip_size = 768
     target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
 
     hyper_lora_factory = partial(
@@ -809,19 +816,6 @@ def main():
         layer.set_parent_model(accelerator.unwrap_model(model))
         accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
-    # Setup CLIP for conditioning
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
-
-    def encode(text: str):
-        return tokenizer(
-            text,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(accelerator.device).input_ids
-
     # Prepare concept embeddings
     target_concepts = []
     # concepts is now a simple list of concept strings
@@ -854,6 +848,7 @@ def main():
     #     mapping_embeddings.append(emb)
 
     # Retain prompts - load from CSV file with 'prompt' column
+    # Retain embeddings are computed on-the-fly at training startup (not cached to keep cache file small)
     retain_prompts = []
     retain_embeddings = []
 
@@ -882,151 +877,116 @@ def main():
             retain_prompts = base_prompts
             print(f"Using {len(retain_prompts)} retain prompts without augmentation")
 
-        # Create cache path for retain embeddings
-        cache_dir = os.path.join(output_dir, "cache")
+        # Compute retain embeddings on-the-fly using Flux's text encoders
+        # Uses pooled_prompt_embeds (768-dim) for HyperLoRA context
         if is_main:
-            os.makedirs(cache_dir, exist_ok=True)
+            print(f"Computing retain embeddings using Flux text encoders...")
+            for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
+                with torch.no_grad():
+                    _, pooled_emb, _ = compute_text_embeddings(
+                        prompt, text_encoders, tokenizers, accelerator.device
+                    )
+                retain_embeddings.append(pooled_emb.squeeze().cpu())
+            print(f"Computed {len(retain_embeddings)} retain embeddings")
+        accelerator.wait_for_everyone()
 
-        # Create a cache key based on CSV path, augmentation setting, and pooler setting
-        csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
-        cache_key = f"{csv_name}_aug{augment_retain}_pooler{use_pooler}"
-        cache_path = os.path.join(cache_dir, f"retain_embeddings_{cache_key}.pt")
-
-        # Check if cache exists (before any process tries to create it)
-        cache_exists = os.path.exists(cache_path)
-
-        # If cache doesn't exist, main process computes and saves embeddings
-        if not cache_exists:
-            if is_main:
-                print(f"Computing retain embeddings (will cache to: {cache_path})")
-                # Create embeddings for retain prompts
-                for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                    inputs = encode(prompt)
-                    with torch.no_grad():
-                        if use_pooler:
-                            emb = clip_text_encoder(inputs).pooler_output.detach()
-                        else:
-                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
-                    retain_embeddings.append(emb.squeeze().cpu())  # Store on CPU for caching
-
-                print(f"Caching retain embeddings to: {cache_path}")
-                torch.save(retain_embeddings, cache_path)
-                print(f"Cached {len(retain_embeddings)} embeddings")
-
-            # Wait for main process to finish creating the cache
-            accelerator.wait_for_everyone()
-
-        # All processes load from cache
-        if is_main or not cache_exists:
-            print(f"Loading cached retain embeddings from: {cache_path}")
-        retain_embeddings = torch.load(cache_path, map_location='cpu')
         # Move to correct device
         retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
-        if is_main:
-            print(f"Loaded {len(retain_embeddings)} cached embeddings")
     else:
         print("No retain CSV path provided or file not found. Skipping retain loss.")
 
-    # print(f"Mapping concepts: {mapping_concept[:2]}...")
+    print(f"Mapping concepts: {len(mapping_concept)}")
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
 
+    # Create augmented target prompts
     all_augmented_prompts = []
     if augment_target:
         for concept in target_concepts:
             all_augmented_prompts.extend(prompt_augmentation(concept, augment=True))
     else:
         all_augmented_prompts = target_concepts.copy()
-    print(f"Total augmented prompts for caching: {len(all_augmented_prompts)}")
+    print(f"Total augmented target prompts for caching: {len(all_augmented_prompts)}")
 
-    use_latent_cache = config.get('use_latent_cache', True)
-    latent_cache = None
+    # Create augmented mapping prompts (must match target augmentation)
+    all_augmented_mapping = []
+    if len(mapping_concept) > 0:
+        # Ensure we have a mapping concept for each target concept
+        mapping_per_target = []
+        for i, concept in enumerate(target_concepts):
+            # Use corresponding mapping concept, or reuse first one if not enough
+            if i < len(mapping_concept):
+                mapping_per_target.append(mapping_concept[i])
+            else:
+                mapping_per_target.append(mapping_concept[0])
+
+        # Apply same augmentation as targets
+        if augment_target:
+            for mapping_text in mapping_per_target:
+                all_augmented_mapping.extend(prompt_augmentation(mapping_text, augment=True))
+        else:
+            all_augmented_mapping = mapping_per_target.copy()
+
+        print(f"Total augmented mapping prompts for caching: {len(all_augmented_mapping)}")
+
+        # Verify lengths match
+        if len(all_augmented_mapping) != len(all_augmented_prompts):
+            raise ValueError(
+                f"Mismatch: {len(all_augmented_prompts)} target prompts but "
+                f"{len(all_augmented_mapping)} mapping prompts. They must match!"
+            )
+    else:
+        print("Warning: No mapping concepts provided. Using empty list.")
+        all_augmented_mapping = []
+
+    # Unified cache setup
+    use_cache = config.get('use_latent_cache', True)
+    cache = None
 
     cache_dir = config.get('cache_dir', 'latents_cache')
     default_cache_name = concepts[0].replace(' ', '_').replace(',', '')[:30] if concepts else 'default'
     cache_name = config.get('cache_name', default_cache_name)
-    latent_cache_path = os.path.join(cache_dir, f"{cache_name}_latent.pt")
-    diagnostic_cache_path = os.path.join(cache_dir, f"{cache_name}_diagnostic.pt")
+    cache_path = os.path.join(cache_dir, f"{cache_name}_cache.pt")
 
-    if use_latent_cache and is_main:
+    if use_cache and is_main:
         cache_seed = seed if seed else 42
-        if os.path.exists(latent_cache_path):
+        if os.path.exists(cache_path):
             try:
-                latent_cache = LatentCache.load(
-                    latent_cache_path, accelerator.device, weight_dtype,
-                    expected_prompts=all_augmented_prompts, expected_ddim_steps=ddim_steps,
+                cache = Cache.load(
+                    cache_path, accelerator.device, weight_dtype,
+                    expected_target_prompts=all_augmented_prompts,
+                    expected_mapping_prompts=all_augmented_mapping,
+                    expected_diagnostic_prompts=diagnostic_prompts,
+                    expected_ddim_steps=ddim_steps,
                     expected_seed=cache_seed
                 )
             except ValueError as e:
-                print(f"[LatentCache] Cache invalid: {e}")
-                print("[LatentCache] Recomputing cache...")
-                os.remove(latent_cache_path)
-                latent_cache = None
-        if latent_cache is None:
+                print(f"[Cache] Cache invalid: {e}")
+                print("[Cache] Recomputing cache...")
+                os.remove(cache_path)
+                cache = None
+        if cache is None:
             base_for_cache = accelerator.unwrap_model(model)
             with base_for_cache.hyper.no_lora():
-                latent_cache = LatentCache(
-                    prompts=all_augmented_prompts,
+                cache = Cache(
+                    target_prompts=all_augmented_prompts,
+                    mapping_prompts=all_augmented_mapping,
+                    diagnostic_prompts=diagnostic_prompts,
                     transformer=base_for_cache,
                     noise_scheduler=noise_scheduler,
                     text_encoders=text_encoders,
                     tokenizers=tokenizers,
-                    clip_text_encoder=clip_text_encoder,
-                    clip_tokenizer=tokenizer,
                     device=accelerator.device,
                     max_ddim_steps=ddim_steps,
                     height=512,
                     width=512,
                     num_channels_latents=vae.config.latent_channels,
-                    seed=seed if seed else 42,
+                    seed=cache_seed,
                     weight_dtype=weight_dtype,
                     guidance=3.0,
-                    use_pooler=use_pooler,
                 )
-            latent_cache.save(latent_cache_path)
-
-    diagnostic_cache = None
-    use_diagnostic_cache = config.get('use_diagnostic_cache', True)
-    if use_diagnostic_cache and is_main and diagnostic_prompts:
-        if os.path.exists(diagnostic_cache_path):
-            try:
-                diagnostic_cache = DiagnosticCache.load(
-                    diagnostic_cache_path, accelerator.device, weight_dtype,
-                    expected_prompts=diagnostic_prompts
-                )
-            except ValueError as e:
-                print(f"[DiagnosticCache] Cache invalid: {e}")
-                print("[DiagnosticCache] Recomputing cache...")
-                os.remove(diagnostic_cache_path)
-                diagnostic_cache = None
-        if diagnostic_cache is None:
-            diagnostic_cache = DiagnosticCache(
-                prompts=diagnostic_prompts,
-                clip_text_encoder=clip_text_encoder,
-                clip_tokenizer=tokenizer,
-                text_encoders=text_encoders,
-                tokenizers=tokenizers,
-                device=accelerator.device,
-                use_pooler=use_pooler,
-                weight_dtype=weight_dtype,
-            )
-            diagnostic_cache.save(diagnostic_cache_path)
+            cache.save(cache_path)
 
     accelerator.wait_for_everyone()
-
-    uncond_cache_path = os.path.join(cache_dir, f"{cache_name}_uncond.pt")
-    if is_main:
-        if os.path.exists(uncond_cache_path):
-            uncond_data = torch.load(uncond_cache_path, map_location='cpu', weights_only=False)
-        else:
-            with torch.no_grad():
-                emb, pooled, text_ids = compute_text_embeddings("", text_encoders, tokenizers, accelerator.device)
-            uncond_data = {'prompt_embeds': emb.cpu(), 'pooled_prompt_embeds': pooled.cpu(), 'text_ids': text_ids.cpu()}
-            os.makedirs(cache_dir, exist_ok=True)
-            torch.save(uncond_data, uncond_cache_path)
-
-    accelerator.wait_for_everyone()
-    if not is_main:
-        uncond_data = torch.load(uncond_cache_path, map_location='cpu', weights_only=False)
 
     criterion = torch.nn.MSELoss()
     losses = []
@@ -1121,11 +1081,16 @@ def main():
                 concept_idx = random.choice(valid_indices)
 
             target_text = target_concepts[concept_idx]
-            # mapping_text = (
-            #     mapping_concept[concept_idx]
-            #     if concept_idx < len(mapping_concept)
-            #     else mapping_concept[0]
-            # )
+
+            # Get corresponding mapping concept
+            if len(mapping_concept) > 0:
+                mapping_text = (
+                    mapping_concept[concept_idx]
+                    if concept_idx < len(mapping_concept)
+                    else mapping_concept[0]
+                )
+            else:
+                mapping_text = ""  # Fallback to empty if no mapping concepts
 
             if augment_target:
                 augmented_prompts = prompt_augmentation(target_text, augment=True)
@@ -1139,36 +1104,51 @@ def main():
 
                 target_text_augmented = augmented_prompts[aug_idx]
 
-                # # Mapping augmentation (not currently used)
-                # augmented_mapping = prompt_augmentation(mapping_text, augment=True)
-                # if aug_idx >= len(augmented_mapping):
-                #     aug_idx = aug_idx % len(augmented_mapping)
-                # mapping_text_augmented = augmented_mapping[aug_idx]
+                # Mapping augmentation (must use same aug_idx as target)
+                if mapping_text:
+                    augmented_mapping = prompt_augmentation(mapping_text, augment=True)
+                    if aug_idx >= len(augmented_mapping):
+                        aug_idx = aug_idx % len(augmented_mapping)
+                    mapping_text_augmented = augmented_mapping[aug_idx]
+                else:
+                    mapping_text_augmented = ""
             else:
                 target_text_augmented = target_text
-                # mapping_text_augmented = mapping_text
+                mapping_text_augmented = mapping_text
 
-            # Get CLIP embedding from cache
-            if latent_cache is not None and target_text_augmented in latent_cache:
-                target_emb = latent_cache.get_clip_embedding(target_text_augmented, accelerator.device)
+            # Get pooled embedding for HyperLoRA context (from Flux's built-in CLIP)
+            if cache is not None and target_text_augmented in cache:
+                target_emb = cache.get_target_pooled(target_text_augmented, accelerator.device)
             else:
-                inputs_aug = encode(target_text_augmented)
                 with torch.no_grad():
-                    if use_pooler:
-                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
-                    else:
-                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
+                    _, target_emb, _ = compute_text_embeddings(
+                        target_text_augmented, text_encoders, tokenizers, accelerator.device
+                    )
 
             print(
                 f"[Rank {rank} | Device {accelerator.device}] "
-                f"idx={concept_idx} | Target: {target_text_augmented}"
+                f"idx={concept_idx} | Target: {target_text_augmented} | Mapping: {mapping_text_augmented}"
             )
-            emb_0 = uncond_data['prompt_embeds'].to(accelerator.device)
-            pooled_emb_0 = uncond_data['pooled_prompt_embeds'].to(accelerator.device)
-            text_ids_0 = uncond_data['text_ids'].to(accelerator.device)
 
-            if latent_cache is not None and target_text_augmented in latent_cache:
-                z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = latent_cache.get_to_device(
+            # Get mapping concept embeddings from cache (emb_0 = mapping concept for loss)
+            if cache is not None and mapping_text_augmented and mapping_text_augmented in cache.mapping_prompt_to_idx:
+                emb_0, pooled_emb_0, text_ids_0 = cache.get_mapping(mapping_text_augmented, accelerator.device)
+            else:
+                # Fallback: compute on-the-fly or use unconditional
+                with torch.no_grad():
+                    if mapping_text_augmented:
+                        emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
+                            mapping_text_augmented, text_encoders, tokenizers, accelerator.device
+                        )
+                    else:
+                        # If no mapping concept, fall back to unconditional
+                        emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
+                            "", text_encoders, tokenizers, accelerator.device
+                        )
+
+            # Get target embeddings and latents from cache
+            if cache is not None and target_text_augmented in cache:
+                z, emb_p, pooled_emb_p, text_ids_p, latent_image_ids = cache.get_target(
                     target_text_augmented, int(t_enc), accelerator.device
                 )
                 use_cached_latent = True
@@ -1331,7 +1311,6 @@ def main():
                 loss_retain = retain_weight * delta.pow(2).mean()
             else:
                 loss_retain = torch.tensor(0.0, device=accelerator.device)
-                #loss_retain = torch.tensor(0.0, device=accelerator.device)
             accelerator.backward(loss_retain)
 
             loss_remove_log = loss_remove.clone().detach()
@@ -1367,18 +1346,15 @@ def main():
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
-                # 1) Compute diag_emb on GPU only if you need HyperLoRA context from CLIP.
-                # If clip_text_encoder is huge, consider moving it to GPU only for this block.
-                if diagnostic_cache is not None and diag_prompt in diagnostic_cache:
-                    diag_emb = diagnostic_cache.get_clip_embedding(diag_prompt, accelerator.device)
-                    cached_text_emb = diagnostic_cache.get_text_embeddings(diag_prompt, accelerator.device)
+                # Get diagnostic embeddings from cache (uses Flux's pooled_prompt_embeds for HyperLoRA)
+                if cache is not None and cache.diagnostic_embeddings is not None:
+                    diag_emb = cache.get_diagnostic_pooled(diag_prompt, accelerator.device)
+                    cached_text_emb = cache.get_diagnostic(diag_prompt, accelerator.device)
                 else:
-                    inputs_diag = encode(diag_prompt)
                     with torch.no_grad():
-                        if use_pooler:
-                            diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach()
-                        else:
-                            diag_emb = clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                        prompt_embeds, diag_emb, text_ids = compute_text_embeddings(
+                            diag_prompt, text_encoders, tokenizers, accelerator.device
+                        )
                     cached_text_emb = None
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
@@ -1424,47 +1400,11 @@ def main():
                         width=256,
                         num_inference_steps=28,
                         weight_dtype=weight_dtype,
-                        seed=seed,  # uses your per-row seed
-                        #cached_embeddings=cached_text_emb,
+                        seed=seed,
+                        cached_embeddings=cached_text_emb,
                     )
 
                     imgs_per_prompt.append(imgs)
-
-                    # 5) Move encoders/VAE back to CPU to free VRAM for training
-                    # diag_pipe.text_encoder.to("cpu")
-                    # diag_pipe.text_encoder_2.to("cpu")
-                    # diag_pipe.vae.to("cpu")
-                    #torch.cuda.empty_cache()
-
-                    # 6) Log a single concatenated image to W&B
-                    if len(imgs_per_prompt) > 0:
-                        row_tensors = []
-
-                        for imgs in imgs_per_prompt:
-                            if imgs is None:
-                                continue
-
-                            # Take the first image (assumed to be PIL.Image)
-                            #img = imgs[0]
-                            img = to_tensor(imgs).clamp(0, 1).cpu()
-                            row_tensors.append(img)
-
-                        if len(row_tensors) > 0:
-                            # Concatenate horizontally to form a row: (C, H, sum_W)
-                            row = torch.cat(row_tensors, dim=2).cpu()
-
-                            # Clean prompt for wandb key (remove spaces and special chars)
-                            safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-
-                            wandb.log(
-                                {
-                                    f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(
-                                        to_pil_image(row),
-                                        caption=f"{diag_prompt} | hyper steps: {diag_time_steps}",
-                                    )
-                                },
-                                step=iteration,
-                            )
 
                 # 6) Log a single concatenated image to W&B
                 if len(imgs_per_prompt) > 0:
@@ -1511,10 +1451,10 @@ def main():
 
             # Save LoRA weights
             lora_state_dict = {}
-            # model_unwrapped = accelerator.unwrap_model(model)
-            # for name, param in model_unwrapped.model.diffusion_model.named_parameters():
-            #    if param.requires_grad:
-            #        lora_state_dict[name] = param.detach().cpu().clone()
+            model_unwrapped = accelerator.unwrap_model(model)
+            for name, param in model_unwrapped.named_parameters():
+                if param.requires_grad:
+                    lora_state_dict[name] = param.detach().cpu().clone()
 
             lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
             accelerator.save(lora_state_dict, lora_path)
