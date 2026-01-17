@@ -925,13 +925,15 @@ def main():
                     expected_prompts=all_augmented_prompts, expected_ddim_steps=ddim_steps,
                     expected_seed=cache_seed
                 )
-                print('!!!! ')
+                print('!!!! ', latent_cache)
             except ValueError as e:
                 print(f"[LatentCache] Cache invalid: {e}")
                 print("[LatentCache] Recomputing cache...")
                 os.remove(latent_cache_path)
                 latent_cache = None
+                print('!!!! error')
         if latent_cache is None:
+            print(" why ")
             base_for_cache = accelerator.unwrap_model(model)
             with base_for_cache.hyper.no_lora():
                 latent_cache = LatentCache(
