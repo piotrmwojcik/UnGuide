@@ -1377,7 +1377,7 @@ def main():
                         num_inference_steps=28,
                         weight_dtype=weight_dtype,
                         seed=seed,  # uses your per-row seed
-                        cached_embeddings=cached_text_emb,
+                        #cached_embeddings=cached_text_emb,
                     )
 
                     imgs_per_prompt.append(imgs)
