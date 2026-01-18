@@ -89,7 +89,14 @@ class Cache:
         seed: int = 42,
         weight_dtype: torch.dtype = torch.bfloat16,
         guidance: float = 3.0,
+        cache_path: str = None,
     ):
+        if cache_path and os.path.exists(cache_path):
+            raise ValueError("Cache path doesn't exist!")
+
+        if max_ddim_steps < 1 or max_ddim_steps > 1000:
+            raise ValueError(f"max_ddim_steps must be between 1 and 1000, got {max_ddim_steps}")
+
         self.target_prompts = target_prompts
         self.mapping_prompts = mapping_prompts
         self.diagnostic_prompts = diagnostic_prompts
@@ -406,9 +413,11 @@ class Cache:
         instance = object.__new__(cls)
         instance.target_prompts = data['target_prompts']
         instance.mapping_prompts = data.get('mapping_prompts', [])
-        instance.diagnostic_prompts = data['diagnostic_prompts']
+        instance.diagnostic_prompts = data.get('diagnostic_prompts', [])
         instance.max_ddim_steps = data['max_ddim_steps']
         instance.seed = data.get('seed')
+
+        # Mapping and diagnostic prompts can be added on-the-fly (no strict validation)
         instance.device = device
         instance.weight_dtype = weight_dtype
         instance.target_prompt_to_idx = {prompt: idx for idx, prompt in enumerate(instance.target_prompts)}
@@ -418,8 +427,9 @@ class Cache:
         instance.target_embeddings = data['target_embeddings']
         instance.mapping_embeddings = data.get('mapping_embeddings', None)
         instance.uncond_embeddings = data['uncond_embeddings']
-        instance.diagnostic_embeddings = data['diagnostic_embeddings']
+        instance.diagnostic_embeddings = data.get('diagnostic_embeddings', None)
         instance.latent_image_ids = data['latent_image_ids'].to(device=device, dtype=weight_dtype)
+        instance.dirty = False  # Will be set to True if embeddings are added on-the-fly
         instance._print_memory_usage()
         return instance
 
@@ -979,20 +989,14 @@ def main():
     if use_cache and is_main:
         cache_seed = seed if seed else 42
         if os.path.exists(cache_path):
-            try:
-                cache = Cache.load(
-                    cache_path, accelerator.device, weight_dtype,
-                    expected_target_prompts=all_augmented_prompts,
-                    expected_mapping_prompts=all_augmented_mapping,
-                    expected_diagnostic_prompts=diagnostic_prompts,
-                    expected_ddim_steps=ddim_steps,
-                    expected_seed=cache_seed
-                )
-            except ValueError as e:
-                print(f"[Cache] Cache invalid: {e}")
-                print("[Cache] Recomputing cache...")
-                os.remove(cache_path)
-                cache = None
+            cache = Cache.load(
+                cache_path, accelerator.device, weight_dtype,
+                expected_target_prompts=all_augmented_prompts,
+                expected_mapping_prompts=all_augmented_mapping,
+                expected_diagnostic_prompts=diagnostic_prompts,
+                expected_ddim_steps=ddim_steps,
+                expected_seed=cache_seed
+            )
         if cache is None:
             base_for_cache = accelerator.unwrap_model(model)
             with base_for_cache.hyper.no_lora():
@@ -1012,6 +1016,7 @@ def main():
                     seed=cache_seed,
                     weight_dtype=weight_dtype,
                     guidance=3.0,
+                    cache_path=cache_path,
                 )
                 print('after cache produce ', cache)
             cache.save(cache_path)
