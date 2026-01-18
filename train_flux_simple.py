@@ -986,9 +986,12 @@ def main():
     cache_name = config.get('cache_name', default_cache_name)
     cache_path = os.path.join(cache_dir, f"{cache_name}_cache.pt")
 
+    print('!!! ', cache_path)
+
     if use_cache and is_main:
         cache_seed = seed if seed else 42
         if os.path.exists(cache_path):
+            print('before load')
             cache = Cache.load(
                 cache_path, accelerator.device, weight_dtype,
                 expected_target_prompts=all_augmented_prompts,
@@ -997,6 +1000,7 @@ def main():
                 expected_ddim_steps=ddim_steps,
                 expected_seed=cache_seed
             )
+
         if cache is None:
             base_for_cache = accelerator.unwrap_model(model)
             with base_for_cache.hyper.no_lora():
@@ -1018,7 +1022,6 @@ def main():
                     guidance=3.0,
                     cache_path=cache_path,
                 )
-                print('after cache produce ', cache)
             cache.save(cache_path)
 
     accelerator.wait_for_everyone()
