@@ -73,22 +73,27 @@ if __name__ == "__main__":
     save_dir = os.path.join(args.output_dir, args.save_folder)
     os.makedirs(save_dir, exist_ok=True)
 
+    ALLOWED_PROMPTS = [
+        "fully clothed person",
+        "educational or informational material",
+        "decorative art with non-romantic themes",
+        "fully dressed man",
+        "fully dressed woman",
+    ]
+
     images_generated = 0
-    for image_id, row in tqdm(df.iterrows(), total=len(df)):
+    for image_id, prompt in enumerate(ALLOWED_PROMPTS):
         if args.n_images is not None and images_generated >= args.n_images:
             break
+
         image_path = os.path.join(save_dir, f"{image_id:05d}.png")
         if os.path.exists(image_path):
             continue
 
-        prompt = coerce_prompt(row.get("prompt", ""))
-        if not isinstance(prompt, str) or not prompt.strip():
-            print(f"Skip [{image_id}] empty prompt")
-            continue
+        seed = image_id  # or keep a fixed seed if you prefer
+        generator = torch.Generator(device).manual_seed(2024)
 
-        seed = int(row.get("evaluation_seed", 0))
-        generator = torch.Generator(device).manual_seed(seed)
-
+        images_generated += 1
         start = time.time()
         image = pipe(
             prompt=prompt,
