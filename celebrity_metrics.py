@@ -2,7 +2,8 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any, Literal
+from functools import partial
+from typing import Optional, Tuple, List, Dict, Any, Literal, Union
 
 import torch
 import pandas as pd
@@ -32,6 +33,50 @@ CSV_PATHS = {
     10: "prompts_csv/celebrity_10_concepts.csv",
     100: "prompts_csv/celebrity_100_concepts.csv",
 }
+
+
+def _load_model_with_hypernetwork(
+    hypernetwork_path: str,
+    device: torch.device,
+    config: str = "./configs/stable-diffusion/v1-inference.yaml",
+    ckpt: str = "models/sd-v1-4.ckpt",
+    alpha: float = 0.00001,
+    hyper_timestep: int = 500,
+):
+    from transformers import CLIPTextModel, CLIPTokenizer
+    from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
+    from utils import load_model_from_config
+    
+    model = load_model_from_config(config, ckpt, device)
+    
+    hypernetwork_sd = torch.load(hypernetwork_path, map_location=device)
+    hyper_lora_factory = partial(
+        HyperLoRALinear,
+        clip_size=768,
+        rank=1,
+        train_steps=hyper_timestep,
+        alpha=alpha,
+    )
+    model.hyper = HypernetworkManager()
+    hyper_lora_layers = inject_hyper_lora(
+        model.model.diffusion_model, ["attn2.to_k", "attn2.to_v"], hyper_lora_factory
+    )
+    for layer_name, layer in hyper_lora_layers:
+        layer.set_parent_model(model)
+        model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+    
+    sd = model.model.diffusion_model.state_dict()
+    with torch.no_grad():
+        for k, v in hypernetwork_sd.items():
+            if k in sd:
+                if torch.is_tensor(hypernetwork_sd[k]) and torch.is_tensor(v) and hypernetwork_sd[k].shape == v.shape:
+                    sd[k].copy_(v.to(sd[k].dtype))
+    
+    model.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    model.clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+    model.hyper_timestep = hyper_timestep
+    
+    return model
 
 
 def _extract_name_from_prompt(prompt: str) -> str:
@@ -180,6 +225,19 @@ def _generate_images(
                     gen = torch.Generator(device=device).manual_seed(seed)
                     start_code = torch.randn(1, 4, 64, 64, generator=gen, device=device)
                     
+                    if hasattr(model, 'hyper') and hasattr(model, 'tokenizer'):
+                        inputs = model.tokenizer(
+                            prompt,
+                            max_length=model.tokenizer.model_max_length,
+                            padding="max_length",
+                            truncation=True,
+                            return_tensors="pt",
+                        ).to(device).input_ids
+                        t_prompt = model.clip_text_encoder(inputs).pooler_output.detach()
+                        timestep = torch.tensor([model.hyper_timestep]).to(device)
+                        model.hyper.set_context(t_prompt, timestep)
+                        model.hyper.compute_and_cache_loras(t_prompt, timestep)
+                    
                     cond = model.get_learned_conditioning([prompt])
                     uncond = model.get_learned_conditioning([""])
                     
@@ -253,16 +311,29 @@ def _evaluate_images(
 
 
 def evaluate_celebrity_erasure(
-    model,
+    model_or_hypernetwork_path: Union[str, Path, Any],
     task: Literal[1, 5, 10, 100],
     device: torch.device = None,
     num_images_per_prompt: int = 5,
     output_dir: Optional[str] = None,
     base_path: str = ".",
     verbose: bool = False,
+    config: str = "./configs/stable-diffusion/v1-inference.yaml",
+    ckpt: str = "models/sd-v1-4.ckpt",
+    alpha: float = 0.00001,
+    hyper_timestep: int = 500,
 ) -> Dict[str, Any]:
     if device is None:
-        device = next(model.parameters()).device
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    if isinstance(model_or_hypernetwork_path, (str, Path)):
+        model = _load_model_with_hypernetwork(
+            str(model_or_hypernetwork_path), device, config, ckpt, alpha, hyper_timestep
+        )
+    else:
+        model = model_or_hypernetwork_path
+        if device is None:
+            device = next(model.parameters()).device
     
     erased_names, retained_names = _load_celebrity_lists(task, base_path)
     
