@@ -1224,9 +1224,9 @@ def main():
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
-                with model.hyper.no_lora():
+                with base.hyper.no_lora():
                     if not use_cached_latent:
-                        z, latent_image_ids = latent_sample(model,
+                        z, latent_image_ids = latent_sample(base,
                                                             noise_scheduler,
                                                             1,
                                                             model_input.shape[1],
@@ -1239,13 +1239,13 @@ def main():
                                                             int(t_enc))
 
                     e_0 = predict_noise(
-                        model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
+                        base, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
                         timesteps=t_ddpm,
                         CPU_only=True,
                     )
                     e_p = predict_noise(
-                        model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                        base, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                         guidance=start_guidance,
                         timesteps=t_ddpm,
                         CPU_only=True,
