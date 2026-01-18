@@ -31,7 +31,7 @@ except ImportError:
     WANDB_AVAILABLE = False
 
 from diffusers import FluxPipeline
-from tools.prompt_process import encode_prompt
+from tools.prompt_process import encode_prompt, _get_clip_prompt_embeds
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from torchvision.transforms.functional import to_tensor
 from generate_bare_flux import retrieve_timesteps, inference_latent_sample, generate_one_image_from_prompt
@@ -881,7 +881,7 @@ def main():
     #     mapping_embeddings.append(emb)
 
     # Retain prompts - load from CSV file with 'prompt' column
-    # Retain embeddings are computed on-the-fly at training startup (not cached to keep cache file small)
+    # Retain embeddings use CLIP only (no T5) and are cached to disk
     retain_prompts = []
     retain_embeddings = []
 
@@ -910,21 +910,39 @@ def main():
             retain_prompts = base_prompts
             print(f"Using {len(retain_prompts)} retain prompts without augmentation")
 
-        # Compute retain embeddings on-the-fly using Flux's text encoders
+        # Cache retain embeddings (CLIP only, same as train_simple.py)
         # Uses pooled_prompt_embeds (768-dim) for HyperLoRA context
+        retain_cache_dir = os.path.join(output_dir, "cache")
         if is_main:
-            print(f"Computing retain embeddings using Flux text encoders...")
-            for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                with torch.no_grad():
-                    _, pooled_emb, _ = compute_text_embeddings(
-                        prompt, text_encoders, tokenizers, accelerator.device
-                    )
-                retain_embeddings.append(pooled_emb.squeeze().cpu())
-            print(f"Computed {len(retain_embeddings)} retain embeddings")
-        accelerator.wait_for_everyone()
+            os.makedirs(retain_cache_dir, exist_ok=True)
 
-        # Move to correct device
+        csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
+        cache_key = f"{csv_name}_aug{augment_retain}_pooler_flux"
+        retain_cache_path = os.path.join(retain_cache_dir, f"retain_embeddings_{cache_key}.pt")
+
+        cache_exists = os.path.exists(retain_cache_path)
+        if not cache_exists:
+            if is_main:
+                print(f"Computing retain embeddings using CLIP text encoder (skipping T5)...")
+                for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
+                    with torch.no_grad():
+                        # Only compute CLIP embeddings, skip T5 to save computation
+                        pooled_emb = _get_clip_prompt_embeds(
+                            text_encoder=text_encoders[0],  # CLIP encoder
+                            tokenizer=tokenizers[0],        # CLIP tokenizer
+                            prompt=prompt,
+                            device=accelerator.device,
+                            num_images_per_prompt=1,
+                        )
+                    retain_embeddings.append(pooled_emb.squeeze().cpu())
+                torch.save(retain_embeddings, retain_cache_path)
+                print(f"Saved {len(retain_embeddings)} retain embeddings to {retain_cache_path}")
+            accelerator.wait_for_everyone()
+
+        # Load from cache
+        retain_embeddings = torch.load(retain_cache_path, map_location='cpu')
         retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
+        print(f"Loaded {len(retain_embeddings)} retain embeddings from cache")
     else:
         print("No retain CSV path provided or file not found. Skipping retain loss.")
 
