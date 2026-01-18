@@ -1171,6 +1171,7 @@ def main():
                         )
                         # Add to cache for future iterations (lazy caching)
                         if cache is not None:
+                            print('!!! ')
                             cache.add_embedding(
                                 mapping_text_augmented, emb_0, pooled_emb_0, text_ids_0,
                                 embedding_type='mapping'
