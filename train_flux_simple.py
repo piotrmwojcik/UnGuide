@@ -1163,6 +1163,7 @@ def main():
             if cache is not None and mapping_text_augmented and mapping_text_augmented in cache.mapping_prompt_to_idx:
                 emb_0, pooled_emb_0, text_ids_0 = cache.get_mapping(mapping_text_augmented, accelerator.device)
             else:
+                print('!!!!!!')
                 # Fallback: compute on-the-fly and add to cache for future use
                 with torch.no_grad():
                     if mapping_text_augmented:
@@ -1177,6 +1178,7 @@ def main():
                                 embedding_type='mapping'
                             )
                     else:
+                        print('!!! bizzare')
                         # If no mapping concept, fall back to unconditional
                         emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
                             "", text_encoders, tokenizers, accelerator.device
