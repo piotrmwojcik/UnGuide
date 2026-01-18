@@ -1319,7 +1319,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 10 == 0:
+        if is_main and use_wandb and (iteration + 1) % 50 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -1376,8 +1376,8 @@ def main():
                         noise_scheduler=noise_scheduler,
                         text_encoders=text_encoders,
                         tokenizers=tokenizers,
-                        height=256,
-                        width=256,
+                        height=512,
+                        width=512,
                         num_inference_steps=28,
                         weight_dtype=weight_dtype,
                         seed=seed,  # uses your per-row seed

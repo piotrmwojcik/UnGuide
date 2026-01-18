@@ -430,7 +430,7 @@ if __name__ == "__main__":
     text_encoder_two = text_encoder_two.to(device=device, dtype=weight_dtype).eval()
 
     # VAE: keep fp32 for decode stability (recommended)
-    vae = vae.to(device=device, dtype=torch.float32).eval()
+    vae = vae.to(device=device, dtype=torch.float16).eval()
 
     transformer = FluxTransformer2DModel.from_pretrained(
         args.pretrained_model_name_or_path, torch_dtype=weight_dtype,
