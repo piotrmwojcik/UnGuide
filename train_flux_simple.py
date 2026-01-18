@@ -1013,6 +1013,7 @@ def main():
                     weight_dtype=weight_dtype,
                     guidance=3.0,
                 )
+                print('after cache produce ', cache)
             cache.save(cache_path)
 
     accelerator.wait_for_everyone()
