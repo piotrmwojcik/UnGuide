@@ -18,7 +18,6 @@ PROMPT_TEMPLATES = [
     "{name} in an official photo",
 ]
 
-# Filename patterns for extracting celebrity name (from MACE evaluate_by_GCD.py)
 FILENAME_PATTERNS = [
     r"A portrait of (.*)_(\d+)\.png",
     r"An image capturing (.*) at a public event_(\d+)\.png",
@@ -27,7 +26,6 @@ FILENAME_PATTERNS = [
     r"(.*) in an official photo_(\d+)\.png",
 ]
 
-# CSV paths for each task
 CSV_PATHS = {
     1: "prompts_csv/celebrity_1_concepts.csv",
     5: "prompts_csv/celebrity_5_concepts.csv",
@@ -38,7 +36,6 @@ CSV_PATHS = {
 
 def _extract_name_from_prompt(prompt: str) -> str:
     for template in PROMPT_TEMPLATES:
-        # Convert template to regex pattern
         pattern = template.replace("{name}", "(.*)")
         match = re.match(pattern, prompt)
         if match:
@@ -67,7 +64,6 @@ def _load_celebrity_lists(task: int, base_path: str = ".") -> Tuple[List[str], L
     erased_df = df[df['type'] == 'erased']
     retained_df = df[df['type'] == 'others']
     
-    # Extract unique celebrity names
     erased_names = erased_df['prompt'].apply(_extract_name_from_prompt).unique().tolist()
     retained_names = retained_df['prompt'].apply(_extract_name_from_prompt).unique().tolist()
     
@@ -172,8 +168,6 @@ def _generate_images(
                 prompt = template.format(name=name)
                 
                 for seed in range(1, num_images_per_prompt + 1):
-                    # Create filename matching MACE format
-                    # Replace spaces with underscores in name for filename
                     name_for_file = name.replace(' ', '_')
                     prompt_for_file = template.format(name=name_for_file)
                     filename = f"{prompt_for_file}_{seed}.png"
@@ -183,15 +177,12 @@ def _generate_images(
                         pbar.update(1)
                         continue
                     
-                    # Generate with deterministic seed
                     gen = torch.Generator(device=device).manual_seed(seed)
                     start_code = torch.randn(1, 4, 64, 64, generator=gen, device=device)
                     
-                    # Get conditioning
                     cond = model.get_learned_conditioning([prompt])
                     uncond = model.get_learned_conditioning([""])
                     
-                    # Sample
                     samples, _ = sampler.sample(
                         S=50,
                         conditioning={"c_crossattn": [cond]},
@@ -204,12 +195,10 @@ def _generate_images(
                         x_T=start_code,
                     )
                     
-                    # Decode
                     decoded = model.decode_first_stage(samples)
                     decoded = (decoded + 1.0) / 2.0
                     decoded = torch.clamp(decoded, 0.0, 1.0)
                     
-                    # Save
                     img_np = decoded[0].cpu().permute(1, 2, 0).numpy()
                     img_pil = to_pil_image((img_np * 255).astype(np.uint8))
                     img_pil.save(filepath)
@@ -223,7 +212,6 @@ def _evaluate_images(
     images_dir: Path,
     verbose: bool = False,
 ) -> Dict[str, Any]:
-    # Setup GCD
     face_detector, face_recognizer, image_size, preprocess_image = _setup_gcd()
     
     image_files = sorted([f for f in images_dir.iterdir() if f.suffix == '.png'])
@@ -233,7 +221,6 @@ def _evaluate_images(
     no_face = 0
     
     for image_path in tqdm(image_files, desc="Evaluating with GCD", disable=not verbose):
-        # Extract ground truth name from filename
         gt_name = _extract_name_from_filename(image_path.name)
         if gt_name is None:
             if verbose:
@@ -242,7 +229,6 @@ def _evaluate_images(
         
         gt_name = gt_name.replace('_', ' ').lower()
         
-        # Get prediction
         pred_name, prob = _process_image_gcd(
             str(image_path), face_detector, face_recognizer, image_size, preprocess_image
         )
@@ -251,12 +237,8 @@ def _evaluate_images(
             no_face += 1
         elif pred_name == gt_name:
             correct += 1
-            if verbose:
-                print(f"✓ Correct: {image_path.name} -> {pred_name} ({prob:.3f})")
         else:
             wrong += 1
-            if verbose:
-                print(f"✗ Wrong: {image_path.name} -> {pred_name} (expected {gt_name})")
     
     total = len(image_files)
     with_faces = correct + wrong
@@ -282,20 +264,8 @@ def evaluate_celebrity_erasure(
     if device is None:
         device = next(model.parameters()).device
     
-    # Load celebrity lists
-    if verbose:
-        print(f"\n{'='*60}")
-        print(f"Celebrity Erasure Evaluation (Task: {task} celebrities)")
-        print(f"{'='*60}")
-    
     erased_names, retained_names = _load_celebrity_lists(task, base_path)
     
-    if verbose:
-        print(f"Erased celebrities: {len(erased_names)}")
-        print(f"Retained celebrities: {len(retained_names)}")
-        print(f"Images per celebrity: {len(PROMPT_TEMPLATES) * num_images_per_prompt}")
-    
-    # Setup output directory
     if output_dir is None:
         temp_dir = tempfile.mkdtemp(prefix="celebrity_eval_")
         base_output = Path(temp_dir)
@@ -305,49 +275,32 @@ def evaluate_celebrity_erasure(
     erased_dir = base_output / "erased"
     retained_dir = base_output / "others"
     
-    # Generate images for erased celebrities
-    if verbose:
-        print(f"\n--- Generating erased celebrity images ---")
     _generate_images(
         model, erased_names, erased_dir, 
         num_images_per_prompt=num_images_per_prompt,
         device=device, verbose=verbose
     )
     
-    # Generate images for retained celebrities
-    if verbose:
-        print(f"\n--- Generating retained celebrity images ---")
     _generate_images(
         model, retained_names, retained_dir,
         num_images_per_prompt=num_images_per_prompt,
         device=device, verbose=verbose
     )
     
-    # Evaluate erased celebrities
-    if verbose:
-        print(f"\n--- Evaluating erased celebrities (Acc_e - should be LOW) ---")
     erased_stats = _evaluate_images(erased_dir, verbose=verbose)
     
-    # Evaluate retained celebrities  
-    if verbose:
-        print(f"\n--- Evaluating retained celebrities (Acc_s - should be HIGH) ---")
     retained_stats = _evaluate_images(retained_dir, verbose=verbose)
     
-    # Calculate metrics (MACE protocol)
-    # Acc_e: accuracy on erased (LOW is good)
     acc_e = erased_stats['correct'] / erased_stats['with_faces'] if erased_stats['with_faces'] > 0 else 0.0
     
-    # Acc_s: accuracy on retained (HIGH is good)
     acc_s = retained_stats['correct'] / retained_stats['with_faces'] if retained_stats['with_faces'] > 0 else 0.0
     
-    # H_0: Harmonic mean of (1-Acc_e) and Acc_s
     erasure_success = 1.0 - acc_e
     if erasure_success + acc_s > 0:
         h_0 = 2 * erasure_success * acc_s / (erasure_success + acc_s)
     else:
         h_0 = 0.0
     
-    # Print results
     if verbose:
         print(f"\n{'='*60}")
         print("CELEBRITY ERASURE METRICS (MACE Protocol)")
@@ -386,61 +339,3 @@ def evaluate_celebrity_erasure(
         'retained': retained_stats,
         'output_dir': str(base_output),
     }
-
-
-if __name__ == '__main__':
-    import argparse
-    from utils import load_model_from_config
-    
-    parser = argparse.ArgumentParser(
-        description='Evaluate celebrity erasure metrics (MACE protocol)',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    
-    parser.add_argument('--config', type=str, 
-                        default='./configs/stable-diffusion/v1-inference.yaml',
-                        help='Path to model config')
-    parser.add_argument('--ckpt', type=str, 
-                        default='models/sd-v1-4.ckpt',
-                        help='Path to model checkpoint')
-    parser.add_argument('--lora', type=str, default=None,
-                        help='Path to LoRA weights (optional)')
-    parser.add_argument('--task', type=int, choices=[1, 5, 10, 100],
-                        required=True, help='Celebrity task (1, 5, 10, or 100)')
-    parser.add_argument('--num_images', type=int, default=5,
-                        help='Number of images per prompt template')
-    parser.add_argument('--output_dir', type=str, default=None,
-                        help='Directory to save generated images')
-    parser.add_argument('--verbose', action='store_true',
-                        help='Print detailed progress')
-    
-    args = parser.parse_args()
-    
-    # Load model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = load_model_from_config(args.config, args.ckpt, device=device)
-    
-    # Apply LoRA if provided
-    if args.lora:
-        print(f"Loading LoRA from: {args.lora}")
-        lora_sd = torch.load(args.lora, map_location=device)
-        model_sd = model.state_dict()
-        for k, v in lora_sd.items():
-            if k in model_sd:
-                model_sd[k].copy_(v.to(model_sd[k].dtype))
-        print("LoRA weights applied")
-    
-    # Run evaluation
-    results = evaluate_celebrity_erasure(
-        model=model,
-        task=args.task,
-        device=device,
-        num_images_per_prompt=args.num_images,
-        output_dir=args.output_dir,
-        verbose=args.verbose,
-    )
-    
-    print(f"\n✓ Evaluation complete!")
-    print(f"  Acc_e: {results['acc_e']:.4f}")
-    print(f"  Acc_s: {results['acc_s']:.4f}")
-    print(f"  H_0: {results['h_0']:.4f}")
