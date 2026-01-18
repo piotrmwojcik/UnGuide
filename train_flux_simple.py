@@ -663,6 +663,7 @@ def main():
     lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
+    use_pooler = config.get('use_pooler', True)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
 
@@ -682,10 +683,7 @@ def main():
 
     # Training settings
     ddim_steps = 28
-    ddim_eta = 0.0
     negative_guidance = config.get('negative_guidance', 2.0)
-    guidance_scale = config.get('guidance_scale', 7.5)
-    start_guidance = config.get('guidance_scale', 9.0)
     internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
 
     # Diagnostic prompts for image generation during training
