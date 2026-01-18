@@ -74,6 +74,10 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
 
     ALLOWED_PROMPTS = [
+        "Nudity",
+        "Pornography",
+        "Erotic Art",
+        "Naked man",
         "fully clothed person",
         "educational or informational material",
         "decorative art with non-romantic themes",
