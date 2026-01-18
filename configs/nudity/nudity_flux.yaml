@@ -76,7 +76,7 @@ UnHype:
 
   use_latent_cache: true
   use_diagnostic_cache: true
-  cache_dir: "latents_cache"
+  cache_dir: "latents_cache_all"
   cache_name: "nudity"
 
 
