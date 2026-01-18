@@ -1176,7 +1176,6 @@ def main():
                                 mapping_text_augmented, emb_0, pooled_emb_0, text_ids_0,
                                 embedding_type='mapping'
                             )
-                        else:
                     else:
                         # If no mapping concept, fall back to unconditional
                         emb_0, pooled_emb_0, text_ids_0 = compute_text_embeddings(
