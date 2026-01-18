@@ -888,63 +888,43 @@ def main():
     if retain_csv_path and os.path.exists(retain_csv_path):
         print(f"Loading retain prompts from CSV: {retain_csv_path}")
         df = pd.read_csv(retain_csv_path)
-
         if 'prompt' not in df.columns:
             raise ValueError(f"CSV file must have a 'prompt' column. Found columns: {df.columns.tolist()}")
 
-        # Load all prompts from CSV
         base_prompts = df['prompt'].dropna().tolist()
-        print(f"Loaded {len(base_prompts)} base retain prompts from CSV")
-
-        # Apply prompt augmentation to retain prompts if enabled
         if augment_retain:
-            print("Applying prompt augmentation to retain prompts")
             for prompt in base_prompts:
-                # Remove "A photo of the " from the beginning if present
                 if prompt.startswith("A photo of the "):
                     prompt = prompt[len("A photo of the "):]
                 augmented = prompt_augmentation(prompt, augment=True)
                 retain_prompts.extend(augmented)
-            print(f"Generated {len(retain_prompts)} retain prompts with augmentation")
         else:
             retain_prompts = base_prompts
-            print(f"Using {len(retain_prompts)} retain prompts without augmentation")
 
-        # Cache retain embeddings (CLIP only, same as train_simple.py)
-        # Uses pooled_prompt_embeds (768-dim) for HyperLoRA context
-        retain_cache_dir = os.path.join(output_dir, "cache")
+        cache_dir = os.path.join(output_dir, "cache")
         if is_main:
-            os.makedirs(retain_cache_dir, exist_ok=True)
+            os.makedirs(cache_dir, exist_ok=True)
 
         csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
-        cache_key = f"{csv_name}_aug{augment_retain}_pooler_flux"
-        retain_cache_path = os.path.join(retain_cache_dir, f"retain_embeddings_{cache_key}.pt")
+        cache_key = f"{csv_name}_aug{augment_retain}_pooler{use_pooler}"
+        cache_path = os.path.join(cache_dir, f"retain_embeddings_{cache_key}.pt")
 
-        cache_exists = os.path.exists(retain_cache_path)
+        cache_exists = os.path.exists(cache_path)
         if not cache_exists:
             if is_main:
-                print(f"Computing retain embeddings using CLIP text encoder (skipping T5)...")
                 for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
+                    inputs = encode(prompt)
                     with torch.no_grad():
-                        # Only compute CLIP embeddings, skip T5 to save computation
-                        pooled_emb = _get_clip_prompt_embeds(
-                            text_encoder=text_encoders[0],  # CLIP encoder
-                            tokenizer=tokenizers[0],        # CLIP tokenizer
-                            prompt=prompt,
-                            device=accelerator.device,
-                            num_images_per_prompt=1,
-                        )
-                    retain_embeddings.append(pooled_emb.squeeze().cpu())
-                torch.save(retain_embeddings, retain_cache_path)
-                print(f"Saved {len(retain_embeddings)} retain embeddings to {retain_cache_path}")
+                        if use_pooler:
+                            emb = clip_text_encoder(inputs).pooler_output.detach()
+                        else:
+                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
+                    retain_embeddings.append(emb.squeeze().cpu())
+                torch.save(retain_embeddings, cache_path)
             accelerator.wait_for_everyone()
 
-        # Load from cache
-        retain_embeddings = torch.load(retain_cache_path, map_location='cpu')
+        retain_embeddings = torch.load(cache_path, map_location='cpu')
         retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
-        print(f"Loaded {len(retain_embeddings)} retain embeddings from cache")
-    else:
-        print("No retain CSV path provided or file not found. Skipping retain loss.")
 
     print(f"Mapping concepts: {len(mapping_concept)}")
     print(f"Retain prompts: {len(retain_prompts)} prompts loaded")
