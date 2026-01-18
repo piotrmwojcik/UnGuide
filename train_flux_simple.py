@@ -1163,7 +1163,7 @@ def main():
             if cache is not None and mapping_text_augmented and mapping_text_augmented in cache.mapping_prompt_to_idx:
                 emb_0, pooled_emb_0, text_ids_0 = cache.get_mapping(mapping_text_augmented, accelerator.device)
             else:
-                print('!!!!!!')
+                print('!!!!!! ', cache)
                 # Fallback: compute on-the-fly and add to cache for future use
                 with torch.no_grad():
                     if mapping_text_augmented:
