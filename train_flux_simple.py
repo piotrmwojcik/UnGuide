@@ -1177,6 +1177,8 @@ def main():
                                 mapping_text_augmented, emb_0, pooled_emb_0, text_ids_0,
                                 embedding_type='mapping'
                             )
+                        else:
+                            print('cache is none', cache)
                     else:
                         print('!!! bizzare')
                         # If no mapping concept, fall back to unconditional
