@@ -270,6 +270,7 @@ def generate_one_image_from_prompt(
     width: int = 512,
     num_inference_steps: int = 28,
     weight_dtype: torch.dtype = torch.bfloat16,
+    cached_embeddings = None,
     seed: int | None = None,
 ):
     """
@@ -284,9 +285,12 @@ def generate_one_image_from_prompt(
 
     # --- Text embeddings (positive prompt only) ---
     prompts = [prompt]
-    emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings_short(
-        prompts, text_encoders, tokenizers, transformer.device
-    )
+    if cached_embeddings is None:
+        emb_p, pooled_emb_p, text_ids_p = compute_text_embeddings_short(
+            prompts, text_encoders, tokenizers, transformer.device
+        )
+    else:
+        emb_p, pooled_emb_p, text_ids_p = cached_embeddings
 
     # --- VAE scale factor (same as your snippet) ---
     vae_scale_factor = 2 ** (len(vae.config.block_out_channels))
