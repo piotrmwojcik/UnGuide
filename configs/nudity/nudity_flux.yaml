@@ -91,7 +91,7 @@ UnHype:
   use_orig_concat: true
 
   # Loss weights
-  negative_guidance: 2.0
+  negative_guidance: 3.0
   guidance_scale: 3.0
   start_guidance: 9.0
   internal_lr: 1.0e-03  # Simulated learning rate for hypernetwork gradient matching
