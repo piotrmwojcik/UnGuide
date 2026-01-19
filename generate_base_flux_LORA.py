@@ -8,6 +8,7 @@ from functools import partial
 import re
 from diffusers import FluxPipeline
 from huggingface_hub import login
+from transformers import CLIPTextModel, CLIPTokenizer
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
