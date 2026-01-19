@@ -845,9 +845,27 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     gamma = config.get('gamma', 0.9)  # Weight for removal loss
     step_size = config.get('step_size', 300)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[step_size], gamma=gamma
-    )
+    
+    # Scheduler configuration
+    drop_lr_on_plateau = config.get('drop_lr_on_plateau', False)
+    if drop_lr_on_plateau:
+        plateau_factor = config.get('plateau_factor', 0.1)
+        plateau_patience = config.get('plateau_patience', 10)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=plateau_factor,
+            patience=plateau_patience,
+            verbose=True
+        )
+        if is_main:
+            print(f"Using ReduceLROnPlateau scheduler (factor={plateau_factor}, patience={plateau_patience})")
+    else:
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=[step_size], gamma=gamma
+        )
+        if is_main:
+            print(f"Using MultiStepLR scheduler (step_size={step_size}, gamma={gamma})")
 
     # Prepare for distributed training
     model, optimizer = accelerator.prepare(model, optimizer)
@@ -1450,7 +1468,11 @@ def main():
             if accelerator.sync_gradients:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
-                scheduler.step()
+                if drop_lr_on_plateau:
+                    total_loss = loss_remove.detach() + loss_retain.detach()
+                    scheduler.step(total_loss)
+                else:
+                    scheduler.step()
 
         # Gather loss across devices
         with torch.no_grad():
