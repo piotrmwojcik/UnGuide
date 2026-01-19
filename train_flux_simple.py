@@ -1225,7 +1225,7 @@ def main():
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
                 with base.hyper.no_lora():
-                    if not use_cached_latent:
+                    if True:
                         z, latent_image_ids = latent_sample(model,
                                                             noise_scheduler,
                                                             1,
