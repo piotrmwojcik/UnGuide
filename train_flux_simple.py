@@ -1369,26 +1369,6 @@ def main():
             loss_aux = criterion(e_n.to(accelerator.device), e_0.to(accelerator.device) - (
                         negative_guidance * (e_p.to(accelerator.device) - e_0.to(accelerator.device))))
 
-
-            # with torch.no_grad():
-            #     # Generate latent using target prompt
-            #     z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
-            #     # Get noise predictions from original model
-            #     e_m = model_orig.apply_model(z, t_enc_ddpm, emb_m)  # mapping (reference) concept
-            #     e_p = model_orig.apply_model(z, t_enc_ddpm, emb_p)  # target prompt
-            #
-            # # Prediction from modified model (with HyperLoRA)
-            # _, current_timestep = base.hyper.get_context()
-            # base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            # base.hyper.retain_grad_for_cached_lora()
-            # e_n = base.apply_model(z, t_enc_ddpm, emb_n)
-            #
-            # # Loss: push modified output away from target, towards mapping concept
-            # e_m.requires_grad_(False)
-            # e_p.requires_grad_(False)
-            # target = e_m - (negative_guidance * (e_p - e_m))
-            # loss_aux = criterion(e_n, target)
-            #
             accelerator.backward(loss_aux)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
@@ -1521,7 +1501,6 @@ def main():
                 # 3) Move ONLY what you need to GPU for diagnostics (encoders+VAE), then move back
                 #    Avoid diag_pipe.to(device) if you're tight on VRAM; move components explicitly.
 
-                diag_seed = 12345  # fixed so noise identical across h_step
                 imgs_per_prompt = []
                 #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
                 #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
