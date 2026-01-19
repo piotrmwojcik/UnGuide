@@ -229,11 +229,13 @@ if __name__ == "__main__":
         context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
 
+
+        STEP = 0
         hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
         model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                       torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
+                                       torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
         model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
+                                           torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
 
         start = time.time()
         image = pipe(
@@ -242,7 +244,7 @@ if __name__ == "__main__":
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
-            guidance_scale = 3.0,
+            guidance_scale=3.0,
             generator=generator,
             max_sequence_length=256
         ).images[0]
