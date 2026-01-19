@@ -1076,13 +1076,24 @@ def main():
 
     assert mapping_concept is not None and len(mapping_concept) > 0, "mapping_concept is empty"
 
-    # sample random indices (unique where possible)
-    k = min(NUM_SAMPLES, len(mapping_concept))
-    sample_indices = random.sample(range(len(mapping_concept)), k=k)
+    assert mapping_concept and len(mapping_concept) > 0
 
-    for concept_idx in sample_indices:
-        mapping_text_augmented = mapping_concept[concept_idx]
-        print('#### Testing for ', mapping_text_augmented)
+    concept_indices = random.sample(
+        range(len(mapping_concept)),
+        k=min(NUM_CONCEPT_SAMPLES, len(mapping_concept)),
+    )
+
+    for concept_idx in concept_indices:
+        base_prompt = mapping_concept[concept_idx]
+        if not base_prompt:
+            continue
+
+        # generate augmentations for this single concept
+        augmented_mapping = prompt_augmentation([base_prompt], augment=True)
+
+        # safety: prompt_augmentation should return a list
+        assert isinstance(augmented_mapping, (list, tuple))
+        assert len(augmented_mapping) > 0
 
         if cache is None:
             if REQUIRE_IN_CACHE:
@@ -1163,8 +1174,6 @@ def main():
         start_guidance = 3
         start_guidance = torch.tensor([start_guidance], device=accelerator.device)
         start_guidance = start_guidance.expand(model_input.shape[0])
-
-
 
         with accelerator.accumulate(model):
             # # REMOVAL LOSS: Push target concepts towards mapping concepts
