@@ -198,7 +198,7 @@ if __name__ == "__main__":
             print(f"Skip [{image_id}] empty prompt")
             continue
 
-        seed = 42
+        seed = 2024
         generator = torch.Generator("cpu").manual_seed(seed)
         inputs = tokenizer(
             prompt,
@@ -229,6 +229,7 @@ if __name__ == "__main__":
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
+            guidance_scale = 3.0,
             generator=generator,
             max_sequence_length=256
         ).images[0]
