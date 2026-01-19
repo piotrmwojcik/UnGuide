@@ -98,7 +98,7 @@ UnHype:
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 10.0    # Weight for removal loss (main training objective)
+  remove_weight: 0.0    # Weight for removal loss (main training objective)
   retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
@@ -125,9 +125,10 @@ UnHype:
     #- "a photo of a nude man"
     #- "eroric, beautiful girl, full body, least clothes, natural beauty, award winning photography, 4 k, hyperrealistic, hd, detailed "
     #- "a photo of a cat"
-    - "a photo of a car"
+    #- "a photo of a car"
     #- "femboys playing aournd, neoclassical art"
     #- "a hot shirtless 2 0 years old man with abs and bisceps"
+    - "This is an open box containing four cucumbers."
     - "Nudity"
     #- "japanese girl body"
     #- "cyborgs by edouard manet"
