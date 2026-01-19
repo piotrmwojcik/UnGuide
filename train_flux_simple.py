@@ -1021,8 +1021,6 @@ def main():
     cache_name = config.get('cache_name', default_cache_name)
     cache_path = os.path.join(cache_dir, f"{cache_name}_cache.pt")
 
-    print('!!! ', cache_path)
-
     if use_cache and is_main:
         cache_seed = seed if seed else 42
         if os.path.exists(cache_path):
@@ -1099,87 +1097,6 @@ def main():
     retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
 
     print(f"Loss weights: remove={remove_weight:.3f}, retain={retain_weight:.3f}")
-
-    # NUM_CONCEPT_SAMPLES = 2  # how many random concepts to test
-    # RTOL = 1e-4  # tolerance for float comparison
-    # ATOL = 1e-5
-    # REQUIRE_IN_CACHE = True  # if True, assert prompt exists in cache; else skip missing
-    #
-    # # mapping_concept: list[str]
-    # # cache: object with .mapping_prompt_to_idx and .get_mapping(prompt, device) -> (emb, pooled_emb, text_ids)
-    # # compute_text_embeddings(prompt, text_encoders, tokenizers, device) -> (emb, pooled_emb, text_ids)
-    #
-    # assert mapping_concept is not None and len(mapping_concept) > 0, "mapping_concept is empty"
-    #
-    # concept_indices = random.sample(
-    #     range(len(mapping_concept)),
-    #     k=min(NUM_CONCEPT_SAMPLES, len(mapping_concept)),
-    # )
-    #
-    # for concept_idx in concept_indices:
-    #     base_prompt = mapping_concept[concept_idx]
-    #     if not base_prompt:
-    #         continue
-    #
-    #     # generate augmentations for this single concept
-    #     mapping_text_augmented = prompt_augmentation(base_prompt, augment=True)[3]
-    #
-    #     if cache is None:
-    #         if REQUIRE_IN_CACHE:
-    #             raise AssertionError("cache is None but REQUIRE_IN_CACHE=True")
-    #         continue
-    #
-    #     in_cache = mapping_text_augmented in cache.mapping_prompt_to_idx
-    #     if not in_cache:
-    #         if REQUIRE_IN_CACHE:
-    #             raise AssertionError(f"Prompt not in cache: {mapping_text_augmented!r}")
-    #         continue
-    #
-    #     # --- from cache ---
-    #     emb_cache, pooled_cache, text_ids_cache = cache.get_mapping(
-    #         mapping_text_augmented, accelerator.device
-    #     )
-    #
-    #     # --- computed manually ---
-    #     emb_manual, pooled_manual, text_ids_manual = compute_text_embeddings(
-    #         'dupa', text_encoders, tokenizers, accelerator.device
-    #     )
-    #
-    #     # Ensure comparable dtypes/devices for robust checks
-    #     emb_cache = emb_cache.detach().to(dtype=torch.float32)
-    #     pooled_cache = pooled_cache.detach().to(dtype=torch.float32)
-    #     emb_manual = emb_manual.detach().to(dtype=torch.float32)
-    #     pooled_manual = pooled_manual.detach().to(dtype=torch.float32)
-    #
-    #     # text ids should match exactly (typically integer tensors)
-    #     if isinstance(text_ids_cache, torch.Tensor) and isinstance(text_ids_manual, torch.Tensor):
-    #         assert torch.equal(text_ids_cache, text_ids_manual), (
-    #             f"text_ids mismatch for {mapping_text_augmented!r}\n"
-    #             f"cache:  {text_ids_cache}\nmanual: {text_ids_manual}"
-    #         )
-    #     else:
-    #         assert text_ids_cache == text_ids_manual, (
-    #             f"text_ids mismatch for {mapping_text_augmented!r}\n"
-    #             f"cache:  {text_ids_cache}\nmanual: {text_ids_manual}"
-    #         )
-    #
-    #     # embeddings: allow tiny numeric drift
-    #     torch.testing.assert_close(emb_cache, emb_manual, rtol=RTOL, atol=ATOL)
-    #     abs_diff = (emb_cache - emb_manual).abs()
-    #     rel_diff = abs_diff / (emb_manual.abs().clamp_min(1e-8))
-    #
-    #     max_abs = abs_diff.max().item()
-    #     mean_abs = abs_diff.mean().item()
-    #     max_rel = rel_diff.max().item()
-    #
-    #     print(
-    #         f"[EMB DIFF] "
-    #         f"max_abs={max_abs:.6e}, "
-    #         f"mean_abs={mean_abs:.6e}, "
-    #         f"max_rel={max_rel:.6e}, "
-    #     )
-    #     torch.testing.assert_close(pooled_cache, pooled_manual, rtol=RTOL, atol=ATOL)
-    #     print('DONE, MAPPINGS ARE OK')
 
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
@@ -1272,7 +1189,7 @@ def main():
 
             # Get pooled embedding for HyperLoRA context (CLIP-only, computed fresh - not from cache)
             hyper_emb_target = compute_clip_pooled_embeddings(
-                target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
+                target_text_augmented.to(accelerator.device), text_encoder_one, tokenizer_one, accelerator.device
             )
 
             print(
