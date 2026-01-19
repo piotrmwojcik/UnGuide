@@ -92,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--nudity", type=bool, default=True)
     parser.add_argument("--guidance_scale", type=float, default=3.0)
     parser.add_argument("--n_images", type=int, default=None)
+    parser.add_argument("--lora_path", type=str, default=None)
     parser.add_argument("--rank", type=int, default=9,
                        help="LoRA rank (must match training config)")
     parser.add_argument("--lora_alpha", type=float, default=9.0,
