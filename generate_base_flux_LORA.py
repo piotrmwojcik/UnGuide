@@ -9,7 +9,6 @@ from diffusers import FluxPipeline
 from huggingface_hub import login
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
-from flux_model_wrapper import FluxModelWrapper
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 token = os.environ.get("HF_TOKEN")
