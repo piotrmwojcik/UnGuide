@@ -696,7 +696,8 @@ def main():
     print(f"Config file: {args.config}")
 
     # Extract key parameters with defaults
-    learning_rate = config.get('learning_rate', 1e-5)
+    learning_rate_remove = config.get('learning_rate_remove', 1e-5)
+    learning_rate_retain = config.get('learning_rate_retain', 1e-5)
     max_train_steps = config.get('max_train_steps', 120)
     hyper_train_steps = config.get('hyper_train_steps', 500)  # Steps for hypernetwork context
     rank = config.get('rank', 1)
@@ -738,7 +739,8 @@ def main():
 
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
-    print(f"Learning rate: {learning_rate}")
+    print(f"Learning rate (remove): {learning_rate_remove}")
+    print(f"Learning rate (retain): {learning_rate_retain}")
     print(f"LoRA rank: {rank}")
     print(f"LoRA alpha: {lora_alpha}")
     print(f"Target concepts: {len(concepts)}")
@@ -773,7 +775,8 @@ def main():
             name=f"{config_name}_training",
             config=config
         )
-        wandb.define_metric("learning_rate", summary="last")
+        wandb.define_metric("learning_rate_remove", summary="last")
+        wandb.define_metric("learning_rate_retain", summary="last")
     elif is_main and config.get('report_to') == 'wandb' and not WANDB_AVAILABLE:
         print("Warning: wandb requested but not available. Disabling wandb logging.")
 
@@ -873,33 +876,49 @@ def main():
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    gamma = config.get('gamma', 0.9)  # Weight for removal loss
+    optimizer_remove = torch.optim.Adam(model.parameters(), lr=learning_rate_remove)
+    optimizer_retain = torch.optim.Adam(model.parameters(), lr=learning_rate_retain)
+
+    gamma = config.get('gamma', 0.9)
     step_size = config.get('step_size', 300)
-    
-    # Scheduler configuration
+
     drop_lr_on_plateau = config.get('drop_lr_on_plateau', False)
     if drop_lr_on_plateau:
         plateau_factor = config.get('plateau_factor', 0.1)
         plateau_patience = config.get('plateau_patience', 10)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer,
+        plateau_patience_remove = config.get('plateau_patience_remove', plateau_patience)
+        plateau_patience_retain = config.get('plateau_patience_retain', plateau_patience)
+
+        scheduler_remove = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_remove,
             mode='min',
             factor=plateau_factor,
-            patience=plateau_patience,
+            patience=plateau_patience_remove,
+            verbose=True
+        )
+        scheduler_retain = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_retain,
+            mode='min',
+            factor=plateau_factor,
+            patience=plateau_patience_retain,
             verbose=True
         )
         if is_main:
-            print(f"Using ReduceLROnPlateau scheduler (factor={plateau_factor}, patience={plateau_patience})")
+            print(f"Using separate ReduceLROnPlateau schedulers:")
+            print(f"  Remove: lr={learning_rate_remove}, factor={plateau_factor}, patience={plateau_patience_remove}")
+            print(f"  Retain: lr={learning_rate_retain}, factor={plateau_factor}, patience={plateau_patience_retain}")
     else:
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=[step_size], gamma=gamma
+        scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer_remove, milestones=[step_size], gamma=gamma
+        )
+        scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer_retain, milestones=[step_size], gamma=gamma
         )
         if is_main:
-            print(f"Using MultiStepLR scheduler (step_size={step_size}, gamma={gamma})")
+            print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
 
     # Prepare for distributed training
-    model, optimizer = accelerator.prepare(model, optimizer)
+    model, optimizer_remove, optimizer_retain = accelerator.prepare(model, optimizer_remove, optimizer_retain)
 
     # Register HyperLoRA layers after prepare
     for layer_name, layer in hyper_lora_layers:
@@ -1386,15 +1405,18 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
-            # Optimizer step
             if accelerator.sync_gradients:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
+                optimizer_remove.step()
+                optimizer_retain.step()
+                optimizer_remove.zero_grad(set_to_none=True)
+                optimizer_retain.zero_grad(set_to_none=True)
+
                 if drop_lr_on_plateau:
-                    total_loss = loss_remove.detach() + loss_retain.detach()
-                    scheduler.step(total_loss)
+                    scheduler_remove.step(loss_remove.detach())
+                    scheduler_retain.step(loss_retain.detach())
                 else:
-                    scheduler.step()
+                    scheduler_remove.step()
+                    scheduler_retain.step()
 
         # Gather loss across devices
         with torch.no_grad():
@@ -1404,11 +1426,13 @@ def main():
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if accelerator.is_main_process and use_wandb:
-            current_lr = optimizer.param_groups[0]['lr']
+            current_lr_remove = optimizer_remove.param_groups[0]['lr']
+            current_lr_retain = optimizer_retain.param_groups[0]['lr']
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
-                "learning_rate": current_lr
+                "learning_rate_remove": current_lr_remove,
+                "learning_rate_retain": current_lr_retain,
             }, step=iteration)
 
         if is_main:
@@ -1547,7 +1571,8 @@ def main():
             "augment_retain": augment_retain,
             "num_retain_prompts": len(retain_prompts),
             "rank": rank,
-            "learning_rate": learning_rate,
+            "learning_rate_remove": learning_rate_remove,
+            "learning_rate_retain": learning_rate_retain,
             "max_train_steps": max_train_steps,
             "hyper_train_steps": hyper_train_steps,
             "final_loss": losses[-1],
