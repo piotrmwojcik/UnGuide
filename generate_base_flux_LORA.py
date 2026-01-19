@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
         seed = 42
         generator = torch.Generator("cpu").manual_seed(seed)
-
+        clip_tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
         inputs = clip_tokenizer(
             prompt,
             max_length=clip_tokenizer.model_max_length,
@@ -206,7 +206,7 @@ if __name__ == "__main__":
             return_tensors="pt",
         ).to(device).input_ids
 
-        clip_text_encoder =  CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+        clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
         with torch.no_grad():
             if args.use_pooler:
                 context_emb = clip_text_encoder(inputs).pooler_output.detach()
