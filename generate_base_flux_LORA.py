@@ -120,7 +120,7 @@ if __name__ == "__main__":
     )
 
     hyper_lora_layers = inject_hyper_lora(
-        transformer, target_modules, hyper_lora_factory
+        model_wrapper, target_modules, hyper_lora_factory
     )
 
     for layer_name, layer in hyper_lora_layers:
