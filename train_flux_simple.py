@@ -1477,7 +1477,7 @@ def main():
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
                 # Get diagnostic embeddings from cache (uses Flux's pooled_prompt_embeds for HyperLoRA)
-                if cache is not None and cache.diagnostic_embeddings is not None:
+                if False:
                     diag_emb = cache.get_diagnostic_pooled(diag_prompt, accelerator.device)
                     cached_text_emb = cache.get_diagnostic(diag_prompt, accelerator.device)
                 else:

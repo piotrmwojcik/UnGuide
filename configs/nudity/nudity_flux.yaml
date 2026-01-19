@@ -82,7 +82,7 @@ UnHype:
 
   # LoRA configuration
   rank: 9
-  lora_alpha: 100
+  lora_alpha: 9
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: 1000
@@ -98,7 +98,7 @@ UnHype:
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 0.0    # Weight for removal loss (main training objective)
+  remove_weight: 10.0    # Weight for removal loss (main training objective)
   retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
