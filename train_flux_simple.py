@@ -1101,6 +1101,70 @@ def main():
         start_guidance = torch.tensor([start_guidance], device=accelerator.device)
         start_guidance = start_guidance.expand(model_input.shape[0])
 
+        NUM_SAMPLES = 2  # how many random concepts to test
+        RTOL = 1e-4  # tolerance for float comparison
+        ATOL = 1e-5
+        REQUIRE_IN_CACHE = False  # if True, assert prompt exists in cache; else skip missing
+
+        # mapping_concept: list[str]
+        # cache: object with .mapping_prompt_to_idx and .get_mapping(prompt, device) -> (emb, pooled_emb, text_ids)
+        # compute_text_embeddings(prompt, text_encoders, tokenizers, device) -> (emb, pooled_emb, text_ids)
+
+        assert mapping_concept is not None and len(mapping_concept) > 0, "mapping_concept is empty"
+
+        # sample random indices (unique where possible)
+        k = min(NUM_SAMPLES, len(mapping_concept))
+        sample_indices = random.sample(range(len(mapping_concept)), k=k)
+
+        for concept_idx in sample_indices:
+            mapping_text_augmented = mapping_concept[concept_idx]
+            if not mapping_text_augmented:
+                continue  # skip empty strings / None
+
+            if cache is None:
+                if REQUIRE_IN_CACHE:
+                    raise AssertionError("cache is None but REQUIRE_IN_CACHE=True")
+                continue
+
+            in_cache = mapping_text_augmented in cache.mapping_prompt_to_idx
+            if not in_cache:
+                if REQUIRE_IN_CACHE:
+                    raise AssertionError(f"Prompt not in cache: {mapping_text_augmented!r}")
+                continue
+
+            # --- from cache ---
+            emb_cache, pooled_cache, text_ids_cache = cache.get_mapping(
+                mapping_text_augmented, accelerator.device
+            )
+
+            # --- computed manually ---
+            emb_manual, pooled_manual, text_ids_manual = compute_text_embeddings(
+                mapping_text_augmented, text_encoders, tokenizers, accelerator.device
+            )
+
+            # Ensure comparable dtypes/devices for robust checks
+            emb_cache = emb_cache.detach().to(dtype=torch.float32)
+            pooled_cache = pooled_cache.detach().to(dtype=torch.float32)
+            emb_manual = emb_manual.detach().to(dtype=torch.float32)
+            pooled_manual = pooled_manual.detach().to(dtype=torch.float32)
+
+            # text ids should match exactly (typically integer tensors)
+            if isinstance(text_ids_cache, torch.Tensor) and isinstance(text_ids_manual, torch.Tensor):
+                assert torch.equal(text_ids_cache, text_ids_manual), (
+                    f"text_ids mismatch for {mapping_text_augmented!r}\n"
+                    f"cache:  {text_ids_cache}\nmanual: {text_ids_manual}"
+                )
+            else:
+                assert text_ids_cache == text_ids_manual, (
+                    f"text_ids mismatch for {mapping_text_augmented!r}\n"
+                    f"cache:  {text_ids_cache}\nmanual: {text_ids_manual}"
+                )
+
+            # embeddings: allow tiny numeric drift
+            torch.testing.assert_close(emb_cache, emb_manual, rtol=RTOL, atol=ATOL)
+            torch.testing.assert_close(pooled_cache, pooled_manual, rtol=RTOL, atol=ATOL)
+
+
         with accelerator.accumulate(model):
             # # REMOVAL LOSS: Push target concepts towards mapping concepts
             # # Use accelerator process index to select a GPU-specific index
