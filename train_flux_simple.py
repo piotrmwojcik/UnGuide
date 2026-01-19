@@ -625,6 +625,18 @@ def compute_text_embeddings(prompts, text_encoders, tokenizers, device, max_sequ
 
 
 def compute_clip_pooled_embeddings(prompts, text_encoder, tokenizer, device):
+
+    model_device = text_encoder.text_model.embeddings.token_embedding.weight.device
+
+    # If caller provided a device, you can optionally enforce it,
+    # but the safest is to compute on model_device.
+    compute_device = model_device if device is None else torch.device(device)
+
+    # If compute_device != model_device, move the model (or just ignore device)
+    if compute_device != model_device:
+        text_encoder = text_encoder.to(compute_device)
+        model_device = compute_device
+
     pooled_embeds = _get_clip_prompt_embeds(
         text_encoder=text_encoder,
         tokenizer=tokenizer,
@@ -1189,7 +1201,7 @@ def main():
 
             # Get pooled embedding for HyperLoRA context (CLIP-only, computed fresh - not from cache)
             hyper_emb_target = compute_clip_pooled_embeddings(
-                target_text_augmented.to(accelerator.device), text_encoder_one, tokenizer_one, accelerator.device
+                target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
             )
 
             print(
