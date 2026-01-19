@@ -240,11 +240,10 @@ if __name__ == "__main__":
         start = time.time()
         image = pipe(
             prompt=prompt,
-            #guidance_scale=args.guidance_scale,
+            guidance_scale=3.0,
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
-            guidance_scale=3.0,
             generator=generator,
             max_sequence_length=256
         ).images[0]
