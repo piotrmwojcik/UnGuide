@@ -42,6 +42,46 @@ def coerce_prompt(v):
     return s
 
 
+def load_lora_weights(model_wrapper, lora_path, device):
+    """
+    Load HyperLoRA weights from saved checkpoint and apply to model.
+
+    Args:
+        model_wrapper: FluxModelWrapper with HyperLoRA injected
+        lora_path: Path to saved LoRA weights (.pth file)
+        device: Device to load weights to
+    """
+    print(f"Loading LoRA weights from: {lora_path}")
+
+    if not os.path.exists(lora_path):
+        raise FileNotFoundError(f"LoRA checkpoint not found: {lora_path}")
+
+    lora_state_dict = torch.load(lora_path, map_location=device)
+    print(f"Found {len(lora_state_dict)} trainable parameters in checkpoint")
+
+    transformer = model_wrapper.transformer
+    sd = transformer.state_dict()
+
+    updated = 0
+    skipped = []
+
+    with torch.no_grad():
+        for k, v in lora_state_dict.items():
+            if k in sd:
+                if torch.is_tensor(lora_state_dict[k]) and torch.is_tensor(v) and lora_state_dict[k].shape == v.shape:
+                    sd[k].copy_(v.to(sd[k].dtype).to(device))
+                    updated += 1
+                else:
+                    skipped.append((k, "shape/dtype mismatch"))
+            else:
+                skipped.append((k, "no such key in model"))
+
+    print(f"[LoRA] Copied {updated} tensors, skipped {len(skipped)}")
+    if skipped and len(skipped) <= 10:
+        print(f"Skipped keys: {[k for k, reason in skipped]}")
+
+    return model_wrapper
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
     parser.add_argument("--csv_path", type=str, default="data/I2P_prompts_4703.csv")
