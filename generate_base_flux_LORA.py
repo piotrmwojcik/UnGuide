@@ -229,6 +229,24 @@ if __name__ == "__main__":
         context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
 
-        model_wrapper.hyper.set_context(context_emb, timestep)
-        model_wrapper.hyper.compute_and_cache_loras(context_emb, timestep)
+        hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
+        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
+                                       torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
+        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
+                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
 
+        start = time.time()
+        image = pipe(
+            prompt=prompt,
+            #guidance_scale=args.guidance_scale,
+            num_inference_steps=args.num_inference_steps,
+            height=args.image_size,
+            width=args.image_size,
+            guidance_scale = 3.0,
+            generator=generator,
+            max_sequence_length=256
+        ).images[0]
+        image.save(image_path)
+        images_generated += 1
+        end = time.time()
+        print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Saved to {image_path}")
