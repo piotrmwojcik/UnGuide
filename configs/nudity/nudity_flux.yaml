@@ -68,7 +68,7 @@ UnHype:
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
 
-  drop_lr_on_plateau: false
+  drop_lr_on_plateau: true
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
@@ -101,7 +101,7 @@ UnHype:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 5.0     # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 10.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
   output_dir: output_nudity_flux          # output_dir from args
