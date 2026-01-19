@@ -1224,6 +1224,12 @@ def main():
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
+                base.hyper.set_context(target_emb.to(dtype=weight_dtype),
+                                       torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
+                _, current_timestep = base.hyper.get_context()
+                base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype),
+                                                   current_timestep.to(dtype=weight_dtype))
+                base.hyper.retain_grad_for_cached_lora()
                 if True:
                     z, latent_image_ids = latent_sample(model,
                                                         noise_scheduler,
@@ -1249,11 +1255,6 @@ def main():
                         timesteps=t_ddpm,
                         CPU_only=True,
                     )
-
-            base.hyper.set_context(target_emb.to(dtype=weight_dtype), torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
-            _, current_timestep = base.hyper.get_context()
-            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
-            base.hyper.retain_grad_for_cached_lora()
 
             e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                                 guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
