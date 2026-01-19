@@ -68,6 +68,8 @@ UnHype:
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
 
+  drop_lr_on_plateau: True
+
   # Training hyperparameters
   learning_rate: 1.0e-03 # 1e-4 as specified
   max_train_steps: 4000   # Number of actual training iterations

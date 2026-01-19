@@ -1499,7 +1499,7 @@ def main():
                 )
 
                 # Get cached T5 embeddings for image generation (from cache if available)
-                if cache is not None and diag_prompt in cache.diagnostic_prompt_to_idx:
+                if False:#cache is not None and diag_prompt in cache.diagnostic_prompt_to_idx:
                     cached_text_emb = cache.get_diagnostic(diag_prompt, accelerator.device)
                 else:
                     cached_text_emb = compute_text_embeddings(
