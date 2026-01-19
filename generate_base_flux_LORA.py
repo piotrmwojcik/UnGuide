@@ -218,8 +218,7 @@ if __name__ == "__main__":
                 prompt=prompt,
                 device=hyper_device,
                 num_images_per_prompt=1,
-                max_sequence_length=256,
-                do_classifier_free_guidance=False,  # you are using guidance_scale=3.0, but you pass prompt only
+                max_sequence_length=256
             )
 
         # Choose what your hypernetwork expects:
