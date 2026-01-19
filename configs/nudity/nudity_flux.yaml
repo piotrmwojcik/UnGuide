@@ -98,7 +98,7 @@ UnHype:
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 50.0    # Weight for removal loss (main training objective)
+  remove_weight: 1000.0    # Weight for removal loss (main training objective)
   retain_weight: 0.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
