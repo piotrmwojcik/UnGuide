@@ -236,7 +236,7 @@ if __name__ == "__main__":
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
 
 
-        STEP = 0
+        STEP = 300
         hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
         model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
                                        torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
