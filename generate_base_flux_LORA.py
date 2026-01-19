@@ -1,12 +1,15 @@
 import os
 import argparse
+import random
 import torch
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import time
 from functools import partial
 import re
 from diffusers import FluxPipeline
+from accelerate.utils import set_seed as hf_set_seed
 from huggingface_hub import login
 from transformers import CLIPTextModel, CLIPTokenizer
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
@@ -106,9 +109,13 @@ if __name__ == "__main__":
     parser.add_argument("--use_orig_concat", type=bool, default=True,
                        help="Use original concat in HyperLoRA (must match training config)")
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--seed", type=int, default=2024)
     args = parser.parse_args()
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+
+    seed = args.seed
+    hf_set_seed(seed)
 
     torch.set_num_threads(torch.get_num_threads())  
 
@@ -198,8 +205,7 @@ if __name__ == "__main__":
             print(f"Skip [{image_id}] empty prompt")
             continue
 
-        seed = 2024
-        generator = torch.Generator("cpu").manual_seed(seed)
+        generator = torch.Generator(device=device).manual_seed(seed)
 
         weight_dtype = torch.bfloat16
 
