@@ -214,9 +214,10 @@ if __name__ == "__main__":
                 context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
         weight_dtype = torch.bfloat16
-        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype), torch.tensor([args.hyper_train_steps], dtype=weight_dtype))
+        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype), torch.tensor([args.hyper_train_steps], dtype=weight_dtype,
+                                                                                         device=device))
         model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
-                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype))
+                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=device))
 
         start = time.time()
         image = pipe(
