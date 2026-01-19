@@ -198,6 +198,18 @@ if __name__ == "__main__":
             print(f"Skip [{image_id}] empty prompt")
             continue
 
+        seed = 2024
+        generator = torch.Generator("cpu").manual_seed(seed)
+
+        weight_dtype = torch.bfloat16
+
+        # Get the device where HyperLoRA layers are located
+        hyper_device = (
+            model_wrapper.hyper.hyper_layers[0].alpha.device
+            if model_wrapper.hyper.hyper_layers
+            else torch.device("cpu")
+        )
+
         with torch.no_grad():
             # This returns the prompt embeddings used by the pipeline internally.
             # Depending on diffusers version / FluxPipeline implementation, the signature may include:
