@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    load_lora_weights(model_wrapper, args.lora_path, device)
+    load_lora_weights(pipe, args.lora_path, device)
 
     images_generated = 0
     for image_id, prompt in enumerate(ALLOWED_PROMPTS):
