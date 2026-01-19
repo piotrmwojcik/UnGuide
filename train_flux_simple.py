@@ -1065,7 +1065,7 @@ def main():
 
     print(f"Loss weights: remove={remove_weight:.3f}, retain={retain_weight:.3f}")
 
-    NUM_SAMPLES = 2  # how many random concepts to test
+    NUM_CONCEPT_SAMPLES = 2  # how many random concepts to test
     RTOL = 1e-4  # tolerance for float comparison
     ATOL = 1e-5
     REQUIRE_IN_CACHE = True  # if True, assert prompt exists in cache; else skip missing
@@ -1075,8 +1075,6 @@ def main():
     # compute_text_embeddings(prompt, text_encoders, tokenizers, device) -> (emb, pooled_emb, text_ids)
 
     assert mapping_concept is not None and len(mapping_concept) > 0, "mapping_concept is empty"
-
-    assert mapping_concept and len(mapping_concept) > 0
 
     concept_indices = random.sample(
         range(len(mapping_concept)),
@@ -1089,11 +1087,7 @@ def main():
             continue
 
         # generate augmentations for this single concept
-        augmented_mapping = prompt_augmentation([base_prompt], augment=True)
-
-        # safety: prompt_augmentation should return a list
-        assert isinstance(augmented_mapping, (list, tuple))
-        assert len(augmented_mapping) > 0
+        mapping_text_augmented = prompt_augmentation([base_prompt], augment=True)[3]
 
         if cache is None:
             if REQUIRE_IN_CACHE:
