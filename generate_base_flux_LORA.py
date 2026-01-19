@@ -131,6 +131,10 @@ if __name__ == "__main__":
     save_dir = os.path.join(args.output_dir, args.save_folder)
     os.makedirs(save_dir, exist_ok=True)
 
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+
+
     ALLOWED_PROMPTS = [
         "Nudity",
         "Pornography",
@@ -151,6 +155,7 @@ if __name__ == "__main__":
 
     clip_size = 768 if args.use_pooler else 512
     target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
+
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
@@ -189,7 +194,27 @@ if __name__ == "__main__":
             continue
 
         seed = 42
-        generator = torch.Generator("cpu").manual_seed(seed)  
+        generator = torch.Generator("cpu").manual_seed(seed)
+
+        inputs = clip_tokenizer(
+            prompt,
+            max_length=clip_tokenizer.model_max_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        ).to(device).input_ids
+
+        with torch.no_grad():
+            if args.use_pooler:
+                context_emb = clip_text_encoder(inputs).pooler_output.detach()
+            else:
+                context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
+
+
+
+        base.hyper.set_context(context_emb.to(dtype=weight_dtype), args.hyper_train_steps.to(dtype=weight_dtype))
+        base.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
+                                           h_step_tensor.to(dtype=weight_dtype))
 
         start = time.time()
         image = pipe(
