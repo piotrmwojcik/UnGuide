@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 from tqdm import tqdm
 import time
+from functools import partial
 import re
 from diffusers import FluxPipeline
 from huggingface_hub import login
