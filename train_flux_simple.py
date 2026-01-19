@@ -91,7 +91,7 @@ class Cache:
         guidance: float = 3.0,
         cache_path: str = None,
     ):
-        if cache_path and os.path.exists(cache_path):
+        if cache_path and not os.path.exists(cache_path):
             raise ValueError("Cache path doesn't exist!")
 
         if max_ddim_steps < 1 or max_ddim_steps > 1000:
@@ -1269,14 +1269,10 @@ def main():
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
 
-            # Get pooled embedding for HyperLoRA context (using CLIP-only, same as SD pipeline)
-            if cache is not None and target_text_augmented in cache:
-                target_emb = cache.get_target_pooled(target_text_augmented, accelerator.device)
-            else:
-                with torch.no_grad():
-                    target_emb = compute_clip_pooled_embeddings(
-                        target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
-                    )
+            # Get pooled embedding for HyperLoRA context (CLIP-only, computed fresh - not from cache)
+            hyper_emb_target = compute_clip_pooled_embeddings(
+                target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
+            )
 
             print(
                 f"[Rank {rank} | Device {accelerator.device}] "
@@ -1337,10 +1333,10 @@ def main():
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
-                base.hyper.set_context(target_emb.to(dtype=weight_dtype),
+                base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
                                        torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
                 _, current_timestep = base.hyper.get_context()
-                base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype),
+                base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
                                                    current_timestep.to(dtype=weight_dtype))
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
@@ -1369,10 +1365,10 @@ def main():
                         CPU_only=True,
                     )
 
-            base.hyper.set_context(target_emb.to(dtype=weight_dtype),
+            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
                                     torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
-            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype),
+            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
                                                 current_timestep.to(dtype=weight_dtype))
             base.hyper.retain_grad_for_cached_lora()
 
@@ -1401,12 +1397,12 @@ def main():
             #        p.grad = None
 
             _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-            base.hyper.set_context(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
-            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
             tensors_flat_t = base.hyper.flatten_cached_from_cache()
 
-            base.hyper.set_context(target_emb.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
-            base.hyper.compute_and_cache_loras(target_emb.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
+            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
+            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
             tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
 
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
@@ -1494,16 +1490,18 @@ def main():
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
-                # Get diagnostic embeddings from cache (uses CLIP-only, same as SD pipeline for HyperLoRA)
-                if False:
-                    diag_emb = cache.get_diagnostic_pooled(diag_prompt, accelerator.device)
+                # Get diagnostic embeddings for HyperLoRA (CLIP-only, computed fresh - not from cache)
+                hyper_emb_diag = compute_clip_pooled_embeddings(
+                    diag_prompt, text_encoder_one, tokenizer_one, accelerator.device
+                )
+
+                # Get cached T5 embeddings for image generation (from cache if available)
+                if cache is not None and diag_prompt in cache.diagnostic_prompt_to_idx:
                     cached_text_emb = cache.get_diagnostic(diag_prompt, accelerator.device)
                 else:
-                    with torch.no_grad():
-                        diag_emb = compute_clip_pooled_embeddings(
-                            diag_prompt, text_encoder_one, tokenizer_one, accelerator.device
-                        )
-                    cached_text_emb = None
+                    cached_text_emb = compute_text_embeddings(
+                        diag_prompt, text_encoders, tokenizers, accelerator.device
+                    )
 
                 diag_time_steps = [0, hyper_train_steps]
 
@@ -1529,8 +1527,8 @@ def main():
                     h_step_tensor = torch.tensor([h_step], device=device, dtype=weight_dtype)
 
                     # Enable these if you want hyper-time to change the result
-                    base.hyper.set_context(diag_emb.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
-                    base.hyper.compute_and_cache_loras(diag_emb.to(dtype=weight_dtype),
+                    base.hyper.set_context(hyper_emb_diag.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
+                    base.hyper.compute_and_cache_loras(hyper_emb_diag.to(dtype=weight_dtype),
                                                        h_step_tensor.to(dtype=weight_dtype))
 
 
