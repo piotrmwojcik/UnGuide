@@ -205,6 +205,7 @@ if __name__ == "__main__":
             return_tensors="pt",
         ).to(device).input_ids
 
+        clip_text_encoder =  CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
         with torch.no_grad():
             if args.use_pooler:
                 context_emb = clip_text_encoder(inputs).pooler_output.detach()
@@ -215,7 +216,7 @@ if __name__ == "__main__":
 
         base.hyper.set_context(context_emb.to(dtype=weight_dtype), args.hyper_train_steps.to(dtype=weight_dtype))
         base.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
-                                           h_step_tensor.to(dtype=weight_dtype))
+                                           args.hyper_train_steps.to(dtype=weight_dtype))
 
         start = time.time()
         image = pipe(
