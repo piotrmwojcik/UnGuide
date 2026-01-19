@@ -580,6 +580,13 @@ def load_text_encoders(class_one, class_two, pretrained_model_name_or_path):
     text_encoder_two = class_two.from_pretrained(
         pretrained_model_name_or_path, subfolder="text_encoder_2", revision=None, variant=None
     )
+
+    # Disable gradients + set eval mode
+    for enc in (text_encoder_one, text_encoder_two):
+        enc.eval()
+        for p in enc.parameters():
+            p.requires_grad_(False)
+
     return text_encoder_one, text_encoder_two
 
 
