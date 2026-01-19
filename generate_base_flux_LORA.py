@@ -116,8 +116,8 @@ if __name__ == "__main__":
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    pipe.vae.enable_slicing()
-    pipe.vae.enable_tiling()
+    #pipe.vae.enable_slicing()
+    #pipe.vae.enable_tiling()
     pipe = pipe.to(device)
 
     pipe_device = device
@@ -190,8 +190,8 @@ if __name__ == "__main__":
         if args.n_images is not None and images_generated >= args.n_images:
             break
         image_path = os.path.join(save_dir, f"{image_id:05d}.png")
-        if os.path.exists(image_path):
-            continue
+        #if os.path.exists(image_path):
+        #    continue
 
         prompt = coerce_prompt(prompt)
         if not isinstance(prompt, str) or not prompt.strip():
