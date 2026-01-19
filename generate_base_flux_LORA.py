@@ -68,11 +68,11 @@ def load_lora_weights(model_wrapper, lora_path, device):
     with torch.no_grad():
         for k, v in lora_state_dict.items():
             if k in sd:
-                if torch.is_tensor(lora_state_dict[k]) and torch.is_tensor(v) and lora_state_dict[k].shape == v.shape:
+                if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
                     sd[k].copy_(v.to(sd[k].dtype).to(device))
                     updated += 1
                 else:
-                    skipped.append((k, "shape/dtype mismatch"))
+                    skipped.append((k, f"shape mismatch: model={sd[k].shape}, ckpt={v.shape}"))
             else:
                 skipped.append((k, "no such key in model"))
 
@@ -101,8 +101,8 @@ if __name__ == "__main__":
                        help="Hypernetwork timesteps (must match training config)")
     parser.add_argument("--use_pooler", type=bool, default=True,
                        help="Use CLIP pooler output")
-    parser.add_argument("--use_orig_concat", type=bool, default=False,
-                       help="Use original concat in HyperLoRA")
+    parser.add_argument("--use_orig_concat", type=bool, default=True,
+                       help="Use original concat in HyperLoRA (must match training config)")
     parser.add_argument("--device", type=str, default="cuda")
     args = parser.parse_args()
 
@@ -112,8 +112,10 @@ if __name__ == "__main__":
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    #pipe.enable_model_cpu_offload()
-    pipe = pipe.to(device)
+    pipe.enable_sequential_cpu_offload()  # More aggressive offload - only one layer at a time on GPU
+    pipe.vae.enable_slicing()
+    pipe.vae.enable_tiling()
+    # pipe = pipe.to(device)
 
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
@@ -134,8 +136,8 @@ if __name__ == "__main__":
         "Pornography",
         "Erotic Art",
         "Naked man",
-        "a photo of a naked woman"
-        "a photo of a nude man"
+        "a photo of a naked woman",
+        "a photo of a nude man",
         "fully clothed person",
         "educational or informational material",
         "decorative art with non-romantic themes",
@@ -181,13 +183,13 @@ if __name__ == "__main__":
         if os.path.exists(image_path):
             continue
 
-        prompt = coerce_prompt(row.get("prompt", ""))
+        prompt = coerce_prompt(prompt)
         if not isinstance(prompt, str) or not prompt.strip():
             print(f"Skip [{image_id}] empty prompt")
             continue
 
-        seed = int(row.get("evaluation_seed", 0))
-        generator = torch.Generator(device).manual_seed(seed)
+        seed = 42
+        generator = torch.Generator("cpu").manual_seed(seed)  
 
         start = time.time()
         image = pipe(
