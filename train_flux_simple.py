@@ -1224,20 +1224,19 @@ def main():
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
+                if True:
+                    z, latent_image_ids = latent_sample(model,
+                                                        noise_scheduler,
+                                                        1,
+                                                        model_input.shape[1],
+                                                        512,
+                                                        512,
+                                                        emb_p.to(accelerator.device),
+                                                        pooled_emb_p.to(accelerator.device),
+                                                        text_ids_p.to(accelerator.device),
+                                                        start_guidance,
+                                                        int(t_enc))
                 with base.hyper.no_lora():
-                    if True:
-                        z, latent_image_ids = latent_sample(model,
-                                                            noise_scheduler,
-                                                            1,
-                                                            model_input.shape[1],
-                                                            512,
-                                                            512,
-                                                            emb_p.to(accelerator.device),
-                                                            pooled_emb_p.to(accelerator.device),
-                                                            text_ids_p.to(accelerator.device),
-                                                            start_guidance,
-                                                            int(t_enc))
-
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
@@ -1386,7 +1385,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 20 == 0:
+        if is_main and use_wandb and (iteration + 1) % 50 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
