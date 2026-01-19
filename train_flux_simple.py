@@ -1107,7 +1107,7 @@ def main():
 
         # --- computed manually ---
         emb_manual, pooled_manual, text_ids_manual = compute_text_embeddings(
-            mapping_text_augmented, text_encoders, tokenizers, accelerator.device
+            'dupa', text_encoders, tokenizers, accelerator.device
         )
 
         # Ensure comparable dtypes/devices for robust checks
