@@ -1137,16 +1137,11 @@ def main():
         mean_abs = abs_diff.mean().item()
         max_rel = rel_diff.max().item()
 
-        # location of worst difference
-        flat_idx = abs_diff.view(-1).argmax().item()
-        worst_idx = torch.unravel_index(flat_idx, abs_diff.shape)
-
         print(
             f"[EMB DIFF] "
             f"max_abs={max_abs:.6e}, "
             f"mean_abs={mean_abs:.6e}, "
             f"max_rel={max_rel:.6e}, "
-            f"worst_idx={tuple(worst_idx)}"
         )
         torch.testing.assert_close(pooled_cache, pooled_manual, rtol=RTOL, atol=ATOL)
         print('DONE, MAPPINGS ARE OK')
