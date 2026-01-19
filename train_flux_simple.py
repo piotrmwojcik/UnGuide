@@ -1320,7 +1320,7 @@ def main():
                                                         pooled_emb_p.to(accelerator.device),
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
-                                                        int(ddim_steps))
+                                                        int(t_enc))
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
