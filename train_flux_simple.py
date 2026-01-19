@@ -1401,7 +1401,7 @@ def main():
                         )
                     cached_text_emb = None
 
-                diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
+                diag_time_steps = [0, hyper_train_steps]
 
                 device = accelerator.device
                 weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
