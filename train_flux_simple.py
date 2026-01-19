@@ -624,6 +624,17 @@ def compute_text_embeddings(prompts, text_encoders, tokenizers, device, max_sequ
     )
 
 
+def compute_clip_pooled_embeddings(prompts, text_encoder, tokenizer, device):
+    pooled_embeds = _get_clip_prompt_embeds(
+        text_encoder=text_encoder,
+        tokenizer=tokenizer,
+        prompt=prompts,
+        device=device,
+        num_images_per_prompt=1,
+    )
+    return pooled_embeds.to(device)
+
+
 def generate_images(
         sampler,
         model,
@@ -946,12 +957,10 @@ def main():
         if not cache_exists:
             if is_main:
                 for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                    inputs = encode(prompt)
                     with torch.no_grad():
-                        if use_pooler:
-                            emb = clip_text_encoder(inputs).pooler_output.detach()
-                        else:
-                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
+                        emb = compute_clip_pooled_embeddings(
+                            prompt, text_encoder_one, tokenizer_one, accelerator.device
+                        )
                     retain_embeddings.append(emb.squeeze().cpu())
                 torch.save(retain_embeddings, cache_path)
             accelerator.wait_for_everyone()
@@ -1260,13 +1269,13 @@ def main():
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
 
-            # Get pooled embedding for HyperLoRA context (from Flux's built-in CLIP)
+            # Get pooled embedding for HyperLoRA context (using CLIP-only, same as SD pipeline)
             if cache is not None and target_text_augmented in cache:
                 target_emb = cache.get_target_pooled(target_text_augmented, accelerator.device)
             else:
                 with torch.no_grad():
-                    _, target_emb, _ = compute_text_embeddings(
-                        target_text_augmented, text_encoders, tokenizers, accelerator.device
+                    target_emb = compute_clip_pooled_embeddings(
+                        target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
                     )
 
             print(
@@ -1485,14 +1494,14 @@ def main():
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
-                # Get diagnostic embeddings from cache (uses Flux's pooled_prompt_embeds for HyperLoRA)
+                # Get diagnostic embeddings from cache (uses CLIP-only, same as SD pipeline for HyperLoRA)
                 if False:
                     diag_emb = cache.get_diagnostic_pooled(diag_prompt, accelerator.device)
                     cached_text_emb = cache.get_diagnostic(diag_prompt, accelerator.device)
                 else:
                     with torch.no_grad():
-                        prompt_embeds, diag_emb, text_ids = compute_text_embeddings(
-                            diag_prompt, text_encoders, tokenizers, accelerator.device
+                        diag_emb = compute_clip_pooled_embeddings(
+                            diag_prompt, text_encoder_one, tokenizer_one, accelerator.device
                         )
                     cached_text_emb = None
 
