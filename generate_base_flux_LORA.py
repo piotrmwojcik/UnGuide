@@ -114,7 +114,7 @@ if __name__ == "__main__":
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    pipe.enable_sequential_cpu_offload()  # More aggressive offload - only one layer at a time on GPU
+    #pipe.enable_sequential_cpu_offload()  # More aggressive offload - only one layer at a time on GPU
     pipe.vae.enable_slicing()
     pipe.vae.enable_tiling()
     # pipe = pipe.to(device)
@@ -175,8 +175,8 @@ if __name__ == "__main__":
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model_wrapper)
-        layer.to(dtype=torch.bfloat16)
         model_wrapper.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+        layer.to(dtype=torch.bfloat16)
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
