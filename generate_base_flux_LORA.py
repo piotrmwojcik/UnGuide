@@ -76,6 +76,8 @@ if __name__ == "__main__":
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
 
+    model_wrapper = pipe.transformer
+
     # Check if this is an NSFW dataset with nudity_percentage column
     #if args.nudity and "nudity_percentage" in df.columns:
     #    df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
