@@ -198,42 +198,26 @@ if __name__ == "__main__":
             print(f"Skip [{image_id}] empty prompt")
             continue
 
-        seed = 2024
-        generator = torch.Generator("cpu").manual_seed(seed)
-        inputs = tokenizer(
-            prompt,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(pipe_device).input_ids
-
         with torch.no_grad():
-            if args.use_pooler:
-                context_emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            # This returns the prompt embeddings used by the pipeline internally.
+            # Depending on diffusers version / FluxPipeline implementation, the signature may include:
+            #   prompt, device, num_images_per_prompt, max_sequence_length, etc.
+            prompt_embeds, pooled_prompt_embeds, _ = pipe.encode_prompt(
+                prompt=prompt,
+                device=hyper_device,
+                num_images_per_prompt=1,
+                max_sequence_length=256,
+                do_classifier_free_guidance=False,  # you are using guidance_scale=3.0, but you pass prompt only
+            )
 
-        weight_dtype = torch.bfloat16
-        # Get the device where HyperLoRA layers are located
-        hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
-        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                       torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
-        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
+        # Choose what your hypernetwork expects:
+        # - if args.use_pooler: use pooled embedding
+        # - else: use token-level embedding
+        context_emb = pooled_prompt_embeds if args.use_pooler else prompt_embeds
 
-        start = time.time()
-        image = pipe(
-            prompt=prompt,
-            #guidance_scale=args.guidance_scale,
-            num_inference_steps=args.num_inference_steps,
-            height=args.image_size,
-            width=args.image_size,
-            guidance_scale = 3.0,
-            generator=generator,
-            max_sequence_length=256
-        ).images[0]
-        image.save(image_path)
-        images_generated += 1
-        end = time.time()
-        print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Saved to {image_path}")
+        context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
+        timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
+
+        model_wrapper.hyper.set_context(context_emb, timestep)
+        model_wrapper.hyper.compute_and_cache_loras(context_emb, timestep)
+
