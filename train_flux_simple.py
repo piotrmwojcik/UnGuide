@@ -761,6 +761,7 @@ def main():
             name=f"{config_name}_training",
             config=config
         )
+        wandb.define_metric("learning_rate", summary="last")
     elif is_main and config.get('report_to') == 'wandb' and not WANDB_AVAILABLE:
         print("Warning: wandb requested but not available. Disabling wandb logging.")
 
@@ -1474,9 +1475,11 @@ def main():
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if accelerator.is_main_process and use_wandb:
+            current_lr = optimizer.param_groups[0]['lr']
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
-                "loss_remove": float(loss_remove_reduced.item())
+                "loss_remove": float(loss_remove_reduced.item()),
+                "learning_rate": current_lr
             }, step=iteration)
 
         if is_main:
