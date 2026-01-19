@@ -1118,6 +1118,7 @@ def main():
 
         for concept_idx in sample_indices:
             mapping_text_augmented = mapping_concept[concept_idx]
+            print('Testing for ', mapping_text_augmented)
             if not mapping_text_augmented:
                 continue  # skip empty strings / None
 
@@ -1163,6 +1164,7 @@ def main():
             # embeddings: allow tiny numeric drift
             torch.testing.assert_close(emb_cache, emb_manual, rtol=RTOL, atol=ATOL)
             torch.testing.assert_close(pooled_cache, pooled_manual, rtol=RTOL, atol=ATOL)
+            print('DONE, MAPPINGS ARE OK')
 
 
         with accelerator.accumulate(model):
