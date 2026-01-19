@@ -68,7 +68,7 @@ UnHype:
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
 
-  drop_lr_on_plateau: True
+  drop_lr_on_plateau: false
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
