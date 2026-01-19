@@ -110,14 +110,17 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
+    torch.set_num_threads(torch.get_num_threads())  
+
     # Load Flux pipeline
     cache_dir = "./models"
     os.makedirs(cache_dir, exist_ok=True)
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    #pipe.enable_sequential_cpu_offload()  # More aggressive offload - only one layer at a time on GPU
     pipe.vae.enable_slicing()
     pipe.vae.enable_tiling()
-    # pipe = pipe.to(device)
+    pipe = pipe.to(device)
+
+    pipe_device = device
 
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
@@ -134,7 +137,7 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
+    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(pipe_device).eval()
 
 
     ALLOWED_PROMPTS = [
@@ -197,16 +200,14 @@ if __name__ == "__main__":
 
         seed = 42
         generator = torch.Generator("cpu").manual_seed(seed)
-        clip_tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-        inputs = clip_tokenizer(
+        inputs = tokenizer(
             prompt,
-            max_length=clip_tokenizer.model_max_length,
+            max_length=tokenizer.model_max_length,
             padding="max_length",
             truncation=True,
             return_tensors="pt",
-        ).to(device).input_ids
+        ).to(pipe_device).input_ids
 
-        clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(args.device).eval()
         with torch.no_grad():
             if args.use_pooler:
                 context_emb = clip_text_encoder(inputs).pooler_output.detach()
@@ -214,10 +215,12 @@ if __name__ == "__main__":
                 context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
         weight_dtype = torch.bfloat16
-        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype), torch.tensor([args.hyper_train_steps], dtype=weight_dtype,
-                                                                                         device=device))
-        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
-                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=device))
+        # Get the device where HyperLoRA layers are located
+        hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
+        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
+                                       torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
+        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
+                                           torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device))
 
         start = time.time()
         image = pipe(
