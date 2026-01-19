@@ -213,10 +213,8 @@ if __name__ == "__main__":
             else:
                 context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
-
-
-        base.hyper.set_context(context_emb.to(dtype=weight_dtype), args.hyper_train_steps.to(dtype=weight_dtype))
-        base.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
+        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype), args.hyper_train_steps.to(dtype=weight_dtype))
+        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype),
                                            args.hyper_train_steps.to(dtype=weight_dtype))
 
         start = time.time()
