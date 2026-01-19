@@ -1087,7 +1087,7 @@ def main():
             continue
 
         # generate augmentations for this single concept
-        mapping_text_augmented = prompt_augmentation([base_prompt], augment=True)[3]
+        mapping_text_augmented = prompt_augmentation(base_prompt, augment=True)[3]
 
         if cache is None:
             if REQUIRE_IN_CACHE:
