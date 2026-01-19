@@ -1068,7 +1068,7 @@ def main():
     NUM_SAMPLES = 2  # how many random concepts to test
     RTOL = 1e-4  # tolerance for float comparison
     ATOL = 1e-5
-    REQUIRE_IN_CACHE = False  # if True, assert prompt exists in cache; else skip missing
+    REQUIRE_IN_CACHE = True  # if True, assert prompt exists in cache; else skip missing
 
     # mapping_concept: list[str]
     # cache: object with .mapping_prompt_to_idx and .get_mapping(prompt, device) -> (emb, pooled_emb, text_ids)
@@ -1082,9 +1082,7 @@ def main():
 
     for concept_idx in sample_indices:
         mapping_text_augmented = mapping_concept[concept_idx]
-        print('Testing for ', mapping_text_augmented)
-        if not mapping_text_augmented:
-            continue  # skip empty strings / None
+        print('#### Testing for ', mapping_text_augmented)
 
         if cache is None:
             if REQUIRE_IN_CACHE:
