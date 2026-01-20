@@ -90,7 +90,7 @@ def load_lora_weights(model_wrapper, lora_path, device):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
     parser.add_argument("--csv_path", type=str, default="data/I2P_prompts_4703.csv")
-    parser.add_argument("--output_dir", type=str, default="generated_base_flux_lora")
+    parser.add_argument("--output_dir", type=str, default="generated_results_flux_lora")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
     parser.add_argument("--num_inference_steps", type=int, default=28)
@@ -192,8 +192,25 @@ if __name__ == "__main__":
 
     load_lora_weights(pipe, args.lora_path, device)
 
+    df = pd.read_csv(args.csv_path, index_col=0)
+
+    if args.nudity and "nudity_percentage" in df.columns:
+        # Ensure numeric values
+        df["nudity_percentage"] = pd.to_numeric(
+            df["nudity_percentage"], errors="coerce"
+        )
+
+        # Keep only rows with non-zero nudity
+        df = df[df["nudity_percentage"] > 0]
+
+        # Sort by highest nudity first
+        df = df.sort_values(by="nudity_percentage", ascending=False)
+
+    save_dir = os.path.join(args.output_dir, args.save_folder)
+    os.makedirs(save_dir, exist_ok=True)
+
     images_generated = 0
-    for image_id, prompt in enumerate(ALLOWED_PROMPTS):
+    for image_id, row in tqdm(df.iterrows(), total=len(df)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
         image_path = os.path.join(save_dir, f"{image_id:05d}.png")
@@ -217,20 +234,19 @@ if __name__ == "__main__":
         )
 
         with torch.no_grad():
-            # This returns the prompt embeddings used by the pipeline internally.
-            # Depending on diffusers version / FluxPipeline implementation, the signature may include:
-            #   prompt, device, num_images_per_prompt, max_sequence_length, etc.
-            prompt_embeds, pooled_prompt_embeds, _ = pipe.encode_prompt(
-                prompt=prompt,
-                device=hyper_device,
-                num_images_per_prompt=1,
-                max_sequence_length=256
-            )
+            inputs = tokenizer(
+                prompt,
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(pipe_device).input_ids
 
-        # Choose what your hypernetwork expects:
-        # - if args.use_pooler: use pooled embedding
-        # - else: use token-level embedding
-        context_emb = pooled_prompt_embeds if args.use_pooler else prompt_embeds
+            with torch.no_grad():
+                if args.use_pooler:
+                    context_emb = clip_text_encoder(inputs).pooler_output.detach()
+                else:
+                    context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
         context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
