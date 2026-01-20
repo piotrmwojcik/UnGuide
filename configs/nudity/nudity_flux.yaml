@@ -72,6 +72,11 @@ UnHype:
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
+  learning_rate_remove: 5.0e-03
+  learning_rate_retain: 5.0e-03
+  plateau_patience_remove: 100
+  plateau_patience_retain: 20
+  plateau_factor: 0.8
   max_train_steps: 4000   # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
