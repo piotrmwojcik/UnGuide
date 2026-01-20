@@ -42,7 +42,7 @@ def coerce_prompt(v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
     parser.add_argument("--csv_path", type=str, default="data/I2P_prompts_4703.csv")
-    parser.add_argument("--output_dir", type=str, default="generated_base_flux")
+    parser.add_argument("--output_dir", type=str, default="generated_base_flux_i2p")
     parser.add_argument("--save_folder", type=str, default="images")
     parser.add_argument("--image_size", type=int, default=512)
     parser.add_argument("--num_inference_steps", type=int, default=28)
@@ -64,11 +64,17 @@ if __name__ == "__main__":
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
 
-    # Check if this is an NSFW dataset with nudity_percentage column
-    #if args.nudity and "nudity_percentage" in df.columns:
-    #    df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
-    #    df = df[df["nudity_percentage"].gt(0)]
-    #    df = df.sort_values(by="nudity_percentage", ascending=False)
+    if args.nudity and "nudity_percentage" in df.columns:
+        # Ensure numeric values
+        df["nudity_percentage"] = pd.to_numeric(
+            df["nudity_percentage"], errors="coerce"
+        )
+
+        # Keep only rows with non-zero nudity
+        df = df[df["nudity_percentage"] > 0]
+
+        # Sort by highest nudity first
+        df = df.sort_values(by="nudity_percentage", ascending=False)
 
     save_dir = os.path.join(args.output_dir, args.save_folder)
     os.makedirs(save_dir, exist_ok=True)
