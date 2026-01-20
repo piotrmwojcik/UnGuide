@@ -88,8 +88,8 @@ UnHype:
 
 
   # LoRA configuration
-  rank: 6
-  lora_alpha: 15
+  rank: 3
+  lora_alpha: 50
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: 1000
