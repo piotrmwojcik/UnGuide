@@ -908,10 +908,10 @@ def main():
             print(f"  Retain: lr={learning_rate_retain}, factor={plateau_factor}, patience={plateau_patience_retain}")
     else:
         scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer_remove, milestones=[step_size], gamma=gamma
+            optimizer_remove, milestones=step_size, gamma=gamma
         )
         scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer_retain, milestones=[step_size], gamma=gamma
+            optimizer_retain, milestones=step_size, gamma=gamma
         )
         if is_main:
             print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
