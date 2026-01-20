@@ -231,11 +231,6 @@ if __name__ == "__main__":
                 else:
                     context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
-        # Choose what your hypernetwork expects:
-        # - if args.use_pooler: use pooled embedding
-        # - else: use token-level embedding
-        context_emb = pooled_prompt_embeds if args.use_pooler else prompt_embeds
-
         context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
 
