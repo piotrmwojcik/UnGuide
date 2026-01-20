@@ -217,15 +217,19 @@ if __name__ == "__main__":
         )
 
         with torch.no_grad():
-            # This returns the prompt embeddings used by the pipeline internally.
-            # Depending on diffusers version / FluxPipeline implementation, the signature may include:
-            #   prompt, device, num_images_per_prompt, max_sequence_length, etc.
-            prompt_embeds, pooled_prompt_embeds, _ = pipe.encode_prompt(
-                prompt=prompt,
-                device=hyper_device,
-                num_images_per_prompt=1,
-                max_sequence_length=256
-            )
+            inputs = tokenizer(
+                prompt,
+                max_length=tokenizer.model_max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            ).to(pipe_device).input_ids
+
+            with torch.no_grad():
+                if args.use_pooler:
+                    context_emb = clip_text_encoder(inputs).pooler_output.detach()
+                else:
+                    context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
         # Choose what your hypernetwork expects:
         # - if args.use_pooler: use pooled embedding
@@ -234,7 +238,6 @@ if __name__ == "__main__":
 
         context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
-
 
         STEP = 300
         hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
