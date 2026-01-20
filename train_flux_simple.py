@@ -1459,7 +1459,7 @@ def main():
                         diag_prompt, text_encoders, tokenizers, accelerator.device
                     )
 
-                diag_time_steps = [0, hyper_train_steps]
+                diag_time_steps = [hyper_train_steps]
 
                 device = accelerator.device
                 weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
