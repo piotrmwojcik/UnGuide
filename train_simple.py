@@ -89,11 +89,58 @@ class CombinedCFGModel:
         return getattr(self.model, name)
 
 
-def prompt_augmentation(content, augment=True):
+def prompt_augmentation(content, augment=True, celebrity=False):
     """Generate augmented prompts for a given concept."""
-    if augment:
+    if not augment:
+        return [content]
+
+    if celebrity:
+        # celebrity augmentation
         prompts = [
-            # object augmentation
+            "A photo of {}".format(content),
+            "A portrait of {}".format(content),
+            "A headshot of {}".format(content),
+            "A close-up photo of {}".format(content),
+            "A professional photo of {}".format(content),
+            "{} smiling".format(content),
+            "{} looking at the camera".format(content),
+            "A candid photo of {}".format(content),
+            "{} at a press conference".format(content),
+            "{} at an interview".format(content),
+            "{} on the red carpet".format(content),
+            "{} at a premiere".format(content),
+            "{} at an award ceremony".format(content),
+            "{} at a public event".format(content),
+            "{} giving a speech".format(content),
+            "A black and white photo of {}".format(content),
+            "A vintage photo of {}".format(content),
+            "A studio portrait of {}".format(content),
+            "{} in formal attire".format(content),
+            "{} in casual clothes".format(content),
+            "A magazine cover featuring {}".format(content),
+            "A paparazzi photo of {}".format(content),
+            "{} waving to fans".format(content),
+            "{} signing autographs".format(content),
+            "A selfie of {}".format(content),
+            "{} on a talk show".format(content),
+            "{} being interviewed".format(content),
+            "A painting of {}".format(content),
+            "An oil portrait of {}".format(content),
+            "A digital art of {}".format(content),
+            "A sketch of {}".format(content),
+            "A caricature of {}".format(content),
+            "{} in a movie scene".format(content),
+            "{} on set".format(content),
+            "A promotional photo of {}".format(content),
+            "{} posing for photographers".format(content),
+            "An official photo of {}".format(content),
+            "{} at a charity event".format(content),
+            "{} at a film festival".format(content),
+            "A young {}".format(content),
+        ]
+    else:
+        # object augmentation
+        prompts = [
             "{} in a photo".format(content),
             "{} in a snapshot".format(content),
             "A snapshot of {}".format(content),
@@ -126,9 +173,8 @@ def prompt_augmentation(content, augment=True):
             "An oil portrait of {}".format(content),
             "{} in a sketch painting".format(content),
         ]
-        return prompts
-    else:
-        return [content]
+
+    return prompts
 
 
 def load_config(config_path: str) -> dict:
@@ -240,6 +286,7 @@ def main():
     # Augmentation flags
     augment_target = config.get('augment_target', True)
     augment_retain = config.get('augment_retain', False)
+    celebrity_mode = config.get('celebrity_mode', False)
     
     # Paths
     output_dir = config.get('output_dir', './output')
@@ -495,11 +542,11 @@ def main():
             mapping_text = mapping_concept[concept_idx] if concept_idx < len(mapping_concept) else mapping_concept[0]
 
             if augment_target:
-                augmented_prompts = prompt_augmentation(target_text, augment=True)
+                augmented_prompts = prompt_augmentation(target_text, augment=True, celebrity=celebrity_mode)
                 valid_aug_indices = list(range(rank_proc, len(augmented_prompts), world_size))
                 aug_idx = random.choice(valid_aug_indices) if len(valid_aug_indices) > 0 else rank_proc % len(augmented_prompts)
                 target_text_augmented = augmented_prompts[aug_idx]
-                augmented_mapping = prompt_augmentation(mapping_text, augment=True)
+                augmented_mapping = prompt_augmentation(mapping_text, augment=True, celebrity=False)
                 mapping_text_augmented = augmented_mapping[aug_idx % len(augmented_mapping)]
 
                 inputs_aug = encode(target_text_augmented)
@@ -692,6 +739,7 @@ def main():
             "learning_rate_remove": learning_rate_remove,
             "learning_rate_retain": learning_rate_retain,
             "max_train_steps": max_train_steps,
+            "celebrity_mode": celebrity_mode,
             "final_loss": losses[-1],
         }
         with open(os.path.join(final_save_path, "train_config.json"), "w") as f:

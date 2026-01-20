@@ -213,6 +213,7 @@ UnGuide_Celebrity_100:
 
   augment_target: true   # Augment target celebrity prompts
   augment_retain: false  # Augment retain prompts from CSV
+  celebrity_mode: true   # Use celebrity-specific prompt augmentations
 
   # Training hyperparameters (matching MACE as closely as possible)
   learning_rate: 1.0e-04  # MACE: 1.0e-04

@@ -33,6 +33,7 @@ UnGuide_Celebrity_10:
 
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
+  celebrity_mode: true   # Use celebrity-specific prompt augmentations
 
   # Training hyperparameters
   learning_rate: 8.0e-04  # Learning rate for optimization
