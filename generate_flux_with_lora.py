@@ -216,8 +216,7 @@ if __name__ == "__main__":
         image_path = os.path.join(save_dir, f"{image_id:05d}.png")
         #if os.path.exists(image_path):
         #    continue
-
-        prompt = coerce_prompt(prompt)
+        prompt = coerce_prompt(row.get("prompt", ""))
         if not isinstance(prompt, str) or not prompt.strip():
             print(f"Skip [{image_id}] empty prompt")
             continue
