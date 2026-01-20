@@ -220,7 +220,8 @@ def main():
     print(f"Config file: {args.config}")
     
     # Extract key parameters with defaults
-    learning_rate = config.get('learning_rate', 1e-5)
+    learning_rate_remove = config.get('learning_rate_remove', 1e-5)
+    learning_rate_retain = config.get('learning_rate_retain', 1e-5)
     max_train_steps = config.get('max_train_steps', 120)
     hyper_train_steps = config.get('hyper_train_steps', 500)
     rank_lora = config.get('rank', 1) # named rank_lora to avoid confusion with proc rank
@@ -264,7 +265,8 @@ def main():
     
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
-    print(f"Learning rate: {learning_rate}")
+    print(f"Learning rate (remove): {learning_rate_remove}")
+    print(f"Learning rate (retain): {learning_rate_retain}")
     print(f"LoRA rank: {rank_lora}")
     print(f"LoRA alpha: {lora_alpha}")
     print(f"Target concepts: {len(concepts)}")
@@ -333,14 +335,47 @@ def main():
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         print_trainable_parameters(model)
     
-    optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
+    optimizer_remove = torch.optim.Adam(trainable_params, lr=learning_rate_remove)
+    optimizer_retain = torch.optim.Adam(trainable_params, lr=learning_rate_retain)
+
     gamma = config.get('gamma', 0.9)
     step_size = config.get('step_size', 300)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[step_size], gamma=gamma
-    )
+
+    drop_lr_on_plateau = config.get('drop_lr_on_plateau', False)
+    if drop_lr_on_plateau:
+        plateau_factor = config.get('plateau_factor', 0.1)
+        plateau_patience_remove = config.get('plateau_patience_remove', 10)
+        plateau_patience_retain = config.get('plateau_patience_retain', 10)
+
+        scheduler_remove = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_remove,
+            mode='min',
+            factor=plateau_factor,
+            patience=plateau_patience_remove,
+            verbose=True
+        )
+        scheduler_retain = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer_retain,
+            mode='min',
+            factor=plateau_factor,
+            patience=plateau_patience_retain,
+            verbose=True
+        )
+        if is_main:
+            print(f"Using separate ReduceLROnPlateau schedulers:")
+            print(f"  Remove: lr={learning_rate_remove}, factor={plateau_factor}, patience={plateau_patience_remove}")
+            print(f"  Retain: lr={learning_rate_retain}, factor={plateau_factor}, patience={plateau_patience_retain}")
+    else:
+        scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer_remove, milestones=[step_size], gamma=gamma
+        )
+        scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer_retain, milestones=[step_size], gamma=gamma
+        )
+        if is_main:
+            print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
     
-    model, optimizer = accelerator.prepare(model, optimizer)
+    model, optimizer_remove, optimizer_retain = accelerator.prepare(model, optimizer_remove, optimizer_retain)
     
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(accelerator.unwrap_model(model))
@@ -554,9 +589,17 @@ def main():
             loss_retain_log = loss_retain.clone().detach()
 
             if accelerator.sync_gradients:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-                scheduler.step()
+                optimizer_remove.step()
+                optimizer_retain.step()
+                optimizer_remove.zero_grad(set_to_none=True)
+                optimizer_retain.zero_grad(set_to_none=True)
+
+                if drop_lr_on_plateau:
+                    scheduler_remove.step(loss_remove.detach())
+                    scheduler_retain.step(loss_retain.detach())
+                else:
+                    scheduler_remove.step()
+                    scheduler_retain.step()
         
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
@@ -564,7 +607,14 @@ def main():
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if is_main and use_wandb:
-            wandb.log({"loss_retain": float(loss_retain_reduced.item()), "loss_remove": float(loss_remove_reduced.item())}, step=iteration)
+            current_lr_remove = optimizer_remove.param_groups[0]['lr']
+            current_lr_retain = optimizer_retain.param_groups[0]['lr']
+            wandb.log({
+                "loss_retain": float(loss_retain_reduced.item()),
+                "loss_remove": float(loss_remove_reduced.item()),
+                "learning_rate_remove": current_lr_remove,
+                "learning_rate_retain": current_lr_retain,
+            }, step=iteration)
         
         if is_main:
             pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.6f}", "remove": f"{float(loss_remove_reduced.item()):.6f}"})
@@ -639,7 +689,8 @@ def main():
             "config_name": config_name,
             "concepts": concepts,
             "rank": rank_lora,
-            "learning_rate": learning_rate,
+            "learning_rate_remove": learning_rate_remove,
+            "learning_rate_retain": learning_rate_retain,
             "max_train_steps": max_train_steps,
             "final_loss": losses[-1],
         }
