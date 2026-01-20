@@ -114,8 +114,6 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
-    seed = args.seed
-    hf_set_seed(seed)
 
     torch.set_num_threads(torch.get_num_threads())
 
@@ -221,8 +219,6 @@ if __name__ == "__main__":
             print(f"Skip [{image_id}] empty prompt")
             continue
 
-        generator = torch.Generator(device=device).manual_seed(seed)
-
         weight_dtype = torch.bfloat16
 
         # Get the device where HyperLoRA layers are located
@@ -257,6 +253,9 @@ if __name__ == "__main__":
                                        torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
         model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
                                            torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
+
+        seed = int(row.get("evaluation_seed", 0))
+        generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
         image = pipe(
