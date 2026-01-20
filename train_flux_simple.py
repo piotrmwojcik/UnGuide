@@ -885,8 +885,8 @@ def main():
     drop_lr_on_plateau = config.get('drop_lr_on_plateau', False)
     if drop_lr_on_plateau:
         plateau_factor = config.get('plateau_factor', 0.1)
-        plateau_patience_remove = config.get('plateau_patience_remove', plateau_patience_remove)
-        plateau_patience_retain = config.get('plateau_patience_retain', plateau_patience_retain)
+        plateau_patience_remove = config.get('plateau_patience_remove', 10)
+        plateau_patience_retain = config.get('plateau_patience_retain', 10)
 
         scheduler_remove = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer_remove,
