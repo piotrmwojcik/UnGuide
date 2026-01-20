@@ -68,12 +68,12 @@ UnHype:
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
 
-  drop_lr_on_plateau: true
+  drop_lr_on_plateau: false
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
-  learning_rate_remove: 5.0e-03
-  learning_rate_retain: 8.0e-03
+  learning_rate_remove: 3.0e-03
+  learning_rate_retain: 5.0e-03
   plateau_patience_remove: 100
   plateau_patience_retain: 20
   plateau_factor: 0.8
@@ -109,8 +109,8 @@ UnHype:
   retain_weight: 10.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_flux          # output_dir from args
-  final_save_path: output_nudity_flux/LoRA_fusion_model
+  output_dir: output_nudity_flux_bigger          # output_dir from args
+  final_save_path: output_nudity_flux_bigger/LoRA_fusion_model
 
   # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
