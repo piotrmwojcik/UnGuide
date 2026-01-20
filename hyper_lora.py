@@ -145,7 +145,7 @@ class HyperLora(nn.Module):
 
         hyper_input_size = clip_size + time_embedd + (out_dim if use_orig_concat else 0)
 
-        INTERNAL_SIZE = 200
+        INTERNAL_SIZE = 300
 
         self.left_head = nn.Sequential(
             nn.Linear(hyper_input_size, INTERNAL_SIZE),
