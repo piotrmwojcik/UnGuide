@@ -1288,17 +1288,18 @@ def main():
                                                    current_timestep.to(dtype=weight_dtype))
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
-                    z, latent_image_ids = latent_sample(model,
-                                                        noise_scheduler,
-                                                        1,
-                                                        model_input.shape[1],
-                                                        512,
-                                                        512,
-                                                        emb_p.to(accelerator.device),
-                                                        pooled_emb_p.to(accelerator.device),
-                                                        text_ids_p.to(accelerator.device),
-                                                        start_guidance,
-                                                        int(t_enc))
+                    with base.hyper.no_lora():
+                        z, latent_image_ids = latent_sample(model,
+                                                            noise_scheduler,
+                                                            1,
+                                                            model_input.shape[1],
+                                                            512,
+                                                            512,
+                                                            emb_p.to(accelerator.device),
+                                                            pooled_emb_p.to(accelerator.device),
+                                                            text_ids_p.to(accelerator.device),
+                                                            start_guidance,
+                                                            int(t_enc))
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
