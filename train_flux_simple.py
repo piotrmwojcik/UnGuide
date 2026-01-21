@@ -1423,50 +1423,8 @@ def main():
             if accelerator.sync_gradients:
                 #before = _snapshot_params(base.hyper)
 
-                def snapshot_alphas(module):
-                    return {
-                        n: p.detach().float().clone()
-                        for n, p in module.named_parameters()
-                        if n.endswith(".hyper_lora.alpha") and p.requires_grad
-                    }
-
-                def print_alpha_changes(before, after, tag, eps=0.0):
-                    changed = []
-                    for n, b in before.items():
-                        a = after.get(n)
-                        if a is None:
-                            continue
-                        if (a - b).abs().max().item() > eps:
-                            changed.append(n)
-                    print(f"[alpha changed] {tag}: {len(changed)}/{len(before)}")
-                    for n in changed[:20]:  # cap spam
-                        print(" ", n)
-
-                # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
-                alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
-
-                alpha_name, alpha_param = next(
-                    (n, p) for n, p in model.named_parameters()
-                    if n.endswith(".hyper_lora.alpha")
-                )
-
-                lr = optimizer_remove.param_groups[0]["lr"]
-
-                with torch.no_grad():
-                    print("alpha dtype:", alpha_param.dtype)
-                    print("alpha value:", alpha_param.item())
-                    print("alpha grad:", alpha_param.grad.item() if alpha_param.grad is not None else None)
-                    if alpha_param.grad is not None:
-                        print("expected SGD step ~", (-lr * alpha_param.grad).item())
-
                 optimizer_remove.step()
-                alpha_after_remove = snapshot_alphas(model)
-                print_alpha_changes(alpha_before, alpha_after_remove, "after remove.step()")
-
                 optimizer_retain.step()
-                alpha_after_retain = snapshot_alphas(model)
-                print_alpha_changes(alpha_after_remove, alpha_after_retain, "after retain.step()")
-                print_alpha_changes(alpha_before, alpha_after_retain, "total after both")
 
                 alpha_name, alpha_param = None, None
                 for n, p in model.named_parameters():
