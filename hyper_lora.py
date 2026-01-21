@@ -71,12 +71,33 @@ class HypernetworkManager(nn.Module):
 
     def flatten_cached_grads_from_cache(self):
         grads = []
+
+        print_alpha_header = True
+
         for name, idx in self.layer_name_to_idx.items():
             for w in self.get_cached_lora(name):
                 g = getattr(w, "grad", None)
-                if g is not None:
-                    grads.append(g.clone().reshape(-1))
-                    w.grad = None
+                if g is None:
+                    continue
+
+                # ---- print alpha grad norms ----
+                if "alpha" in name.lower():
+                    if print_alpha_header:
+                        print("[LoRA alpha grads]")
+                        print_alpha_header = False
+
+                    with torch.no_grad():
+                        g_det = g.detach()
+                        print(
+                            f"  {name}: "
+                            f"L2={g_det.norm().item():.4e}, "
+                            f"maxabs={g_det.abs().max().item():.4e}"
+                        )
+
+                # ---- flatten and clear ----
+                grads.append(g.clone().reshape(-1))
+                w.grad = None
+
         return None if not grads else torch.cat(grads, dim=0)
 
     def retain_grad_for_cached_lora(self):
