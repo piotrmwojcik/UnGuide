@@ -1473,11 +1473,30 @@ def main():
                 alpha_after_retain = snapshot_alphas(model)
                 print_alpha_changes(alpha_after_remove, alpha_after_retain, "after retain.step()")
                 print_alpha_changes(alpha_before, alpha_after_retain, "total after both")
-                optimizer_remove.step()
+
+                alpha_name, alpha_param = None, None
+                for n, p in model.named_parameters():
+                    if n.endswith(".hyper_lora.alpha"):
+                        alpha_name, alpha_param = n, p
+                        break
+
+                print("alpha:", alpha_name)
+
+                def print_param_lr(opt, param):
+                    for i, g in enumerate(opt.param_groups):
+                        if any(param is pp for pp in g["params"]):
+                            print(f"  group {i} lr={g['lr']}")
+                            return
+                    print("  param not found in optimizer groups?!")
+
+                print("optimizer_remove:")
+                print_param_lr(optimizer_remove, alpha_param)
+                print("optimizer_retain:")
+                print_param_lr(optimizer_retain, alpha_param)
+
                 #after_remove = _snapshot_params(base.hyper)
                 #_print_modified(before, after_remove, "after optimizer_remove.step()")
 
-                optimizer_retain.step()
                 #after_retain = _snapshot_params(base.hyper)
                 #_print_modified(after_remove, after_retain, "after optimizer_retain.step()")
                 #_print_modified(before, after_retain, "total after both steps")
