@@ -1420,37 +1420,37 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
-            def _snapshot_params(module):
-                return {
-                    n: p.detach().float().clone()
-                    for n, p in module.named_parameters()
-                    if p.requires_grad
-                }
-
-            def _print_modified(before, after, tag, eps=0.0):
-                modified = []
-                for n, b in before.items():
-                    a = after.get(n, None)
-                    if a is None:
-                        continue
-                    if (a - b).abs().max().item() > eps:
-                        modified.append(n)
-
-                print(f"[PARAMS modified] {tag}: {len(modified)}/{len(before)}")
-                for n in modified:
-                    print(f"  {n}")
+            # def _snapshot_params(module):
+            #     return {
+            #         n: p.detach().float().clone()
+            #         for n, p in module.named_parameters()
+            #         if p.requires_grad
+            #     }
+            #
+            # def _print_modified(before, after, tag, eps=0.0):
+            #     modified = []
+            #     for n, b in before.items():
+            #         a = after.get(n, None)
+            #         if a is None:
+            #             continue
+            #         if (a - b).abs().max().item() > eps:
+            #             modified.append(n)
+            #
+            #     print(f"[PARAMS modified] {tag}: {len(modified)}/{len(before)}")
+            #     for n in modified:
+            #         print(f"  {n}")
 
             if accelerator.sync_gradients:
-                before = _snapshot_params(base.hyper)
+                #before = _snapshot_params(base.hyper)
 
                 optimizer_remove.step()
-                after_remove = _snapshot_params(base.hyper)
-                _print_modified(before, after_remove, "after optimizer_remove.step()")
+                #after_remove = _snapshot_params(base.hyper)
+                #_print_modified(before, after_remove, "after optimizer_remove.step()")
 
                 optimizer_retain.step()
-                after_retain = _snapshot_params(base.hyper)
-                _print_modified(after_remove, after_retain, "after optimizer_retain.step()")
-                _print_modified(before, after_retain, "total after both steps")
+                #after_retain = _snapshot_params(base.hyper)
+                #_print_modified(after_remove, after_retain, "after optimizer_retain.step()")
+                #_print_modified(before, after_retain, "total after both steps")
 
                 if drop_lr_on_plateau:
                     scheduler_remove.step(loss_remove.detach())
