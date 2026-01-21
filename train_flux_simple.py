@@ -869,6 +869,7 @@ def main():
         layer.set_parent_model(model)
         layer.to(dtype=torch.bfloat16)  # converts parameters + buffers inside the injected module
 
+
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 
@@ -1464,10 +1465,6 @@ def main():
 
                 # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
                 alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
-
-                for n, p in model.named_parameters():
-                    if n.endswith(".hyper_lora.alpha"):
-                        p.data = p.data.float()
 
                 optimizer_remove.step()
                 alpha_after_remove = snapshot_alphas(model)
