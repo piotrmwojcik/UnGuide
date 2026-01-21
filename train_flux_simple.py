@@ -1443,24 +1443,36 @@ def main():
             if accelerator.sync_gradients:
                 #before = _snapshot_params(base.hyper)
 
-                def in_optimizer(opt, param):
-                    return any(param is p for g in opt.param_groups for p in g["params"])
+                def snapshot_alphas(module):
+                    return {
+                        n: p.detach().float().clone()
+                        for n, p in module.named_parameters()
+                        if n.endswith(".hyper_lora.alpha") and p.requires_grad
+                    }
 
-                for n, p in model.named_parameters():  # use the SAME module that optimizer was built from
-                    if n.endswith(".alpha"):
-                        print(n, "requires_grad", p.requires_grad,
-                              "in_remove", in_optimizer(optimizer_remove, p),
-                              "in_retain", in_optimizer(optimizer_retain, p))
+                def print_alpha_changes(before, after, tag, eps=0.0):
+                    changed = []
+                    for n, b in before.items():
+                        a = after.get(n)
+                        if a is None:
+                            continue
+                        if (a - b).abs().max().item() > eps:
+                            changed.append(n)
+                    print(f"[alpha changed] {tag}: {len(changed)}/{len(before)}")
+                    for n in changed[:20]:  # cap spam
+                        print(" ", n)
 
-                for n, p in model.named_parameters():  # same module as above
-                    if n.endswith(".alpha"):
-                        if p.grad is None:
-                            print(f"[alpha grad] {n}: None")
-                        else:
-                            g = p.grad.detach()
-                            print(f"[alpha grad] {n}: L2={g.norm().item():.4e}, maxabs={g.abs().max().item():.4e}")
-                        break
+                # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
+                alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
 
+                optimizer_remove.step()
+                alpha_after_remove = snapshot_alphas(model)
+                print_alpha_changes(alpha_before, alpha_after_remove, "after remove.step()")
+
+                optimizer_retain.step()
+                alpha_after_retain = snapshot_alphas(model)
+                print_alpha_changes(alpha_after_remove, alpha_after_retain, "after retain.step()")
+                print_alpha_changes(alpha_before, alpha_after_retain, "total after both")
                 optimizer_remove.step()
                 #after_remove = _snapshot_params(base.hyper)
                 #_print_modified(before, after_remove, "after optimizer_remove.step()")
