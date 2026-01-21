@@ -868,8 +868,11 @@ def main():
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
         layer.to(dtype=torch.bfloat16)
-        layer.alpha.data = layer.alpha.data.float()# converts parameters + buffers inside the injected module
 
+        # alpha lives inside the hyper_lora submodule (and may not exist if scaling disabled)
+        if hasattr(layer, "hyper_lora") and hasattr(layer.hyper_lora, "alpha") and layer.hyper_lora.alpha is not None:
+            print('Set to float')
+            layer.hyper_lora.alpha.data = layer.hyper_lora.alpha.data.float()
 
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
