@@ -1427,7 +1427,7 @@ def main():
                     return {
                         n: p.detach().float().clone()
                         for n, p in module.named_parameters()
-                        if n.endswith(".hyper_lora.alpha") and p.requires_grad
+                        if n.endswith(".hyper_lora.left_head") and p.requires_grad
                     }
 
                 def print_alpha_changes(before, after, tag, eps=0.0):
@@ -1470,7 +1470,7 @@ def main():
 
                 alpha_name, alpha_param = None, None
                 for n, p in model.named_parameters():
-                    if n.endswith(".hyper_lora.alpha"):
+                    if n.endswith(".hyper_lora.left_head"):
                         alpha_name, alpha_param = n, p
                         break
 
