@@ -50,52 +50,35 @@ def coerce_prompt(v):
 import os
 import torch
 
-def load_lora_weights(model_wrapper, lora_path, device):
-    print(f"Loading LoRA weights from: {lora_path}")
-    if not os.path.exists(lora_path):
-        raise FileNotFoundError(f"LoRA checkpoint not found: {lora_path}")
-
-    lora_state_dict = torch.load(lora_path, map_location=device)
-    print(f"Found {len(lora_state_dict)} trainable parameters in checkpoint")
-
+def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     transformer = model_wrapper.transformer
 
-    # Map real module tensors by state_dict key
-    tensor_map = {}
-    for n, p in transformer.named_parameters():
-        tensor_map[n] = p
-    for n, b in transformer.named_buffers():
-        tensor_map[n] = b
+    # real tensors
+    tensor_map = {n: p for n, p in transformer.named_parameters()}
+    tensor_map.update({n: b for n, b in transformer.named_buffers()})
 
-    updated = 0
-    skipped = []
+    lora_state_dict = torch.load(lora_path, map_location="cpu")
+
+    # pick a few keys that exist in both
+    common = [k for k in lora_state_dict.keys() if k in tensor_map]
+    print("ckpt keys:", len(lora_state_dict), "common keys:", len(common))
+    print("example common keys:", common[:10])
 
     with torch.no_grad():
-        for k, v in lora_state_dict.items():
-            t = tensor_map.get(k, None)
-            if t is None:
-                skipped.append((k, "no such key in model"))
-                continue
+        for i, k in enumerate(common[:check_keys]):
+            t = tensor_map[k]
+            v = lora_state_dict[k].to(device=t.device, dtype=t.dtype)
 
-            if not torch.is_tensor(v) or t.shape != v.shape:
-                skipped.append((k, f"shape mismatch: model={tuple(t.shape)}, ckpt={tuple(v.shape)}"))
-                continue
+            before = t.detach().float().norm().item()
+            diff = (t.detach().float() - v.detach().float()).norm().item()
 
-            v = v.to(device=t.device, dtype=t.dtype)
-
-            # diagnostics on the loaded tensor (after cast)
-            l2 = v.norm().item()
-            mean = v.mean().item()
-            minv = v.min().item()
-            maxv = v.max().item()
-            print(f"[LoRA] {k}: L2={l2:.4e}, mean={mean:.4e}, min={minv:.4e}, max={maxv:.4e}")
+            print(f"[BEFORE] {k}: ||t||={before:.4e}, ||t-v||={diff:.4e}")
 
             t.copy_(v)
-            updated += 1
 
-    print(f"[LoRA] Copied {updated} tensors, skipped {len(skipped)}")
-    if skipped and len(skipped) <= 10:
-        print(f"Skipped keys: {[k for k, _ in skipped]}")
+            after = t.detach().float().norm().item()
+            diff2 = (t.detach().float() - v.detach().float()).norm().item()
+            print(f"[AFTER ] {k}: ||t||={after:.4e}, ||t-v||={diff2:.4e}")
 
     return model_wrapper
 
