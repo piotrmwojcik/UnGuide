@@ -1423,7 +1423,7 @@ def main():
             def _snapshot_alpha_params(module, to_float=True):
                 snap = {}
                 for n, p in module.named_parameters():
-                    if "alpha" in n.lower() and p.requires_grad:
+                    if "L_R" in n.lower() and p.requires_grad:
                         t = p.detach()
                         if to_float:
                             t = t.float()
@@ -1443,7 +1443,7 @@ def main():
                 deltas.sort(reverse=True, key=lambda x: x[0])
 
                 total_l2 = (sum(x[0] for x in deltas))
-                print(f"[alpha Δ] {tag}: tensors={len(deltas)} sum(L2)={total_l2:.4e}")
+                print(f"[L_R Δ] {tag}: tensors={len(deltas)} sum(L2)={total_l2:.4e}")
 
                 for l2, maxabs, n in deltas[:topk]:
                     print(f"  {n}: L2={l2:.4e}, maxabs={maxabs:.4e}")
