@@ -1483,11 +1483,6 @@ def main():
 
                 print("alpha:", alpha_name)
 
-                print("optimizer_remove:")
-                print_param_lr(optimizer_remove, alpha_param)
-                print("optimizer_retain:")
-                print_param_lr(optimizer_retain, alpha_param)
-
                 #after_remove = _snapshot_params(base.hyper)
                 #_print_modified(before, after_remove, "after optimizer_remove.step()")
 
