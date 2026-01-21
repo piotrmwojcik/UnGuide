@@ -1423,14 +1423,14 @@ def main():
             if accelerator.sync_gradients:
                 #before = _snapshot_params(base.hyper)
 
-                def snapshot_alphas(module):
+                def snapshot_left_head_params(module):
                     return {
                         n: p.detach().float().clone()
                         for n, p in module.named_parameters()
-                        if n.endswith(".hyper_lora.left_head") and p.requires_grad
+                        if ".hyper_lora.left_head." in n and p.requires_grad
                     }
 
-                def print_alpha_changes(before, after, tag, eps=0.0):
+                def print_left_head_changes(before, after, tag, eps=0.0, max_print=20):
                     changed = []
                     for n, b in before.items():
                         a = after.get(n)
@@ -1438,43 +1438,43 @@ def main():
                             continue
                         if (a - b).abs().max().item() > eps:
                             changed.append(n)
-                    print(f"[alpha changed] {tag}: {len(changed)}/{len(before)}")
-                    for n in changed[:20]:  # cap spam
+
+                    print(f"[left_head changed] {tag}: {len(changed)}/{len(before)}")
+                    for n in changed[:max_print]:
                         print(" ", n)
 
-                # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
-                alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
+                def pick_one_left_head_param(module):
+                    for n, p in module.named_parameters():
+                        if ".hyper_lora.left_head." in n and p.requires_grad:
+                            return n, p
+                    return None, None
 
-                alpha_name, alpha_param = next(
-                    (n, p) for n, p in model.named_parameters()
-                    if n.endswith(".hyper_lora.left_head")
-                )
+                if accelerator.sync_gradients:
+                    before = snapshot_left_head_params(model)
 
-                lr = optimizer_remove.param_groups[0]["lr"]
+                    name, p = pick_one_left_head_param(model)
+                    lr = optimizer_remove.param_groups[0]["lr"]
 
-                with torch.no_grad():
-                    print("left_head dtype:", alpha_param.dtype)
-                    print("left_head value:", alpha_param.item())
-                    print("left_head grad:", alpha_param.grad.item() if alpha_param.grad is not None else None)
-                    if alpha_param.grad is not None:
-                        print("expected SGD step ~", (-lr * alpha_param.grad).item())
+                    with torch.no_grad():
+                        print("left_head param:", name)
+                        print("dtype:", p.dtype)
+                        print("value sample:", p.view(-1)[0].item())
+                        if p.grad is None:
+                            print("grad: None")
+                        else:
+                            g0 = p.grad.detach().view(-1)[0].item()
+                            print("grad sample:", g0)
+                            print("expected SGD step sample ~", (-lr * g0))
 
-                optimizer_remove.step()
-                alpha_after_remove = snapshot_alphas(model)
-                print_alpha_changes(alpha_before, alpha_after_remove, "after remove.step()")
+                    # step + check changes
+                    optimizer_remove.step()
+                    after_remove = snapshot_left_head_params(model)
+                    print_left_head_changes(before, after_remove, "after remove.step()")
 
-                optimizer_retain.step()
-                alpha_after_retain = snapshot_alphas(model)
-                print_alpha_changes(alpha_after_remove, alpha_after_retain, "after retain.step()")
-                print_alpha_changes(alpha_before, alpha_after_retain, "total after both")
-
-                alpha_name, alpha_param = None, None
-                for n, p in model.named_parameters():
-                    if n.endswith(".hyper_lora.left_head"):
-                        alpha_name, alpha_param = n, p
-                        break
-
-                print("alpha:", alpha_name)
+                    optimizer_retain.step()
+                    after_retain = snapshot_left_head_params(model)
+                    print_left_head_changes(after_remove, after_retain, "after retain.step()")
+                    print_left_head_changes(before, after_retain, "total after both")
 
                 #after_remove = _snapshot_params(base.hyper)
                 #_print_modified(before, after_remove, "after optimizer_remove.step()")
