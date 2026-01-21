@@ -1443,6 +1443,15 @@ def main():
             if accelerator.sync_gradients:
                 #before = _snapshot_params(base.hyper)
 
+                for n, p in model.named_parameters():  # same module as above
+                    if n.endswith(".alpha"):
+                        if p.grad is None:
+                            print(f"[alpha grad] {n}: None")
+                        else:
+                            g = p.grad.detach()
+                            print(f"[alpha grad] {n}: L2={g.norm().item():.4e}, maxabs={g.abs().max().item():.4e}")
+                        break
+
                 optimizer_remove.step()
                 #after_remove = _snapshot_params(base.hyper)
                 #_print_modified(before, after_remove, "after optimizer_remove.step()")
