@@ -1339,7 +1339,8 @@ def main():
                 e_n.float().to(accelerator.device),
                 (e_0 - negative_guidance * (e_p - e_0)).float().to(accelerator.device)
             )
-
+            print("e_n.requires_grad:", e_n.requires_grad)
+            print("loss_aux.requires_grad:", loss_aux.requires_grad)
             accelerator.backward(loss_aux)
             #print_alpha_grad_norms(base.hyper)
             # --- use cached LoRA grads instead of live-tensor grads ---
