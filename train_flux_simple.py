@@ -1443,6 +1443,15 @@ def main():
             if accelerator.sync_gradients:
                 #before = _snapshot_params(base.hyper)
 
+                def in_optimizer(opt, param):
+                    return any(param is p for g in opt.param_groups for p in g["params"])
+
+                for n, p in model.named_parameters():  # use the SAME module that optimizer was built from
+                    if n.endswith(".alpha"):
+                        print(n, "requires_grad", p.requires_grad,
+                              "in_remove", in_optimizer(optimizer_remove, p),
+                              "in_retain", in_optimizer(optimizer_retain, p))
+
                 for n, p in model.named_parameters():  # same module as above
                     if n.endswith(".alpha"):
                         if p.grad is None:
