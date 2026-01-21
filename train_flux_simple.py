@@ -1486,13 +1486,6 @@ def main():
 
                 print("alpha:", alpha_name)
 
-                def print_param_lr(opt, param):
-                    for i, g in enumerate(opt.param_groups):
-                        if any(param is pp for pp in g["params"]):
-                            print(f"  group {i} lr={g['lr']}")
-                            return
-                    print("  param not found in optimizer groups?!")
-
                 print("optimizer_remove:")
                 print_param_lr(optimizer_remove, alpha_param)
                 print("optimizer_retain:")
