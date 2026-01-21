@@ -1466,6 +1466,20 @@ def main():
                 # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
                 alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
 
+                alpha_name, alpha_param = next(
+                    (n, p) for n, p in model.named_parameters()
+                    if n.endswith(".hyper_lora.alpha")
+                )
+
+                lr = optimizer_remove.param_groups[0]["lr"]
+
+                with torch.no_grad():
+                    print("alpha dtype:", alpha_param.dtype)
+                    print("alpha value:", alpha_param.item())
+                    print("alpha grad:", alpha_param.grad.item() if alpha_param.grad is not None else None)
+                    if alpha_param.grad is not None:
+                        print("expected SGD step ~", (-lr * alpha_param.grad).item())
+
                 optimizer_remove.step()
                 alpha_after_remove = snapshot_alphas(model)
                 print_alpha_changes(alpha_before, alpha_after_remove, "after remove.step()")
