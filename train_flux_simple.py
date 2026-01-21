@@ -1222,10 +1222,6 @@ def main():
                 target_text_augmented, text_encoder_one, tokenizer_one, accelerator.device
             )
 
-            print(
-                f"[Rank {rank} | Device {accelerator.device}] "
-                f"idx={concept_idx} | Target: {target_text_augmented} | Mapping: {mapping_text_augmented}"
-            )
 
             # Get mapping concept embeddings from cache (emb_0 = mapping concept for loss)
             if cache is not None and mapping_text_augmented and mapping_text_augmented in cache.mapping_prompt_to_idx:
@@ -1278,6 +1274,11 @@ def main():
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
 
+            print(
+                f"[Rank {rank} | Device {accelerator.device}] "
+                f"idx={concept_idx} | Target: {target_text_augmented} | Mapping: {mapping_text_augmented} | Timestep: {rtimestep}"
+            )
+
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
@@ -1286,6 +1287,7 @@ def main():
                 _, current_timestep = base.hyper.get_context()
                 base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
                                                    current_timestep.to(dtype=weight_dtype))
+                base.hyper.retain_grad_for_cached_lora()
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
                     with base.hyper.no_lora():
@@ -1339,8 +1341,12 @@ def main():
                 raise RuntimeError(
                     "No gradients found in cached LoRA tensors. Ensure cache is built with graph intact and retain_grad() was called.")
 
-            # Target step: Δθ ≈ -lr * g_t  (keep target detached)
             grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
+
+            # ---- norm diagnostics ----
+            with torch.no_grad():
+                delta_norm = torch.norm(grads_flat_t, p=2).item()
+                print(f"[Target Δθ] L2 norm: {delta_norm:.4e}")
 
             #for p in trainable_params:
             #    if p.grad is not None:
