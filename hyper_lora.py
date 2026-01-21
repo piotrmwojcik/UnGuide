@@ -73,7 +73,7 @@ class HypernetworkManager(nn.Module):
             x_alpha, x_L, x_R = cached
 
             # ---- explicitly inspect alpha ----
-            g = getattr(x_alpha, "grad", None)
+            g = getattr(x_L, "grad", None)
 
             if g is None:
                 print(f"[ALPHA grad] {name}: grad=None")
