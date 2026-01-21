@@ -260,7 +260,10 @@ class HyperLoRALinear(nn.Module):
                     hyper_input = torch.cat([clip_embedding, orig], dim=-1)
                 else:
                     hyper_input = clip_embedding
-                return orig + self.hyper_lora(x, hyper_input, timestep)
+
+                lora_fp = self.hyper_lora(x.float(), hyper_input.float(), timestep.float()).float()
+
+                return orig + lora_fp.to(dtype=orig.dtype)
             else:
                 lora_weights = parent.hyper.get_cached_lora(self.layer_name)
                 if lora_weights is None:
@@ -273,9 +276,13 @@ class HyperLoRALinear(nn.Module):
                     x_R = x_R.expand(batch_size, -1, -1)
 
                 orig_out = self.original(x)
-                lora_out = (x @ x_L) @ x_R
+                x_fp = x.float()  # <-- THIS is the key fix
+                xL_fp = x_L.float()
+                xR_fp = x_R.float()
 
-                return orig_out + lora_out.to(dtype=orig_out.dtype)
+                lora_fp = (x_fp @ xL_fp) @ xR_fp
+
+                return orig_out + lora_fp.to(dtype=orig_out.dtype)
         else:
             if not hasattr(parent, 'current_conditioning'):
                 print("WARNING: parent model has neither 'hyper' nor 'current_conditioning'")
