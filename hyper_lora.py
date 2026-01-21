@@ -64,10 +64,29 @@ class HypernetworkManager(nn.Module):
 
     def flatten_cached_from_cache(self):
         vecs = []
+
         for name, _ in self.layer_name_to_idx.items():
-            for w in self.get_cached_lora(name):
-                print('!!! ', len(w), w[0])
-                vecs.append(w.reshape(-1))
+            cached = self.get_cached_lora(name)
+            if cached is None:
+                continue
+
+            x_alpha, x_L, x_R = cached
+
+            # ---- explicitly inspect alpha ----
+            with torch.no_grad():
+                flat_alpha = x_alpha.reshape(-1)
+                print(
+                    f"[ALPHA] {name}: "
+                    f"shape={tuple(x_alpha.shape)}, "
+                    f"numel={flat_alpha.numel()}, "
+                    f"first_vals={flat_alpha[:5].tolist()}"
+                )
+
+            # ---- flatten all cached tensors ----
+            vecs.append(x_alpha.reshape(-1))
+            vecs.append(x_L.reshape(-1))
+            vecs.append(x_R.reshape(-1))
+
         return None if not vecs else torch.cat(vecs, dim=0)
 
     def flatten_cached_grads_from_cache(self):
