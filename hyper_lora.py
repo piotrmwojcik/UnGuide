@@ -340,6 +340,7 @@ class HyperLoRALinear(nn.Module):
                 hyper_input = clip_embedding
             orig_out = orig
             lora_out = self.hyper_lora(x, hyper_input, timestep)
+            lora_out = lora_out.to(dtype=orig_out.dtype)
 
             return orig_out + lora_out
 
