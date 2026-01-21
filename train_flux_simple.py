@@ -1330,6 +1330,8 @@ def main():
             loss_aux = criterion(e_n.to(accelerator.device), e_0.to(accelerator.device) - (
                         negative_guidance * (e_p.to(accelerator.device) - e_0.to(accelerator.device))))
 
+            print('!!! ', loss_aux.item())
+
             accelerator.backward(loss_aux)
 
             # --- use cached LoRA grads instead of live-tensor grads ---
