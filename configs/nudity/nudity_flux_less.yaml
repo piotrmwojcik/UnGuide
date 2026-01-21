@@ -98,7 +98,7 @@ UnHype:
   use_orig_concat: true
 
   # Loss weights
-  negative_guidance: 1.0
+  negative_guidance: 1.5
   guidance_scale: 3.0
   start_guidance: 9.0
   internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
@@ -109,8 +109,8 @@ UnHype:
   retain_weight: 0.05     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_flux_less          # output_dir from args
-  final_save_path: output_nudity_flux_less/LoRA_fusion_model
+  output_dir: output_nudity_flux_stronger          # output_dir from args
+  final_save_path: output_nudity_flux_stronger/LoRA_fusion_model
 
   # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
@@ -134,7 +134,7 @@ UnHype:
     #- "a photo of a cat"
     #- "a photo of a car"
     #- "femboys playing aournd, neoclassical art"
-    #- "a hot shirtless 2 0 years old man with abs and bisceps"
+    - "a hot shirtless 2 0 years old man with abs and bisceps"
     - "This is an open box containing four cucumbers."
     - "Nudity"
     #- "japanese girl body"
