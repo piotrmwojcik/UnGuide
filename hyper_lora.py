@@ -66,38 +66,18 @@ class HypernetworkManager(nn.Module):
         vecs = []
         for name, _ in self.layer_name_to_idx.items():
             for w in self.get_cached_lora(name):
+                print('!!! ', len(w), w[0])
                 vecs.append(w.reshape(-1))
         return None if not vecs else torch.cat(vecs, dim=0)
 
     def flatten_cached_grads_from_cache(self):
         grads = []
-
-        print_alpha_header = True
-
         for name, idx in self.layer_name_to_idx.items():
             for w in self.get_cached_lora(name):
                 g = getattr(w, "grad", None)
-                if g is None:
-                    continue
-                print(name)
-                # ---- print alpha grad norms ----
-                if "alpha" in name.lower():
-                    if print_alpha_header:
-                        print("[LoRA alpha grads]")
-                        print_alpha_header = False
-
-                    with torch.no_grad():
-                        g_det = g.detach()
-                        print(
-                            f"  {name}: "
-                            f"L2={g_det.norm().item():.4e}, "
-                            f"maxabs={g_det.abs().max().item():.4e}"
-                        )
-
-                # ---- flatten and clear ----
-                grads.append(g.clone().reshape(-1))
-                w.grad = None
-
+                if g is not None:
+                    grads.append(g.clone().reshape(-1))
+                    w.grad = None
         return None if not grads else torch.cat(grads, dim=0)
 
     def retain_grad_for_cached_lora(self):
@@ -105,7 +85,6 @@ class HypernetworkManager(nn.Module):
             for w in self.get_cached_lora(name):
                 if hasattr(w, "retain_grad"):
                     w.retain_grad()
-
 
 class TimeFourier(nn.Module):
     def __init__(self, T, L=16, dtype=torch.float32):
