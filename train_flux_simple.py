@@ -1329,9 +1329,12 @@ def main():
             e_p.requires_grad = False
 
 
-            loss_aux = criterion(e_n.to(accelerator.device), e_0.to(accelerator.device) - (
-                        negative_guidance * (e_p.to(accelerator.device) - e_0.to(accelerator.device))))
-
+            #loss_aux = criterion(e_n.to(accelerator.device), e_0.to(accelerator.device) - (
+            #           negative_guidance * (e_p.to(accelerator.device) - e_0.to(accelerator.device))))
+            loss_aux = criterion(
+                e_n.float().to(accelerator.device),
+                (e_0 - negative_guidance * (e_p - e_0)).float().to(accelerator.device)
+            )
 
             accelerator.backward(loss_aux)
 
