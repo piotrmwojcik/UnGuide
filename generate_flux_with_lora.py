@@ -51,12 +51,7 @@ import os
 import torch
 
 def load_lora_weights(model_wrapper, lora_path, device):
-    """
-    Load HyperLoRA weights from saved checkpoint and apply to model,
-    printing tensor norms while loading.
-    """
     print(f"Loading LoRA weights from: {lora_path}")
-
     if not os.path.exists(lora_path):
         raise FileNotFoundError(f"LoRA checkpoint not found: {lora_path}")
 
@@ -64,35 +59,39 @@ def load_lora_weights(model_wrapper, lora_path, device):
     print(f"Found {len(lora_state_dict)} trainable parameters in checkpoint")
 
     transformer = model_wrapper.transformer
-    sd = transformer.state_dict()
+
+    # Map real module tensors by state_dict key
+    tensor_map = {}
+    for n, p in transformer.named_parameters():
+        tensor_map[n] = p
+    for n, b in transformer.named_buffers():
+        tensor_map[n] = b
 
     updated = 0
     skipped = []
 
     with torch.no_grad():
         for k, v in lora_state_dict.items():
-            if k in sd:
-                if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
-                    v = v.to(device=device, dtype=sd[k].dtype)
-
-                    # ---- norm diagnostics ----
-                    l2 = torch.norm(v).item()
-                    mean = v.mean().item()
-                    minv = v.min().item()
-                    maxv = v.max().item()
-
-                    print(
-                        f"[LoRA] {k}: "
-                        f"L2={l2:.4e}, mean={mean:.4e}, "
-                        f"min={minv:.4e}, max={maxv:.4e}"
-                    )
-
-                    sd[k].copy_(v)
-                    updated += 1
-                else:
-                    skipped.append((k, f"shape mismatch: model={sd[k].shape}, ckpt={v.shape}"))
-            else:
+            t = tensor_map.get(k, None)
+            if t is None:
                 skipped.append((k, "no such key in model"))
+                continue
+
+            if not torch.is_tensor(v) or t.shape != v.shape:
+                skipped.append((k, f"shape mismatch: model={tuple(t.shape)}, ckpt={tuple(v.shape)}"))
+                continue
+
+            v = v.to(device=t.device, dtype=t.dtype)
+
+            # diagnostics on the loaded tensor (after cast)
+            l2 = v.norm().item()
+            mean = v.mean().item()
+            minv = v.min().item()
+            maxv = v.max().item()
+            print(f"[LoRA] {k}: L2={l2:.4e}, mean={mean:.4e}, min={minv:.4e}, max={maxv:.4e}")
+
+            t.copy_(v)
+            updated += 1
 
     print(f"[LoRA] Copied {updated} tensors, skipped {len(skipped)}")
     if skipped and len(skipped) <= 10:
@@ -202,7 +201,7 @@ if __name__ == "__main__":
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    pipe.transformer = load_lora_weights(pipe, args.lora_path, device)
+    load_lora_weights(pipe, args.lora_path, device)
 
     df = pd.read_csv(args.csv_path, index_col=0)
 
