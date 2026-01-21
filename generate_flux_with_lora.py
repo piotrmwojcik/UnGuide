@@ -65,7 +65,7 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     print("example common keys:", common[:10])
 
     with torch.no_grad():
-        for i, k in enumerate(common[:check_keys]):
+        for i, k in enumerate(common):
             t = tensor_map[k]
             v = lora_state_dict[k].to(device=t.device, dtype=t.dtype)
 
@@ -249,6 +249,9 @@ if __name__ == "__main__":
                                        torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
         model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
                                            torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
+
+        print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
+        print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
 
         seed = int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
