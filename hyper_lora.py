@@ -275,7 +275,7 @@ class HyperLoRALinear(nn.Module):
                 orig_out = self.original(x)
                 lora_out = (x @ x_L) @ x_R
 
-                return orig_out + lora_out
+                return orig_out + lora_out.to(dtype=orig_out.dtype)
         else:
             if not hasattr(parent, 'current_conditioning'):
                 print("WARNING: parent model has neither 'hyper' nor 'current_conditioning'")
@@ -295,7 +295,7 @@ class HyperLoRALinear(nn.Module):
             orig_out = orig
             lora_out = self.hyper_lora(x, hyper_input, timestep)
 
-            return orig_out + lora_out
+            return orig_out + lora_out.to(dtype=orig_out.dtype)
 
 
 def inject_hyper_lora(

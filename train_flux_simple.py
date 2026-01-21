@@ -858,7 +858,7 @@ def main():
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
         use_orig_concat=use_orig_concat,
-        dtype=torch.bfloat16,
+        dtype=torch.float32,
     )
 
     hyper_lora_layers = inject_hyper_lora(
@@ -867,7 +867,7 @@ def main():
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
-        layer.to(dtype=torch.bfloat16)
+        #layer.to(dtype=torch.bfloat16)
 
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
@@ -1316,11 +1316,9 @@ def main():
                         CPU_only=True,
                     )
 
-            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
-                                    torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
+            base.hyper.set_context(hyper_emb_target, torch.tensor([rtimestep], device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
-            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
-                                                current_timestep.to(dtype=weight_dtype))
+            base.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep)
             base.hyper.retain_grad_for_cached_lora()
 
             with torch.no_grad():
@@ -1361,12 +1359,12 @@ def main():
             #        p.grad = None
 
             _, current_timestep = accelerator.unwrap_model(model).hyper.get_context()
-            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
-            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), current_timestep.to(dtype=weight_dtype))
+            base.hyper.set_context(hyper_emb_target, current_timestep)
+            base.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep)
             tensors_flat_t = base.hyper.flatten_cached_from_cache()
 
-            base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
-            base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), (current_timestep + 1).to(dtype=weight_dtype))
+            base.hyper.set_context(hyper_emb_target, (current_timestep + 1))
+            base.hyper.compute_and_cache_loras(hyper_emb_target, (current_timestep + 1))
             tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
 
             # Match the SGD step: (θ_{t+1} - θ_t) ≈ -lr * g_t
@@ -1510,12 +1508,12 @@ def main():
                 #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
 
                 for h_step in diag_time_steps:
-                    h_step_tensor = torch.tensor([h_step], device=device, dtype=weight_dtype)
+                    h_step_tensor = torch.tensor([h_step], device=device)
 
                     # Enable these if you want hyper-time to change the result
-                    base.hyper.set_context(hyper_emb_diag.to(dtype=weight_dtype), h_step_tensor.to(dtype=weight_dtype))
-                    base.hyper.compute_and_cache_loras(hyper_emb_diag.to(dtype=weight_dtype),
-                                                       h_step_tensor.to(dtype=weight_dtype))
+                    base.hyper.set_context(hyper_emb_diag, h_step_tensor)
+                    base.hyper.compute_and_cache_loras(hyper_emb_diag,
+                                                       h_step_tensor)
 
 
                     #diag_pipe.vae.to(device=device, dtype=torch.float32).eval()
