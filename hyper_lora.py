@@ -64,40 +64,19 @@ class HypernetworkManager(nn.Module):
 
     def flatten_cached_from_cache(self):
         vecs = []
-
         for name, _ in self.layer_name_to_idx.items():
-            cached = self.get_cached_lora(name)
-            if cached is None:
-                continue
-
-            x_alpha, x_L, x_R = cached
-
-            # ---- flatten all cached tensors ----
-            vecs.append(x_alpha.reshape(-1))
-            vecs.append(x_L.reshape(-1))
-            vecs.append(x_R.reshape(-1))
-
+            for w in self.get_cached_lora(name):
+                vecs.append(w.reshape(-1))
         return None if not vecs else torch.cat(vecs, dim=0)
 
     def flatten_cached_grads_from_cache(self):
         grads = []
-
-        printed_header = False
-
-        for name, _ in self.layer_name_to_idx.items():
-            cached = self.get_cached_lora(name)
-            if cached is None:
-                continue
-
-            x_alpha, x_L, x_R = cached
-
-            # Flatten all existing grads, then clear
-            for w in (x_alpha, x_L, x_R):
+        for name, idx in self.layer_name_to_idx.items():
+            for w in self.get_cached_lora(name):
                 g = getattr(w, "grad", None)
                 if g is not None:
-                    grads.append(g.detach().reshape(-1).clone())
-                w.grad = None
-
+                    grads.append(g.clone().reshape(-1))
+                    w.grad = None
         return None if not grads else torch.cat(grads, dim=0)
 
     def retain_grad_for_cached_lora(self):
@@ -105,6 +84,7 @@ class HypernetworkManager(nn.Module):
             for w in self.get_cached_lora(name):
                 if hasattr(w, "retain_grad"):
                     w.retain_grad()
+
 
 class TimeFourier(nn.Module):
     def __init__(self, T, L=16, dtype=torch.float32):
@@ -123,18 +103,18 @@ class TimeFourier(nn.Module):
 class HyperLora(nn.Module):
 
     def __init__(
-        self,
-        in_dim: int,
-        out_dim: int,
-        rank: int = 4,
-        clip_size: int = 768,
-        alpha_init: int = 16.0,
-        time_embedd: int = 32,
-        use_scaling=True,
-        original_linear = None,
-        train_steps: int = None,
-        use_orig_concat: bool = True,
-        dtype: torch.dtype = torch.float32,
+            self,
+            in_dim: int,
+            out_dim: int,
+            rank: int = 4,
+            clip_size: int = 768,
+            alpha_init: int = 16.0,
+            time_embedd: int = 32,
+            use_scaling=True,
+            original_linear=None,
+            train_steps: int = None,
+            use_orig_concat: bool = True,
+            dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -146,12 +126,12 @@ class HyperLora(nn.Module):
         self.use_orig_concat = use_orig_concat
         self.dtype = dtype
         self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
-        self._dbg_calls = 0   # to avoid spamming
+        self._dbg_calls = 0  # to avoid spamming
         ## it should (?) be shared
-        #self.layers = nn.Sequential(
+        # self.layers = nn.Sequential(
         #    nn.Linear(clip_size, 100),
         #    nn.ReLU(),
-        #)
+        # )
         std_dev = 1 / (rank ** 0.5)
         self.register_buffer(
             "xL_const_flat", torch.rand(1, in_dim * rank, dtype=self.dtype) * std_dev, persistent=False
@@ -205,9 +185,8 @@ class HyperLora(nn.Module):
 
         assert self.use_scaling
         if self.use_scaling:
-            alpha = self.forward_alpha(t).float()  # fp32 alpha
-            xL = self.forward_linear_L(emb, t)  # bf16/fp16 compute tensor
-            x_L = alpha.to(dtype=xL.dtype) * xL
+            alpha = self.forward_alpha(t)
+            x_L = alpha * self.forward_linear_L(emb, t)
         else:
             x_L = self.forward_linear_L(emb, t)
         x_R = self.forward_linear_R(emb, t)
@@ -234,15 +213,15 @@ class HyperLora(nn.Module):
 class HyperLoRALinear(nn.Module):
 
     def __init__(
-        self,
-        original_linear: nn.Linear,
-        clip_size: int = 768,
-        rank: int = 1,
-        alpha: int = 16,
-        layer_name: str = None,
-        train_steps: int = None,
-        use_orig_concat: bool = False,
-        dtype: torch.dtype = torch.float32,
+            self,
+            original_linear: nn.Linear,
+            clip_size: int = 768,
+            rank: int = 1,
+            alpha: int = 16,
+            layer_name: str = None,
+            train_steps: int = None,
+            use_orig_concat: bool = False,
+            dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
         self.original = original_linear
@@ -269,7 +248,7 @@ class HyperLoRALinear(nn.Module):
         if hasattr(parent, 'hyper') and parent.hyper is not None:
             if not parent.hyper.lora_enabled:
                 return self.original(x)
-            
+
             if parent.hyper.auto_mode:
                 clip_embedding, timestep = parent.hyper.get_context()
                 if clip_embedding is None:
@@ -315,13 +294,12 @@ class HyperLoRALinear(nn.Module):
                 hyper_input = clip_embedding
             orig_out = orig
             lora_out = self.hyper_lora(x, hyper_input, timestep)
-            lora_out = lora_out.to(dtype=orig_out.dtype)
 
             return orig_out + lora_out
 
 
 def inject_hyper_lora(
-    module: nn.Module, target_modules: List[str], hyper_lora_factory, name: str = ""
+        module: nn.Module, target_modules: List[str], hyper_lora_factory, name: str = ""
 ):
     hyper_lora_layers = []
 
@@ -329,7 +307,7 @@ def inject_hyper_lora(
         full_name = f"{name}.{child_name}" if name else child_name
 
         if isinstance(child, nn.Linear) and any(
-            full_name.endswith(t) for t in target_modules
+                full_name.endswith(t) for t in target_modules
         ):
             device = next(child.parameters()).device
             hyper_lora_layer = hyper_lora_factory(child).to(device)
@@ -352,9 +330,9 @@ def inject_hyper_lora_nsfw(module, hyper_lora_factory, name=""):
         full_name = f"{name}.{child_name}" if name else child_name
 
         if (
-            full_name.startswith("out.")
-            or "attn2" in full_name
-            or "time_embed" in full_name
+                full_name.startswith("out.")
+                or "attn2" in full_name
+                or "time_embed" in full_name
         ):
             continue
 
