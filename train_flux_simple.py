@@ -1358,7 +1358,7 @@ def main():
             )
 
             accelerator.backward(loss_aux)
-            print_alpha_grad_norms(base)
+            print_alpha_grad_norms(base.hyper)
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
             if grads_flat_t is None:
