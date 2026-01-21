@@ -1323,13 +1323,13 @@ def main():
                                                 current_timestep.to(dtype=weight_dtype))
             base.hyper.retain_grad_for_cached_lora()
 
-            def print_alpha_grad_norms(self):
+            def print_alpha_grad_norms(model):
                 print("[LoRA alpha grads]")
-                for name, idx in self.layer_name_to_idx.items():
+                for name, idx in model.layer_name_to_idx.items():
                     if "alpha" not in name.lower():
                         continue
 
-                    for w in self.get_cached_lora(name):
+                    for w in model.get_cached_lora(name):
                         if w.grad is None:
                             print(f"  {name}: grad=None")
                         else:
@@ -1358,7 +1358,7 @@ def main():
             )
 
             accelerator.backward(loss_aux)
-            base.hyper.print_alpha_grad_norms()
+            print_alpha_grad_norms(base)
             # --- use cached LoRA grads instead of live-tensor grads ---
             grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
             if grads_flat_t is None:
