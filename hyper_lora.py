@@ -72,23 +72,6 @@ class HypernetworkManager(nn.Module):
 
             x_alpha, x_L, x_R = cached
 
-            # ---- explicitly inspect alpha ----
-            g = getattr(x_L, "grad", None)
-
-            if g is None:
-                print(f"[ALPHA grad] {name}: grad=None")
-            else:
-                with torch.no_grad():
-                    flat_g = g.reshape(-1)
-                    print(
-                        f"[ALPHA grad] {name}: "
-                        f"shape={tuple(g.shape)}, "
-                        f"numel={flat_g.numel()}, "
-                        f"first_vals={flat_g[:5].tolist()}, "
-                        f"L2={flat_g.norm().item():.4e}, "
-                        f"maxabs={flat_g.abs().max().item():.4e}"
-                    )
-
             # ---- flatten all cached tensors ----
             vecs.append(x_alpha.reshape(-1))
             vecs.append(x_L.reshape(-1))

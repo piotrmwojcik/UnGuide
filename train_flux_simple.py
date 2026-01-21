@@ -1420,11 +1420,48 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
+            def _snapshot_alpha_params(module, to_float=True):
+                snap = {}
+                for n, p in module.named_parameters():
+                    if "alpha" in n.lower() and p.requires_grad:
+                        t = p.detach()
+                        if to_float:
+                            t = t.float()
+                        snap[n] = t.clone()
+                return snap
+
+            def _print_alpha_deltas(before, after, tag, topk=10):
+                deltas = []
+                for n in before.keys():
+                    if n not in after:
+                        continue
+                    d = (after[n] - before[n])
+                    l2 = d.norm().item()
+                    maxabs = d.abs().max().item()
+                    deltas.append((l2, maxabs, n))
+
+                deltas.sort(reverse=True, key=lambda x: x[0])
+
+                total_l2 = (sum(x[0] for x in deltas))
+                print(f"[alpha Δ] {tag}: tensors={len(deltas)} sum(L2)={total_l2:.4e}")
+
+                for l2, maxabs, n in deltas[:topk]:
+                    print(f"  {n}: L2={l2:.4e}, maxabs={maxabs:.4e}")
+
             if accelerator.sync_gradients:
+                # snapshot BEFORE any step
+                alpha_before = _snapshot_alpha_params(base.hyper)
+
                 optimizer_remove.step()
+                alpha_after_remove = _snapshot_alpha_params(base.hyper)
+
                 optimizer_retain.step()
-                optimizer_remove.zero_grad(set_to_none=True)
-                optimizer_retain.zero_grad(set_to_none=True)
+                alpha_after_retain = _snapshot_alpha_params(base.hyper)
+
+                # print how alpha changed by each step
+                _print_alpha_deltas(alpha_before, alpha_after_remove, "after optimizer_remove.step()")
+                _print_alpha_deltas(alpha_after_remove, alpha_after_retain, "after optimizer_retain.step()")
+                _print_alpha_deltas(alpha_before, alpha_after_retain, "total after both steps")
 
                 if drop_lr_on_plateau:
                     scheduler_remove.step(loss_remove.detach())
