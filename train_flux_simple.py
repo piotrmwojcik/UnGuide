@@ -1420,49 +1420,37 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
 
-            def _snapshot_alpha_params(module, to_float=True):
-                snap = {}
-                for n, p in module.named_parameters():
-                    if "L_R" in n.lower() and p.requires_grad:
-                        t = p.detach()
-                        if to_float:
-                            t = t.float()
-                        snap[n] = t.clone()
-                return snap
+            def _snapshot_LR_params(module):
+                return {
+                    n: p.detach().float().clone()
+                    for n, p in module.named_parameters()
+                    if "l_r" in n.lower() and p.requires_grad
+                }
 
-            def _print_alpha_deltas(before, after, tag, topk=10):
-                deltas = []
-                for n in before.keys():
-                    if n not in after:
+            def _print_modified(before, after, tag, eps=0.0):
+                modified = []
+                for n, b in before.items():
+                    a = after.get(n, None)
+                    if a is None:
                         continue
-                    d = (after[n] - before[n])
-                    l2 = d.norm().item()
-                    maxabs = d.abs().max().item()
-                    deltas.append((l2, maxabs, n))
+                    # consider "modified" if any element changed (optionally with tolerance eps)
+                    if (a - b).abs().max().item() > eps:
+                        modified.append(n)
 
-                deltas.sort(reverse=True, key=lambda x: x[0])
-
-                total_l2 = (sum(x[0] for x in deltas))
-                print(f"[L_R Δ] {tag}: tensors={len(deltas)} sum(L2)={total_l2:.4e}")
-
-                for l2, maxabs, n in deltas[:topk]:
-                    print(f"  {n}: L2={l2:.4e}, maxabs={maxabs:.4e}")
+                print(f"[L_R modified] {tag}: {len(modified)}/{len(before)}")
+                for n in modified:
+                    print(f"  {n}")
 
             if accelerator.sync_gradients:
                 # snapshot BEFORE any step
-                alpha_before = _snapshot_alpha_params(base.hyper)
-
                 optimizer_remove.step()
-                alpha_after_remove = _snapshot_alpha_params(base.hyper)
+                after_remove = _snapshot_LR_params(base.hyper)
+                _print_modified(before, after_remove, "after optimizer_remove.step()")
 
                 optimizer_retain.step()
-                alpha_after_retain = _snapshot_alpha_params(base.hyper)
-
-                # print how alpha changed by each step
-                _print_alpha_deltas(alpha_before, alpha_after_remove, "after optimizer_remove.step()")
-                _print_alpha_deltas(alpha_after_remove, alpha_after_retain, "after optimizer_retain.step()")
-                _print_alpha_deltas(alpha_before, alpha_after_retain, "total after both steps")
-
+                after_retain = _snapshot_LR_params(base.hyper)
+                _print_modified(after_remove, after_retain, "after optimizer_retain.step()")
+                _print_modified(before, after_retain, "total after both steps")
                 if drop_lr_on_plateau:
                     scheduler_remove.step(loss_remove.detach())
                     scheduler_retain.step(loss_retain.detach())
