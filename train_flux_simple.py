@@ -1447,15 +1447,15 @@ def main():
 
                 alpha_name, alpha_param = next(
                     (n, p) for n, p in model.named_parameters()
-                    if n.endswith(".hyper_lora.alpha")
+                    if n.endswith(".hyper_lora.left_head")
                 )
 
                 lr = optimizer_remove.param_groups[0]["lr"]
 
                 with torch.no_grad():
-                    print("alpha dtype:", alpha_param.dtype)
-                    print("alpha value:", alpha_param.item())
-                    print("alpha grad:", alpha_param.grad.item() if alpha_param.grad is not None else None)
+                    print("left_head dtype:", alpha_param.dtype)
+                    print("left_head value:", alpha_param.item())
+                    print("left_head grad:", alpha_param.grad.item() if alpha_param.grad is not None else None)
                     if alpha_param.grad is not None:
                         print("expected SGD step ~", (-lr * alpha_param.grad).item())
 
