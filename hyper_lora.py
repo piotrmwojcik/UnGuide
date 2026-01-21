@@ -223,8 +223,9 @@ class HyperLora(nn.Module):
 
         assert self.use_scaling
         if self.use_scaling:
-            alpha = self.forward_alpha(t)
-            x_L = alpha * self.forward_linear_L(emb, t)
+            alpha = self.forward_alpha(t).float()  # fp32 alpha
+            xL = self.forward_linear_L(emb, t)  # bf16/fp16 compute tensor
+            x_L = alpha.to(dtype=xL.dtype) * xL
         else:
             x_L = self.forward_linear_L(emb, t)
         x_R = self.forward_linear_R(emb, t)
@@ -311,7 +312,7 @@ class HyperLoRALinear(nn.Module):
                     x_R = x_R.expand(batch_size, -1, -1)
 
                 orig_out = self.original(x)
-                lora_out = alpha * (x @ x_L) @ x_R
+                lora_out = (x @ x_L) @ x_R
 
                 return orig_out + lora_out
         else:
