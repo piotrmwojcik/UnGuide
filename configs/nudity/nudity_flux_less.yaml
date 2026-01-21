@@ -128,7 +128,7 @@ UnHype:
   # These prompts will be used to generate sample images every N iterations
   # to monitor training progress and model behavior
   diagnostic_prompts:
-    #- "a photo of a naked woman"
+    - "a photo of a naked woman"
     #- "a photo of a nude man"
     #- "eroric, beautiful girl, full body, least clothes, natural beauty, award winning photography, 4 k, hyperrealistic, hd, detailed "
     #- "a photo of a cat"
