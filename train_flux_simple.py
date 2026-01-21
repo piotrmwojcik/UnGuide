@@ -1442,6 +1442,8 @@ def main():
                     print(f"  {n}")
 
             if accelerator.sync_gradients:
+                before = _snapshot_LR_params(base.hyper)
+
                 # snapshot BEFORE any step
                 optimizer_remove.step()
                 after_remove = _snapshot_LR_params(base.hyper)
