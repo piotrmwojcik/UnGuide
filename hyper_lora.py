@@ -91,24 +91,6 @@ class HypernetworkManager(nn.Module):
 
             x_alpha, x_L, x_R = cached
 
-            ga = getattr(x_alpha, "grad", None)
-            gL = getattr(x_L, "grad", None)
-            gR = getattr(x_R, "grad", None)
-
-            if not printed_header:
-                print("[CACHE grad presence] (alpha / L / R)")
-                printed_header = True
-
-            # Print only if any of them has grad (reduce spam)
-            if (ga is not None) or (gL is not None) or (gR is not None):
-                def _fmt(g):
-                    if g is None:
-                        return "None"
-                    gd = g.detach()
-                    return f"L2={gd.norm().item():.2e}, maxabs={gd.abs().max().item():.2e}"
-
-                print(f"  {name}: alpha={_fmt(ga)} | L={_fmt(gL)} | R={_fmt(gR)}")
-
             # Flatten all existing grads, then clear
             for w in (x_alpha, x_L, x_R):
                 g = getattr(w, "grad", None)
