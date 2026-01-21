@@ -1282,12 +1282,12 @@ def main():
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
-                base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
-                                       torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
-                _, current_timestep = base.hyper.get_context()
-                base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
-                                                   current_timestep.to(dtype=weight_dtype))
-                base.hyper.retain_grad_for_cached_lora()
+               # base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
+               #                        torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
+               # _, current_timestep = base.hyper.get_context()
+               # base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
+               #                                    current_timestep.to(dtype=weight_dtype))
+                #base.hyper.retain_grad_for_cached_lora()
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
                     with base.hyper.no_lora():
