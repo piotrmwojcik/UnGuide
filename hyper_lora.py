@@ -79,7 +79,7 @@ class HypernetworkManager(nn.Module):
                 g = getattr(w, "grad", None)
                 if g is None:
                     continue
-
+                print(name)
                 # ---- print alpha grad norms ----
                 if "alpha" in name.lower():
                     if print_alpha_header:
