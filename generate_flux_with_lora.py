@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    load_lora_weights(pipe, args.lora_path, device)
+    pipe.transformer = load_lora_weights(pipe, args.lora_path, device)
 
     df = pd.read_csv(args.csv_path, index_col=0)
 
