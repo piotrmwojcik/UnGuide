@@ -47,14 +47,13 @@ def coerce_prompt(v):
     return s
 
 
+import os
+import torch
+
 def load_lora_weights(model_wrapper, lora_path, device):
     """
-    Load HyperLoRA weights from saved checkpoint and apply to model.
-
-    Args:
-        model_wrapper: FluxModelWrapper with HyperLoRA injected
-        lora_path: Path to saved LoRA weights (.pth file)
-        device: Device to load weights to
+    Load HyperLoRA weights from saved checkpoint and apply to model,
+    printing tensor norms while loading.
     """
     print(f"Loading LoRA weights from: {lora_path}")
 
@@ -74,7 +73,21 @@ def load_lora_weights(model_wrapper, lora_path, device):
         for k, v in lora_state_dict.items():
             if k in sd:
                 if torch.is_tensor(sd[k]) and torch.is_tensor(v) and sd[k].shape == v.shape:
-                    sd[k].copy_(v.to(sd[k].dtype).to(device))
+                    v = v.to(device=device, dtype=sd[k].dtype)
+
+                    # ---- norm diagnostics ----
+                    l2 = torch.norm(v).item()
+                    mean = v.mean().item()
+                    minv = v.min().item()
+                    maxv = v.max().item()
+
+                    print(
+                        f"[LoRA] {k}: "
+                        f"L2={l2:.4e}, mean={mean:.4e}, "
+                        f"min={minv:.4e}, max={maxv:.4e}"
+                    )
+
+                    sd[k].copy_(v)
                     updated += 1
                 else:
                     skipped.append((k, f"shape mismatch: model={sd[k].shape}, ckpt={v.shape}"))
@@ -83,9 +96,10 @@ def load_lora_weights(model_wrapper, lora_path, device):
 
     print(f"[LoRA] Copied {updated} tensors, skipped {len(skipped)}")
     if skipped and len(skipped) <= 10:
-        print(f"Skipped keys: {[k for k, reason in skipped]}")
+        print(f"Skipped keys: {[k for k, _ in skipped]}")
 
     return model_wrapper
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate images with base Flux from CSV")
