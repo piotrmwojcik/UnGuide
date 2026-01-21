@@ -872,7 +872,7 @@ def main():
         # alpha lives inside the hyper_lora submodule (and may not exist if scaling disabled)
         if hasattr(layer, "hyper_lora") and hasattr(layer.hyper_lora, "alpha") and layer.hyper_lora.alpha is not None:
             print('Set to float')
-            layer.hyper_lora.alpha.data = layer.hyper_lora.alpha.data.float()
+            #layer.hyper_lora.alpha.data = layer.hyper_lora.alpha.data.float()
 
     # Setup optimizer
     trainable_params = [p for p in model.parameters() if p.requires_grad]
