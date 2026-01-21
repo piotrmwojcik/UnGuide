@@ -1326,9 +1326,9 @@ def main():
             def print_alpha_grad_norms(model):
                 print("[LoRA alpha grads]")
                 for name, idx in model.layer_name_to_idx.items():
+                    print(name)
                     if "alpha" not in name.lower():
                         continue
-
                     for w in model.get_cached_lora(name):
                         if w.grad is None:
                             print(f"  {name}: grad=None")
