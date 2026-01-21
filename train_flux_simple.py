@@ -1465,6 +1465,10 @@ def main():
                 # IMPORTANT: snapshot the SAME module that contains transformer_blocks.*.hyper_lora.alpha
                 alpha_before = snapshot_alphas(model)  # or model_wrapper.transformer
 
+                for n, p in model.named_parameters():
+                    if n.endswith(".hyper_lora.alpha"):
+                        p.data = p.data.float()
+
                 optimizer_remove.step()
                 alpha_after_remove = snapshot_alphas(model)
                 print_alpha_changes(alpha_before, alpha_after_remove, "after remove.step()")
