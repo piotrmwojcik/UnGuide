@@ -867,7 +867,7 @@ def main():
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
-        layer.to(dtype=torch.float)  # converts parameters + buffers inside the injected module
+        layer.to(dtype=torch.bfloat16)  # converts parameters + buffers inside the injected module
 
 
     # Setup optimizer
