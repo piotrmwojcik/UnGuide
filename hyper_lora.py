@@ -311,15 +311,7 @@ class HyperLoRALinear(nn.Module):
                     x_R = x_R.expand(batch_size, -1, -1)
 
                 orig_out = self.original(x)
-
-                # Compute LoRA in higher precision (keep grads stable / avoid underflow)
-                x_fp = x.float()
-                xL_fp = x_L.float()
-                xR_fp = x_R.float()
-                lora_out_fp = (x_fp @ xL_fp) @ xR_fp
-
-                # Cast only right before adding (match original output dtype)
-                lora_out = lora_out_fp.to(dtype=orig_out.dtype)
+                lora_out = alpha * (x @ x_L) @ x_R
 
                 return orig_out + lora_out
         else:
