@@ -239,16 +239,16 @@ if __name__ == "__main__":
                 else:
                     context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
-        context_emb = context_emb.to(dtype=weight_dtype, device=hyper_device)
-        timestep = torch.tensor([args.hyper_train_steps], dtype=weight_dtype, device=hyper_device)
+        context_emb = context_emb.to(device=hyper_device)
+        timestep = torch.tensor([args.hyper_train_steps], device=hyper_device)
 
 
         STEP = 300
         hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
-        model_wrapper.hyper.set_context(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                       torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
-        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(dtype=weight_dtype, device=hyper_device),
-                                           torch.tensor([STEP], dtype=weight_dtype, device=hyper_device))
+        model_wrapper.hyper.set_context(context_emb.to(device=hyper_device),
+                                       torch.tensor([STEP], device=hyper_device))
+        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(device=hyper_device),
+                                           torch.tensor([STEP], device=hyper_device))
 
         print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
