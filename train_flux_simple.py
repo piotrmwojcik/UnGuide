@@ -1322,6 +1322,10 @@ def main():
             base.hyper.retain_grad_for_cached_lora()
 
             with torch.no_grad():
+                flat = base.hyper.flatten_cached_from_cache()
+                print("LoRA norm:", flat.norm().item(), "maxabs:", flat.abs().max().item())
+
+            with torch.no_grad():
                 dp = (e_p - e_0).float()
                 print(f"[e_p - e_0] L2={dp.norm().item():.4e}, maxabs={dp.abs().max().item():.4e}")
 
