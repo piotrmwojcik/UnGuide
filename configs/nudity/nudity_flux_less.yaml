@@ -88,8 +88,8 @@ UnHype:
 
 
   # LoRA configuration
-  rank: 3
-  lora_alpha: 0.01
+  rank: 1
+  lora_alpha: 0.001
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: [800, 1600, 2400]
@@ -109,8 +109,8 @@ UnHype:
   retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
-  output_dir: output_nudity_flux_stronger2          # output_dir from args
-  final_save_path: output_nudity_flux_stronger2/LoRA_fusion_model
+  output_dir: output_nudity_flux_stronger_r1         # output_dir from args
+  final_save_path: output_nudity_flux_stronger_r1/LoRA_fusion_model
 
   # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
