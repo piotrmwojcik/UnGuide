@@ -1138,7 +1138,21 @@ def main():
         vae_config_block_out_channels = diag_pipe.vae.config.block_out_channels
 
         # # Random timestep
-        t_enc = torch.randint(1, ddim_steps, (1,), device=accelerator.device)
+        steps = torch.arange(1, ddim_steps, device=accelerator.device)  # shape: (ddim_steps-1,)
+        s = steps.float() / float(ddim_steps - 1)  # normalized in (0, 1]
+
+        # Piecewise weights: mostly early, then mid, rarely late
+        # early (s > 0.70): highest weight
+        # mid   (0.30 < s <= 0.70): medium
+        # late  (s <= 0.30): low
+        w = torch.where(
+            s > 0.70, torch.full_like(s, 6.0),
+            torch.where(s > 0.30, torch.full_like(s, 2.5), torch.full_like(s, 0.5))
+        )
+
+        # sample one index according to weights
+        idx = torch.multinomial(w, num_samples=1)  # idx in [0, ddim_steps-2]
+        t_enc = steps[idx]
         og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
