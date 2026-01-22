@@ -40,6 +40,8 @@ UnGuide_Celebrity_5:
   lora_alpha: 1.0e-05
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
+  hidden_size: 256
+
   # Loss weights
   negative_guidance: 2.0
   guidance_scale: 7.5
@@ -50,6 +52,9 @@ UnGuide_Celebrity_5:
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
   retain_weight: 2.000   # Weight for retain loss (regularization to preserve other concepts)
+
+  retain_steps_per_remove: 1024      # 1 step (default)
+  retain_batch_size: 1024
 
   # Data and paths
   output_dir: output/celebrity_5  # output_dir from args
