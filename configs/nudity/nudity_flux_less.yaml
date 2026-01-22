@@ -72,14 +72,14 @@ UnHype:
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
-  learning_rate_remove: 5.0e-04
+  learning_rate_remove: 1.0e-04
   learning_rate_retain: 1.0e-04
   plateau_patience_remove: 100
   plateau_patience_retain: 20
   plateau_factor: 0.8
   max_train_steps: 4000   # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 4
 
   use_latent_cache: true
   use_diagnostic_cache: false
@@ -89,7 +89,7 @@ UnHype:
 
   # LoRA configuration
   rank: 3
-  lora_alpha: 0.001
+  lora_alpha: 0.01
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: [800, 1600, 2400]
