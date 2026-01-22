@@ -22,6 +22,15 @@ import torch
 import torch.nn as nn
 import yaml
 
+
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+token = os.environ.get("HF_TOKEN")
+if token:
+    login(token)
+else:
+    print("Warning: HF_TOKEN not set.")
+
+
 # Try to import wandb, but handle gracefully if not available
 try:
     import wandb
