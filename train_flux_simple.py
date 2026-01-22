@@ -782,14 +782,11 @@ def main():
         print("Warning: wandb requested but not available. Disabling wandb logging.")
 
     tokenizer_one = CLIPTokenizer.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="tokenizer",
-        revision=None,
+        "openai/clip-vit-large-patch14"
     )
+
     tokenizer_two = T5TokenizerFast.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="tokenizer_2",
-        revision=None,
+        "google/t5-v1_1-base"
     )
 
     # import correct text encoder classes
