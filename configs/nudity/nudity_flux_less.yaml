@@ -105,8 +105,8 @@ UnHype:
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 100.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.0     # Weight for retain loss (regularization to preserve other concepts)
+  remove_weight: 10.0    # Weight for removal loss (main training objective)
+  retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
   output_dir: output_nudity_flux_stronger          # output_dir from args
