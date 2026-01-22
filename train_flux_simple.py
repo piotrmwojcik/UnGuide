@@ -849,7 +849,7 @@ def main():
 
     # Flux's pooled_prompt_embeds is always 768-dim (from built-in CLIP text_encoder_one)
     clip_size = 768
-    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
+    target_modules = ["attn.to_k", "attn.to_q"]
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
@@ -1151,8 +1151,7 @@ def main():
         )
 
         # sample one index according to weights
-        idx = torch.multinomial(w, num_samples=1)  # idx in [0, ddim_steps-2]
-        t_enc = steps[idx]
+        t_enc = torch.randint(1, ddim_steps, (1,), device=accelerator.device)
         og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
