@@ -23,13 +23,10 @@ import torch.nn as nn
 import yaml
 
 
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-token = os.environ.get("HF_TOKEN")
-if token:
-    login(token)
-else:
-    print("Warning: HF_TOKEN not set.")
-
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 # Try to import wandb, but handle gracefully if not available
 try:
