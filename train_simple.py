@@ -272,6 +272,7 @@ def main():
     hyper_train_steps = config.get('hyper_train_steps', 500)
     rank_lora = config.get('rank', 1) # named rank_lora to avoid confusion with proc rank
     lora_alpha = config.get('lora_alpha', 8)
+    internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
     use_pooler = config.get('use_pooler', True)
@@ -373,6 +374,7 @@ def main():
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
         use_orig_concat=use_orig_concat,
+        internal_size=internal_size,
     )
     
     hyper_lora_layers = inject_hyper_lora(

@@ -115,6 +115,7 @@ class HyperLora(nn.Module):
             train_steps: int = None,
             use_orig_concat: bool = True,
             dtype: torch.dtype = torch.float32,
+            internal_size: int = 100,
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -145,17 +146,15 @@ class HyperLora(nn.Module):
 
         hyper_input_size = clip_size + time_embedd + (out_dim if use_orig_concat else 0)
 
-        INTERNAL_SIZE = 100
-
         self.left_head = nn.Sequential(
-            nn.Linear(hyper_input_size, INTERNAL_SIZE),
+            nn.Linear(hyper_input_size, internal_size),
             nn.ReLU(inplace=True),
-            nn.Linear(INTERNAL_SIZE, in_dim * rank),
+            nn.Linear(internal_size, in_dim * rank),
         ).to(dtype=self.dtype)
         self.right_head = nn.Sequential(
-            nn.Linear(hyper_input_size, INTERNAL_SIZE),
+            nn.Linear(hyper_input_size, internal_size),
             nn.ReLU(inplace=True),
-            nn.Linear(INTERNAL_SIZE, out_dim * rank),
+            nn.Linear(internal_size, out_dim * rank),
         ).to(dtype=self.dtype)
         self.time_feat = TimeFourier(T=self.train_steps + 1, dtype=self.dtype)
 
@@ -222,6 +221,7 @@ class HyperLoRALinear(nn.Module):
             train_steps: int = None,
             use_orig_concat: bool = False,
             dtype: torch.dtype = torch.float32,
+            internal_size: int = 100,
     ):
         super().__init__()
         self.original = original_linear
@@ -235,6 +235,7 @@ class HyperLoRALinear(nn.Module):
             original_linear=original_linear,
             use_orig_concat=use_orig_concat,
             dtype=dtype,
+            internal_size=internal_size,
         )
         self.parent_model = None
         self.layer_name = layer_name

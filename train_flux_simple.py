@@ -702,6 +702,7 @@ def main():
     hyper_train_steps = config.get('hyper_train_steps', 500)  # Steps for hypernetwork context
     rank = config.get('rank', 1)
     lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
+    internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
     use_pooler = config.get('use_pooler', True)
@@ -859,6 +860,7 @@ def main():
         train_steps=hyper_train_steps,
         use_orig_concat=use_orig_concat,
         dtype=torch.float32,
+        internal_size=internal_size,
     )
 
     hyper_lora_layers = inject_hyper_lora(
