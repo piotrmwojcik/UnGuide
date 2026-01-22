@@ -88,7 +88,7 @@ UnHype:
 
 
   # LoRA configuration
-  rank: 8
+  rank: 6
   lora_alpha: 0.001
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
@@ -105,8 +105,8 @@ UnHype:
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 1.0     # Weight for retain loss (regularization to preserve other concepts)
+  remove_weight: 100.0    # Weight for removal loss (main training objective)
+  retain_weight: 0.0001     # Weight for retain loss (regularization to preserve other concepts)
 
   # Data and paths
   output_dir: output_nudity_flux_stronger_r1         # output_dir from args
