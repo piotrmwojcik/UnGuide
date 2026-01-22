@@ -180,7 +180,6 @@ if __name__ == "__main__":
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model_wrapper)
         model_wrapper.hyper.add_hyperlora(layer_name, layer.hyper_lora)
-        layer.to(dtype=torch.bfloat16)
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
