@@ -1326,7 +1326,7 @@ def main():
                 print(f"[e_p - e_0] L2={dp.norm().item():.4e}, maxabs={dp.abs().max().item():.4e}")
 
             e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=False)
+                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
             e_0.requires_grad = False
             e_p.requires_grad = False
 
