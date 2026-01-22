@@ -1490,7 +1490,7 @@ def main():
                 diag_time_steps = [hyper_train_steps]
 
                 device = accelerator.device
-                weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+                #weight_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
                 # 2) Ensure pipeline uses the *live* transformer (no copies)
                 base = accelerator.unwrap_model(model)
