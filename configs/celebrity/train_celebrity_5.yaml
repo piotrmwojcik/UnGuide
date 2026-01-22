@@ -11,11 +11,11 @@ UnGuide_Celebrity_5:
 
   # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - 'a person'
-    - 'a person'
-    - 'a person'
-    - 'a person'
-    - 'a person'
+    - 'a man'
+    - 'a woman'
+    - 'a woman'
+    - 'a woman'
+    - 'a man'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
@@ -26,8 +26,12 @@ UnGuide_Celebrity_5:
   celebrity_mode: true   # Use celebrity-specific prompt augmentations
 
   # Training hyperparameters
-  learning_rate: 8.0e-04  # Learning rate for optimization
-  max_train_steps: 1000  # Number of actual training iterations
+  drop_lr_on_plateau: false
+  learning_rate_remove: 1.0e-03
+  learning_rate_retain: 1.0e-03
+  plateau_patience_remove: 100
+  plateau_patience_retain: 20  
+  max_train_steps: 2000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
 
