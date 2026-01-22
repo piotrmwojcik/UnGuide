@@ -169,8 +169,7 @@ if __name__ == "__main__":
         rank=args.rank,
         alpha=args.lora_alpha,
         train_steps=args.hyper_train_steps,
-        use_orig_concat=args.use_orig_concat,
-        dtype=torch.bfloat16,
+        use_orig_concat=args.use_orig_concat
     )
 
     hyper_lora_layers = inject_hyper_lora(
