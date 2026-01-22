@@ -850,7 +850,7 @@ def main():
 
     # Flux's pooled_prompt_embeds is always 768-dim (from built-in CLIP text_encoder_one)
     clip_size = 768
-    target_modules = ["attn.to_k", "attn.to_q"]
+    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
@@ -1316,7 +1316,7 @@ def main():
                                                             pooled_emb_p.to(accelerator.device),
                                                             text_ids_p.to(accelerator.device),
                                                             start_guidance,
-                                                            int(t_ddpm))
+                                                            int(ddim_steps))
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
