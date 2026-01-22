@@ -1329,6 +1329,14 @@ def main():
                 dp = (e_p - e_0).float()
                 print(f"[e_p - e_0] L2={dp.norm().item():.4e}, maxabs={dp.abs().max().item():.4e}")
 
+            with torch.no_grad():
+                with base.hyper.no_lora():
+                    pred_off = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
+                pred_on = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
+                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
+                print("functional delta meanabs:", (pred_on - pred_off).abs().mean().item())
+
             e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                                 guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
             e_0.requires_grad = False
