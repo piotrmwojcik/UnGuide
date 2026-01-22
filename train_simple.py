@@ -287,6 +287,11 @@ def main():
     augment_target = config.get('augment_target', True)
     augment_retain = config.get('augment_retain', False)
     celebrity_mode = config.get('celebrity_mode', False)
+
+    # Retain balancing parameters
+    retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
+    retain_batch_size = config.get('retain_batch_size', 64)
+    learning_rate_retain = learning_rate_retain / retain_steps_per_remove
     
     # Paths
     output_dir = config.get('output_dir', './output')
@@ -314,6 +319,8 @@ def main():
     print(f"Hypernetwork steps: {hyper_train_steps}")
     print(f"Learning rate (remove): {learning_rate_remove}")
     print(f"Learning rate (retain): {learning_rate_retain}")
+    print(f"Retain steps per remove: {retain_steps_per_remove}")
+    print(f"Retain batch size: {retain_batch_size}")
     print(f"LoRA rank: {rank_lora}")
     print(f"LoRA alpha: {lora_alpha}")
     print(f"Target concepts: {len(concepts)}")
@@ -607,46 +614,53 @@ def main():
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove)
 
-            if len(retain_embeddings) > 0:
-                num_retain_samples = min(10, len(retain_embeddings))
-                sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
-                batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
-
-                hyper = base.hyper
-                batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
-                B = batch_prompts.shape[0]
-                perm = torch.randperm(B, device=batch_prompts.device)
-                batch_prompts = batch_prompts[perm]
-
-                hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
-                tensors_flat_t0 = hyper.flatten_cached_from_cache()
-
-                t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                hyper.compute_and_cache_loras(batch_prompts, t_)
-                tensors_flat_t1 = hyper.flatten_cached_from_cache()
-
-                delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * delta.pow(2).mean()
-            else:
-                loss_retain = torch.tensor(0.0, device=accelerator.device)
-
-            accelerator.backward(loss_retain)
-
             loss_remove_log = loss_remove.clone().detach()
-            loss_retain_log = loss_retain.clone().detach()
 
             if accelerator.sync_gradients:
                 optimizer_remove.step()
-                optimizer_retain.step()
                 optimizer_remove.zero_grad(set_to_none=True)
-                optimizer_retain.zero_grad(set_to_none=True)
-
                 if drop_lr_on_plateau:
                     scheduler_remove.step(loss_remove.detach())
-                    scheduler_retain.step(loss_retain.detach())
                 else:
                     scheduler_remove.step()
-                    scheduler_retain.step()
+
+            loss_retain_total = torch.tensor(0.0, device=accelerator.device)
+            if len(retain_embeddings) > 0:
+                for retain_step in range(retain_steps_per_remove):
+                    num_retain_samples = min(retain_batch_size, len(retain_embeddings))
+                    sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
+                    batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
+
+                    hyper = base.hyper
+                    batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
+                    B = batch_prompts.shape[0]
+                    perm = torch.randperm(B, device=batch_prompts.device)
+                    batch_prompts = batch_prompts[perm]
+
+                    hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
+                    tensors_flat_t0 = hyper.flatten_cached_from_cache()
+
+                    t_ = (torch.arange(B, device=accelerator.device) % B) + 1
+                    hyper.compute_and_cache_loras(batch_prompts, t_)
+                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
+
+                    delta = tensors_flat_t1 - tensors_flat_t0
+                    loss_retain = retain_weight * delta.pow(2).mean()
+                    loss_retain_total = loss_retain_total + loss_retain.detach()
+
+                    accelerator.backward(loss_retain)
+
+                    if accelerator.sync_gradients:
+                        optimizer_retain.step()
+                        optimizer_retain.zero_grad(set_to_none=True)
+
+                if accelerator.sync_gradients:
+                    if drop_lr_on_plateau:
+                        scheduler_retain.step(loss_retain_total / retain_steps_per_remove)
+                    else:
+                        scheduler_retain.step()
+
+            loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
         
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
@@ -661,6 +675,7 @@ def main():
                 "loss_remove": float(loss_remove_reduced.item()),
                 "learning_rate_remove": current_lr_remove,
                 "learning_rate_retain": current_lr_retain,
+                "retain_steps_per_remove": retain_steps_per_remove,
             }, step=iteration)
         
         if is_main:
