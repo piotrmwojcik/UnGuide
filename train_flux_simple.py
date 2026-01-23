@@ -1370,8 +1370,8 @@ def main():
             )
 
             flat = base.hyper.flatten_cached_from_cache()
-            lora_cache_reg = 1e-3 * flat.float().pow(2).mean()
-            loss_aux = loss_aux + lora_cache_reg
+            #lora_cache_reg = 1e-3 * flat.float().pow(2).mean()
+            #loss_aux = loss_aux# + lora_cache_reg
 
             print("e_n.requires_grad:", e_n.requires_grad)
             print("loss_aux.requires_grad:", loss_aux.requires_grad)
@@ -1509,7 +1509,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 100 == 0:
+        if is_main and use_wandb and (iteration + 1) % 500 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
