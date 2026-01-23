@@ -1368,6 +1368,11 @@ def main():
                 e_n.float().to(accelerator.device),
                 (e_0 - negative_guidance * (e_p - e_0)).float().to(accelerator.device)
             )
+
+            flat = base.hyper.flatten_cached_from_cache()
+            lora_cache_reg = 1e-5 * flat.float().pow(2).mean()
+            loss_aux = loss_aux + lora_cache_reg
+
             print("e_n.requires_grad:", e_n.requires_grad)
             print("loss_aux.requires_grad:", loss_aux.requires_grad)
             accelerator.backward(loss_aux)
