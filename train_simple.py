@@ -537,6 +537,10 @@ def main():
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
 
+        # Zero gradients at start of iteration (fix: mirrors train_flux_simple.py pattern)
+        optimizer_remove.zero_grad(set_to_none=True)
+        optimizer_retain.zero_grad(set_to_none=True)
+
         with accelerator.accumulate(model):
             rank_proc = accelerator.process_index
             world_size = accelerator.num_processes
