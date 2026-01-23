@@ -408,14 +408,12 @@ def main():
             mode='min',
             factor=plateau_factor,
             patience=plateau_patience_remove,
-            verbose=True
         )
         scheduler_retain = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer_retain,
             mode='min',
             factor=plateau_factor,
             patience=plateau_patience_retain,
-            verbose=True
         )
         if is_main:
             print(f"Using separate ReduceLROnPlateau schedulers:")
@@ -536,6 +534,10 @@ def main():
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
+
+        # Zero gradients at start of iteration (fix: mirrors train_flux_simple.py pattern)
+        optimizer_remove.zero_grad(set_to_none=True)
+        optimizer_retain.zero_grad(set_to_none=True)
 
         with accelerator.accumulate(model):
             rank_proc = accelerator.process_index
