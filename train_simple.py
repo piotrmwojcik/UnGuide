@@ -560,6 +560,8 @@ def main():
                 augmented_mapping = prompt_augmentation(mapping_text, augment=True, celebrity=celebrity_mode)
                 mapping_text_augmented = augmented_mapping[aug_idx % len(augmented_mapping)]
 
+                print(target_text_augmented, ' -> ', mapping_text_augmented)
+
                 inputs_aug = encode(target_text_augmented)
                 with torch.no_grad():
                     if use_pooler:
