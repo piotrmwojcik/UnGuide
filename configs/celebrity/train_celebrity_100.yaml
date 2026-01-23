@@ -222,7 +222,7 @@ UnGuide_Celebrity_100:
   learning_rate_retain: 1.0e-03
   plateau_patience_remove: 100
   plateau_patience_retain: 100
-  max_train_steps: 2000  # Number of actual training iterations
+  max_train_steps: 6000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
 
@@ -242,13 +242,13 @@ UnGuide_Celebrity_100:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 20.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.2     # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 2.000     # Weight for retain loss (regularization to preserve other concepts)
 
   retain_steps_per_remove: 1      # 1 step (default)
   retain_batch_size: 1
 
   # Data and paths
-  output_dir: output_pw/celebrity_5  # output_dir from args
+  output_dir: output_pw/celebrity_100  # output_dir from args
   final_save_path: output_pw/celebrity_5/LoRA_fusion_model
 
   # Model configuration
