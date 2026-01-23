@@ -248,8 +248,8 @@ UnGuide_Celebrity_100:
   retain_batch_size: 1
 
   # Data and paths
-  output_dir: output_pw/celebrity_100  # output_dir from args
-  final_save_path: output_pw/celebrity_100/LoRA_fusion_model
+  output_dir: output_pw/celebrities_100  # output_dir from args
+  final_save_path: output_pw/celebrities_100/LoRA_fusion_model
 
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
