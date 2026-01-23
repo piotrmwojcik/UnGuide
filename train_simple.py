@@ -557,7 +557,7 @@ def main():
                 valid_aug_indices = list(range(rank_proc, len(augmented_prompts), world_size))
                 aug_idx = random.choice(valid_aug_indices) if len(valid_aug_indices) > 0 else rank_proc % len(augmented_prompts)
                 target_text_augmented = augmented_prompts[aug_idx]
-                augmented_mapping = prompt_augmentation(mapping_text, augment=True, celebrity=False)
+                augmented_mapping = prompt_augmentation(mapping_text, augment=True, celebrity=celebrity_mode)
                 mapping_text_augmented = augmented_mapping[aug_idx % len(augmented_mapping)]
 
                 inputs_aug = encode(target_text_augmented)
