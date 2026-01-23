@@ -227,11 +227,11 @@ UnGuide_Celebrity_100:
   gradient_accumulation_steps: 1
 
   # LoRA configuration
-  rank: 1
-  lora_alpha: 1.0e-05
+  rank: 9
+  lora_alpha: 0.1
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
-  hidden_size: 256
+  hidden_size: 512
 
   # Loss weights
   negative_guidance: 2.0
@@ -248,8 +248,8 @@ UnGuide_Celebrity_100:
   retain_batch_size: 1024
 
   # Data and paths
-  output_dir: output/celebrity_5  # output_dir from args
-  final_save_path: output/celebrity_5/LoRA_fusion_model
+  output_dir: output_pw/celebrity_100  # output_dir from args
+  final_save_path: output_pw/celebrity_5/LoRA_fusion_model
 
   # Model configuration
   model_config: ./configs/stable-diffusion/v1-inference.yaml
