@@ -408,14 +408,12 @@ def main():
             mode='min',
             factor=plateau_factor,
             patience=plateau_patience_remove,
-            verbose=True
         )
         scheduler_retain = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer_retain,
             mode='min',
             factor=plateau_factor,
             patience=plateau_patience_retain,
-            verbose=True
         )
         if is_main:
             print(f"Using separate ReduceLROnPlateau schedulers:")
