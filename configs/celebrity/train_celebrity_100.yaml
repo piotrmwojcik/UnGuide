@@ -227,7 +227,7 @@ UnGuide_Celebrity_100:
   gradient_accumulation_steps: 1
 
   # LoRA configuration
-  rank: 9
+  rank: 6
   lora_alpha: 0.01
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
