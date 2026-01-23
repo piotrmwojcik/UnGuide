@@ -100,19 +100,6 @@ class TimeFourier(nn.Module):
         return torch.cat([angles.cos(), angles.sin()], dim=-1)
 
 
-def cap_lora_update(lora_fp, cap = 60.0, eps = 1e-8) -> torch.Tensor:
-    """
-    Cap per-sample Frobenius norm of the LoRA update.
-    Works for shapes [B, out] or [B, T, out] or [B, ..., out].
-    """
-    B = lora_fp.shape[0]
-    flat = lora_fp.reshape(B, -1)  # per-sample flatten
-    n = flat.norm(dim=1, keepdim=True).clamp(min=eps)
-    scale = (cap / n).clamp(max=1.0)  # only shrink, never amplify
-    return (flat * scale).reshape_as(lora_fp)
-
-
-
 class HyperLora(nn.Module):
 
     def __init__(
@@ -174,7 +161,6 @@ class HyperLora(nn.Module):
         self.use_scaling = use_scaling
         if self.use_scaling:
             self.alpha = nn.Parameter(torch.tensor(alpha_init, dtype=self.dtype))
-
 
     def forward_linear_L(self, emb, t):
 
@@ -278,9 +264,6 @@ class HyperLoRALinear(nn.Module):
 
                 lora_fp = self.hyper_lora(x.float(), hyper_input.float(), timestep.float()).float()
 
-                # CAP HERE (per layer)
-                lora_fp = cap_lora_update(lora_fp, cap=80.0)
-
                 return orig + lora_fp.to(dtype=orig.dtype)
             else:
                 lora_weights = parent.hyper.get_cached_lora(self.layer_name)
@@ -300,11 +283,7 @@ class HyperLoRALinear(nn.Module):
 
                 lora_fp = (x_fp @ xL_fp) @ xR_fp
 
-                # CAP HERE (per layer)
-                lora_fp = cap_lora_update(lora_fp, cap=80.0)
-
                 return orig_out + lora_fp.to(dtype=orig_out.dtype)
-
         else:
             if not hasattr(parent, 'current_conditioning'):
                 print("WARNING: parent model has neither 'hyper' nor 'current_conditioning'")
