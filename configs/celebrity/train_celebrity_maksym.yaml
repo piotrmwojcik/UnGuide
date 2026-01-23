@@ -1,0 +1,95 @@
+UnGuide_Celebrity_5:
+  # >>> Primary Settings >>>
+
+  # Target concepts for removal - MACE celebrity list (5 celebrities)
+  concepts:
+    - "adam driver"
+    - "adriana lima"
+    - "amber heard"
+    - "amy adams"
+    - "andrew garfield"
+
+  # Mapping concepts - what the target concepts should map to when erased
+  mapping_concept:
+    - 'a man'
+    - 'a woman'
+    - 'a woman'
+    - 'a woman'
+    - 'a man'
+
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
+  retain_csv_path: ./celebrity_retain_improved.csv
+
+  augment_target: true   # Augment target concepts to be removed
+  augment_retain: false  # Augment retain prompts from CSV
+  celebrity_mode: true   # Use celebrity-specific prompt augmentations
+
+  # Training hyperparameters
+  drop_lr_on_plateau: false
+  learning_rate_remove: 1.0e-03
+  learning_rate_retain: 1.0e-03
+  plateau_patience_remove: 100
+  plateau_patience_retain: 100
+  max_train_steps: 2000  # Number of actual training iterations
+  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  gradient_accumulation_steps: 1
+
+  # LoRA configuration
+  rank: 9
+  lora_alpha: 0.01
+  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
+
+  hidden_size: 256
+
+  # Loss weights
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+
+  # Training weights - for combining removal and retain losses
+  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
+  remove_weight: 20.0    # Weight for removal loss (main training objective)
+  retain_weight: 0.2     # Weight for retain loss (regularization to preserve other concepts)
+
+  retain_steps_per_remove: 1      # 1 step (default)
+  retain_batch_size: 64
+
+  # Data and paths
+  output_dir: output_pw/celebrity_5  # output_dir from args
+  final_save_path: output_pw/celebrity_5/LoRA_fusion_model
+
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
+
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+
+  # Logging
+  logging_dir: logs
+  report_to: wandb  # use-wandb flag enabled
+
+  # Diagnostic prompts for monitoring training progress
+  diagnostic_prompts:
+    - "a photo of adam driver"
+    - "a portrait of adriana lima"
+    - "amber heard at an event"
+    - "amy adams smiling"
+    - "andrew garfield acting"
+    - "a photo of a person"
+    - "a portrait of a person"
+    - "a photo of a woman"
+    - "a portrait of a woman"
+    - "a photo of a man"
+    - "a portrait of a man"
+    - "a photo of barack obama"
+    - "a photo of taylor swift"
+    - "a photo of tom hanks"
+    - "a photo of leonardo dicaprio"
+    - "a portrait of jennifer lawrence"
+
+  # <<< Primary Settings <<<
