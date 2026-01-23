@@ -12,7 +12,7 @@ from transformers import CLIPTokenizerFast
 from typing import Any, Callable, Dict, List, Optional, Union
 from tools.prompt_process import encode_prompt
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
-from tools.ir_concept import UniversalModelCaller, MoE
+#from tools.ir_concept import UniversalModelCaller, MoE
 from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
 from diffusers.utils.torch_utils import randn_tensor
 import copy
