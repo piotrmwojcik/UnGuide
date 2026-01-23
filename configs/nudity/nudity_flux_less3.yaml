@@ -79,7 +79,7 @@ UnHype:
   plateau_factor: 0.8
   max_train_steps: 4000   # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
-  gradient_accumulation_steps: 4
+  gradient_accumulation_steps: 1
 
   use_latent_cache: true
   use_diagnostic_cache: false

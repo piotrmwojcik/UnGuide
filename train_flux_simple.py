@@ -1460,6 +1460,9 @@ def main():
                 optimizer_remove.step()
                 optimizer_retain.step()
 
+                optimizer_remove.zero_grad(set_to_none=True)
+                optimizer_retain.zero_grad(set_to_none=True)
+
                 alpha_name, alpha_param = None, None
                 for n, p in model.named_parameters():
                     if n.endswith(".hyper_lora.alpha"):
