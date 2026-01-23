@@ -623,7 +623,7 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
 
             if accelerator.sync_gradients:
-                print("sync_gradients:", accelerator.sync_gradients)
+                #print("sync_gradients:", accelerator.sync_gradients)
                 optimizer_remove.step()
                 optimizer_remove.zero_grad(set_to_none=True)
                 if drop_lr_on_plateau:
