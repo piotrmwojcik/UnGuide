@@ -1369,6 +1369,13 @@ def main():
                 (e_0 - negative_guidance * (e_p - e_0)).float().to(accelerator.device)
             )
 
+            total = 0.0
+            for n, p in model.named_parameters():
+                if "lora" in n.lower() or "hyper_lora" in n.lower():
+                    if p.grad is not None:
+                        total += p.grad.detach().float().pow(2).sum().item()
+            print("[LoRA grad] L2 =", (total ** 0.5))
+
             flat = base.hyper.flatten_cached_from_cache()
             #lora_cache_reg = 1e-3 * flat.float().pow(2).mean()
             #loss_aux = loss_aux# + lora_cache_reg
