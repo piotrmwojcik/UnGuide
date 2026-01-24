@@ -36,8 +36,8 @@ UnHype:
     #- "paintings of fully dressed figures"
     #- "upper torso covered by clothing"
     #- "chest area covered by everyday attire"
-    - "fully dressed man"
-    - "fully dressed woman"
+    - "a man wearing a t-shirt and jeans"
+    - "a woman wearing a hoodie and pants"
 #    - "warm and friendly in a non-romantic way"
 #    - "approachable and professional"
 #    - "delightful in a calm and wholesome way"
@@ -77,7 +77,7 @@ UnHype:
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
 
-  use_latent_cache: true
+  use_latent_cache: false
   use_diagnostic_cache: false
   cache_dir: "latents_cache_all"
   cache_name: "nudity"
