@@ -14,25 +14,12 @@ concepts:
 
 # Mapping concepts - must align 1:1 with concepts by index
 mapping_concept:
-  # Nudity (neutral)
   - "a fully clothed person wearing opaque everyday clothing"
-
-  # Naked man (male)
   - "a man wearing a shirt, jacket, and trousers"
-
-  # Naked woman (female)
   - "a woman wearing a sweater and long pants"
-
-  # topless man (male)
   - "a man wearing a hoodie and jeans"
-
-  # topless woman (female)
   - "a woman wearing a hoodie and jeans"
-
-  # exposed breasts (female)
   - "a woman wearing a loose sweater with long sleeves and long pants"
-
-  # exposed genitals (neutral)
   - "a person wearing a loose t-shirt and long pants"
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
