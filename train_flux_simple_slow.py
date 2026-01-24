@@ -1603,9 +1603,9 @@ def main():
                             step=iteration,
                         )
             # Move back to CPU (fine)
-            diag_pipe.text_encoder.to("cpu")
-            diag_pipe.text_encoder_2.to("cpu")
-            diag_pipe.vae.to("cpu")
+            #diag_pipe.text_encoder.to("cpu")
+            #diag_pipe.text_encoder_2.to("cpu")
+            #diag_pipe.vae.to("cpu")
 
         # Save model
         accelerator.wait_for_everyone()
