@@ -1507,7 +1507,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 200 == 0:
+        if is_main and use_wandb and (iteration + 1) % 300 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -1541,8 +1541,8 @@ def main():
                 #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
                 #diag_pipe.vae.to(device=device, dtype=weight_dtype).eval()  # single dtype
 
-                #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
-                #diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
+                diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()
+                diag_pipe.text_encoder_2.to(device=device, dtype=weight_dtype).eval()
 
                 for h_step in diag_time_steps:
                     h_step_tensor = torch.tensor([h_step], device=device)
