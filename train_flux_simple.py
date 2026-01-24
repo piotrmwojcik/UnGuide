@@ -1282,17 +1282,24 @@ def main():
             # # Random timestep for HyperLoRA context
             rank = accelerator.process_index
             world_size = accelerator.num_processes
-            #
-            # # Timesteps assigned to THIS rank: rank, rank + world_size, ...
-            valid_timesteps = torch.arange(rank, hyper_train_steps, world_size, device=accelerator.device)
+            T = hyper_train_steps  # e.g. 300
+            it = iteration  # your training loop counter
+            max_it = max_train_steps
+
+            # Grow from 20% of T up to 100% of T
+            start_frac = 0.2
+            end_frac = 1.0
+            frac = start_frac + (end_frac - start_frac) * (it / max(1, max_it - 1))
+            t_cap = int(max(1, round(frac * (T - 1))))  # inclusive cap in [1, T-1]
+
+            # --- keep sharding: valid timesteps for THIS rank up to cap ---
+            valid_timesteps = torch.arange(rank, t_cap + 1, world_size, device=accelerator.device)
+
             if valid_timesteps.numel() == 0:
-                # Fallback in case hyper_train_steps < world_size
-                rtimestep = int(torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+                rtimestep = int(torch.randint(0, t_cap + 1, (1,), device=accelerator.device))
             else:
-                # Sample index into this rank’s slice
                 idx = torch.randint(0, valid_timesteps.numel(), (1,), device=accelerator.device)
                 rtimestep = int(valid_timesteps[idx])
-
             print(
                 f"[Rank {rank} | Device {accelerator.device}] "
                 f"idx={concept_idx} | Target: {target_text_augmented} | Mapping: {mapping_text_augmented} | Timestep: {rtimestep}"
