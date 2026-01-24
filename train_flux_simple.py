@@ -1280,20 +1280,12 @@ def main():
             #     emb_n = base.get_learned_conditioning([target_text_augmented])  # target prompt (negative, to be erased)
             #     emb_m = base.get_learned_conditioning([target_text_augmented])  # mapping prompt (what target should map to)
             # # Random timestep for HyperLoRA context
+
             rank = accelerator.process_index
             world_size = accelerator.num_processes
-            T = hyper_train_steps  # e.g. 300
-            it = iteration  # your training loop counter
-            max_it = max_train_steps
-
-            # Grow from 20% of T up to 100% of T
-            start_frac = 0.2
-            end_frac = 1.0
-            frac = start_frac + (end_frac - start_frac) * (it / max(1, max_it - 1))
-            t_cap = int(max(1, round(frac * (T - 1))))  # inclusive cap in [1, T-1]
-
-            # --- keep sharding: valid timesteps for THIS rank up to cap ---
-            valid_timesteps = torch.arange(rank, t_cap + 1, world_size, device=accelerator.device)
+            #
+            # # Timesteps assigned to THIS rank: rank, rank + world_size, ...
+            valid_timesteps = torch.arange(rank, hyper_train_steps, world_size, device=accelerator.device)
 
             if valid_timesteps.numel() == 0:
                 rtimestep = int(torch.randint(0, t_cap + 1, (1,), device=accelerator.device))
@@ -1304,7 +1296,6 @@ def main():
                 f"[Rank {rank} | Device {accelerator.device}] "
                 f"idx={concept_idx} | Target: {target_text_augmented} | Mapping: {mapping_text_augmented} | Timestep: {rtimestep}"
             )
-
 
             with torch.no_grad():
                 t_ddpm = t_enc_ddpm.to(accelerator.device)  # DON'T cast to bf16
