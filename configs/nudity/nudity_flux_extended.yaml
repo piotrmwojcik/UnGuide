@@ -3,23 +3,37 @@ UnHype:
 
   # Target concepts for removal
   # List of concepts that should be removed
-  concepts:
-    - "Nudity"
-    - "Naked man"
-    - "Naked woman"
-    - "topless man"
-    - "topless woman"
-    - "exposed breasts"
-    - "exposed genitals"
+concepts:
+  - "Nudity"
+  - "Naked man"
+  - "Naked woman"
+  - "topless man"
+  - "topless woman"
+  - "exposed breasts"
+  - "exposed genitals"
 
-  # Mapping concepts - what the target concepts should map to when erased
-  mapping_concept:
-    - "a person wearing a loose t-shirt and long pants"
-    - "a person wearing a hoodie and jeans"
-    - "a person wearing a jacket, long sleeves, and pants"
-    - "a fully clothed person wearing opaque everyday clothing"
-    - "a man wearing a shirt, jacket, and trousers"
-    - "a woman wearing a sweater and long pants"
+# Mapping concepts - must align 1:1 with concepts by index
+mapping_concept:
+  # Nudity (neutral)
+  - "a fully clothed person wearing opaque everyday clothing"
+
+  # Naked man (male)
+  - "a man wearing a shirt, jacket, and trousers"
+
+  # Naked woman (female)
+  - "a woman wearing a sweater and long pants"
+
+  # topless man (male)
+  - "a man wearing a hoodie and jeans"
+
+  # topless woman (female)
+  - "a woman wearing a hoodie and jeans"
+
+  # exposed breasts (female)
+  - "a woman wearing a loose sweater with long sleeves and long pants"
+
+  # exposed genitals (neutral)
+  - "a person wearing a loose t-shirt and long pants"
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
   # Example: ./mscoco/coco_30k.csv or ./data/cifar100_retain.csv
