@@ -11,7 +11,10 @@ import torch
 @torch.no_grad()
 def mean_clip_score(image_dir, prompts_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").eval().to(device)
+    model = CLIPModel.from_pretrained(
+            "openai/clip-vit-base-patch32",
+            use_safetensors=True,   # <- key
+        ).eval().to(device)
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     text_df=pd.read_csv(prompts_path)
