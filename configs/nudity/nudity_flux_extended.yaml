@@ -61,7 +61,7 @@ UnHype:
 
   use_orig_concat: true
 
-  internal_size: 200
+  internal_size: 150
 
   # Loss weights
   negative_guidance: 0.1
