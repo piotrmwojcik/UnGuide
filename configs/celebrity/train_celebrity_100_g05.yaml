@@ -228,7 +228,7 @@ UnGuide_Celebrity_100:
 
   # LoRA configuration
   rank: 6
-  lora_alpha: 0.1
+  lora_alpha: 6
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   hidden_size: 256
