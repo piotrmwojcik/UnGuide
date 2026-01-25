@@ -37,7 +37,7 @@ UnGuide_Frog:
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
   
   # Loss weights
-  negative_guidance: 2.0
+  negative_guidance: 0.5
   guidance_scale: 7.5
   start_guidance: 9.0
   internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
