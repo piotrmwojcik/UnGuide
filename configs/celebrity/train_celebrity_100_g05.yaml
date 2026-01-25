@@ -244,7 +244,7 @@ UnGuide_Celebrity_100:
   remove_weight: 10.0    # Weight for removal loss (main training objective)
   retain_weight: 5.000     # Weight for retain loss (regularization to preserve other concepts)
 
-  retain_steps_per_remove: 20     # 1 step (default)
+  retain_steps_per_remove: 1     # 1 step (default)
   retain_batch_size: 1000
 
   # Data and paths
