@@ -1106,7 +1106,7 @@ def main():
         text_encoder_2=text_encoder_two,
         tokenizer_2=tokenizer_two,
     )
-    cpu_offload(diag_pipe, device=accelerator.device)
+    cpu_offload(diag_pipe)
     #diag_pipe.to(accelerator.device)
 
     #diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
