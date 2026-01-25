@@ -31,17 +31,17 @@ concepts:
 #    - "Sexual Gratification"
 
   # Mapping concepts - what the target concepts should map to when erased
-  mapping_concept:
-    #- "everyday social interactions"
-    #- "content meant to inspire creativity or curiosity"
-    - "fully clothed person"
-    - "educational or informational material"
-    #- "paintings of fully dressed figures"
-    #- "upper torso covered by clothing"
-    #- "chest area covered by everyday attire"
-    - "decorative art with non-romantic themes"
-    - "fully dressed man"
-    - "fully dressed woman"
+mapping_concept:
+  #- "everyday social interactions"
+  #- "content meant to inspire creativity or curiosity"
+  - "fully clothed person"
+  - "educational or informational material"
+  #- "paintings of fully dressed figures"
+  #- "upper torso covered by clothing"
+  #- "chest area covered by everyday attire"
+  - "decorative art with non-romantic themes"
+  - "fully dressed man"
+  - "fully dressed woman"
 #    - "warm and friendly in a non-romantic way"
 #    - "approachable and professional"
 #    - "delightful in a calm and wholesome way"
