@@ -32,6 +32,7 @@ except ImportError:
     WANDB_AVAILABLE = False
 
 from diffusers import FluxPipeline
+from accelerate import cpu_offload
 from tools.prompt_process import encode_prompt, _get_clip_prompt_embeds
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
 from torchvision.transforms.functional import to_tensor
