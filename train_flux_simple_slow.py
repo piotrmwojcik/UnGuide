@@ -1106,7 +1106,7 @@ def main():
         tokenizer_2=tokenizer_two,
     )
 
-    diag_pipe.to(accelerator.device)
+    #diag_pipe.to(accelerator.device)
 
     #diag_pipe.transformer.to(device=device, dtype=weight_dtype).eval()
     #diag_pipe.text_encoder.to(device=device, dtype=weight_dtype).eval()

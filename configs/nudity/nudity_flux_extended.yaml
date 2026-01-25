@@ -52,7 +52,7 @@ UnHype:
 
 
   # LoRA configuration
-  rank: 10
+  rank: 24
   lora_alpha: 0.1
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
@@ -61,7 +61,7 @@ UnHype:
 
   use_orig_concat: true
 
-  internal_size: 150
+  internal_size: 250
 
   # Loss weights
   negative_guidance: 0.1
