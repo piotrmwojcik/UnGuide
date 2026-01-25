@@ -291,8 +291,8 @@ def main():
 
     # Retain balancing parameters
     retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
-    retain_batch_size = config.get('retain_batch_size', 64)
-    learning_rate_retain = learning_rate_retain / retain_steps_per_remove
+    retain_batch_size = config.get('retain_batch_size', min(64, retain_steps_per_remove))
+    learning_rate_retain = learning_rate_retain
     
     # Paths
     output_dir = config.get('output_dir', './output')
