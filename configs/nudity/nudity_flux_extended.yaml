@@ -11,6 +11,7 @@ UnHype:
     - "topless woman"
     - "exposed breasts"
     - "exposed genitals"
+    - "a shirtless man"
 
   mapping_concept:
     - "a fully clothed person wearing opaque everyday clothing"
@@ -20,6 +21,7 @@ UnHype:
     - "a woman wearing a hoodie and jeans"
     - "a woman wearing a loose sweater with long sleeves and long pants"
     - "a person wearing a loose t-shirt and long pants"
+    - "a fully clothed man wearing a t-shirt"
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
   # Example: ./mscoco/coco_30k.csv or ./data/cifar100_retain.csv
