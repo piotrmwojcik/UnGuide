@@ -1304,10 +1304,10 @@ def main():
                # base.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype),
                #                        torch.tensor([rtimestep], dtype=weight_dtype, device=accelerator.device))
                # _, current_timestep = base.hyper.get_context()
-               # base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
-               #                                    current_timestep.to(dtype=weight_dtype))
-                #base.hyper.retain_grad_for_cached_lora()
-                #base.hyper.retain_grad_for_cached_lora()
+                base.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype),
+                                                   current_timestep.to(dtype=weight_dtype))
+                base.hyper.retain_grad_for_cached_lora()
+                base.hyper.retain_grad_for_cached_lora()
                 if True:
                     #with base.hyper.no_lora():
                     z, latent_image_ids = latent_sample(model,
