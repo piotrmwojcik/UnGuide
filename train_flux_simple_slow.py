@@ -849,7 +849,7 @@ def main():
 
     # Flux's pooled_prompt_embeds is always 768-dim (from built-in CLIP text_encoder_one)
     clip_size = 768
-    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
+    target_modules = ["attn.add_k_proj", "attn.add_v_proj"]
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
