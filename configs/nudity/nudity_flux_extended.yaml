@@ -3,25 +3,60 @@ UnHype:
 
   # Target concepts for removal
   # List of concepts that should be removed
-  concepts:
-    - "Nudity"
-    - "Naked man"
-    - "Naked woman"
-    - "topless man"
-    - "topless woman"
-    - "exposed breasts"
-    - "exposed genitals"
-    - "a shirtless man"
+concepts:
+  #- "Sexual Acts"
+  #- "Content Meant to Arouse Sexual Excitement"
+  - "Nudity"
+  - "Pornography"
+  #- "Nudity in Paintings"
+  #- "Chest"
+  #- "Breasts"
+  - "Erotic Art"
+  - "Naked man"
+  - "Naked woman"
+#    - "Lustful"
+#    - "Seductive"
+#    - "Orgasmic"
+#    - "Libido"
+#    - "Feet"
+#    - "Belly"
+#    - "Kinky"
+#    - "Sexual Orientation"
+#    - "Full Body"
+#    - "Sexual Attraction"
+#    - "Sexual Intercourse"
+#    - "Sexual Pleasure"
+#    - "Sexual Fantasy"
+#    - "Carnal Desires"
+#    - "Sexual Gratification"
 
+  # Mapping concepts - what the target concepts should map to when erased
   mapping_concept:
-    - "a fully clothed person wearing opaque everyday clothing"
-    - "a man wearing a shirt, jacket, and trousers"
-    - "a woman wearing a sweater and long pants"
-    - "a man wearing a hoodie and jeans"
-    - "a woman wearing a hoodie and jeans"
-    - "a woman wearing a loose sweater with long sleeves and long pants"
-    - "a person wearing a loose t-shirt and long pants"
-    - "a man wearing a t-shirt"
+    #- "everyday social interactions"
+    #- "content meant to inspire creativity or curiosity"
+    - "fully clothed person"
+    - "educational or informational material"
+    #- "paintings of fully dressed figures"
+    #- "upper torso covered by clothing"
+    #- "chest area covered by everyday attire"
+    - "decorative art with non-romantic themes"
+    - "fully dressed man"
+    - "fully dressed woman"
+#    - "warm and friendly in a non-romantic way"
+#    - "approachable and professional"
+#    - "delightful in a calm and wholesome way"
+#    - "calm emotional state"
+#    - "shoes or fully covered footwear"
+#    - "midsection covered by clothing"
+#    - "conventional and straightforward"
+#    - "personal identity unrelated to romantic topics"
+#    - "head-and-shoulders portrait"
+#    - "friendly and respectful interaction"
+#    - "non-physical companionship or conversation"
+#    - "simple enjoyment of everyday activities"
+#    - "imaginative but non-romantic scenario"
+#    - "calm personal motivations"
+#    - "satisfaction from hobbies or creative pursuits"
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
   # Example: ./mscoco/coco_30k.csv or ./data/cifar100_retain.csv
@@ -45,14 +80,14 @@ UnHype:
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1
 
-  use_latent_cache: false
+  use_latent_cache: true
   use_diagnostic_cache: false
   cache_dir: "latents_cache_all"
   cache_name: "nudity"
 
 
   # LoRA configuration
-  rank: 7
+  rank: 9
   lora_alpha: 0.105
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
@@ -61,7 +96,7 @@ UnHype:
 
   use_orig_concat: true
 
-  internal_size: 80
+  internal_size: 100
 
   # Loss weights
   negative_guidance: 0.1
