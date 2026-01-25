@@ -12,6 +12,8 @@ UnGuide_Frog:
   mapping_concept:
     - 'a forest'
     - 'a forest'
+    - 'a forest'
+    - 'a forest'
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
