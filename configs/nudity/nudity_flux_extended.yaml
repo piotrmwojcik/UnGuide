@@ -71,8 +71,8 @@ UnHype:
 
   # Training hyperparameters
   learning_rate: 5.0e-03 # 1e-4 as specified
-  learning_rate_remove: 1.0e-03
-  learning_rate_retain: 5.0e-04
+  learning_rate_remove: 6.0e-04
+  learning_rate_retain: 6.0e-04
   plateau_patience_remove: 100
   plateau_patience_retain: 20
   plateau_factor: 0.8
