@@ -662,8 +662,9 @@ def main():
                         optimizer_retain.zero_grad(set_to_none=True)
 
                 if accelerator.sync_gradients:
+                    loss_retain_total /= retain_steps_per_remove
                     if drop_lr_on_plateau:
-                        scheduler_retain.step(loss_retain_total / retain_steps_per_remove)
+                        scheduler_retain.step(loss_retain_total)
                     else:
                         scheduler_retain.step()
 
