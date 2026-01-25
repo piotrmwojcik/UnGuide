@@ -99,7 +99,7 @@ UnHype:
   internal_size: 100
 
   # Loss weights
-  negative_guidance: 0.1
+  negative_guidance: 0.5
   guidance_scale: 3.0
   start_guidance: 9.0
   internal_lr: 5.0e-03  # Simulated learning rate for hypernetwork gradient matching
