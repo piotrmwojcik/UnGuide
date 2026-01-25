@@ -48,7 +48,10 @@ def extract_name_from_filename(filename: str) -> Optional[str]:
     for pattern in FILENAME_PATTERNS:
         match = re.search(pattern, filename)
         if match:
-            return match.group(1).strip()
+            name = match.group(1).strip()
+            # Remove trailing _number if present
+            name = re.sub(r'_\d+$', '', name)
+            return name
     return None
 
 
