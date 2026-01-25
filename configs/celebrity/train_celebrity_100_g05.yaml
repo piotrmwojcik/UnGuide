@@ -245,7 +245,7 @@ UnGuide_Celebrity_100:
   retain_weight: 2.000     # Weight for retain loss (regularization to preserve other concepts)
 
   retain_steps_per_remove: 2     # 1 step (default)
-  retain_batch_size: 5000
+  retain_batch_size: 1000
 
   # Data and paths
   output_dir: output_pw/celebrities_100_g  # output_dir from args
