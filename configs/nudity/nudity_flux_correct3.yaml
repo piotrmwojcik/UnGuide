@@ -12,8 +12,8 @@ UnHype:
     #- "Chest"
     #- "Breasts"
     #- "Erotic Art"
-    #- "Naked man"
-    #- "Naked woman"
+    - "Naked man"
+    - "Naked woman"
 #    - "Lustful"
 #    - "Seductive"
 #    - "Orgasmic"
@@ -34,14 +34,14 @@ UnHype:
   mapping_concept:
     #- "everyday social interactions"
     #- "content meant to inspire creativity or curiosity"
-    - "fully clothed person"
+    - "a fully clothed person"
     #- "fully clothed person"
     #- "paintings of fully dressed figures"
     #- "upper torso covered by clothing"
     #- "chest area covered by everyday attire"
     #- "artistic depiction of fully clothed person"
-    #- "fully dressed man"
-    #- "fully dressed woman"
+    - "a fully dressed man"
+    - "a fully dressed woman"
 #    - "warm and friendly in a non-romantic way"
 #    - "approachable and professional"
 #    - "delightful in a calm and wholesome way"
@@ -100,7 +100,7 @@ UnHype:
   internal_size: 100
 
   # Loss weights
-  negative_guidance: 1.0
+  negative_guidance: 0.5
   guidance_scale: 0.1
   start_guidance: 9.0
   internal_lr: 1.0e-03  # Simulated learning rate for hypernetwork gradient matching
