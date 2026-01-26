@@ -231,7 +231,7 @@ UnGuide_Celebrity_100:
   lora_alpha: 0.01
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
-  hidden_size: 256
+  internal_size: 256
 
   # Loss weights
   negative_guidance: 1.5
