@@ -234,14 +234,14 @@ UnGuide_Celebrity_100:
   hidden_size: 256
 
   # Loss weights
-  negative_guidance: 0.3
+  negative_guidance: 0.9
   guidance_scale: 7.5
   start_guidance: 9.0
   internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
 
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 50.0    # Weight for removal loss (main training objective)
+  remove_weight: 100.0    # Weight for removal loss (main training objective)
   retain_weight: 5.000     # Weight for retain loss (regularization to preserve other concepts)
 
   retain_steps_per_remove: 1     # 1 step (default)
