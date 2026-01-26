@@ -198,7 +198,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-    return latents, latent_image_ids, timesteps
+    return latents, latent_image_ids, timesteps_tensor
 
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,
