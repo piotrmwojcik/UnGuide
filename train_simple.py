@@ -30,6 +30,7 @@ from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
 from utils import load_model_from_config, print_trainable_parameters
+from nv_embed_utils import load_nv_embed_model, compute_nv_embed, NV_EMBED_DIM, NV_EMBED_MODEL_NAME
 
 
 class CombinedCFGModel:
@@ -275,7 +276,6 @@ def main():
     internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
-    use_pooler = config.get('use_pooler', True)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
     
@@ -363,8 +363,9 @@ def main():
     
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
-    
-    clip_size = 768 if use_pooler else 512
+
+    # NV-Embed-v2 embeddings (4096-dim) for HyperLoRA context
+    clip_size = NV_EMBED_DIM
     target_modules = ["attn2.to_k", "attn2.to_v"]
     
     hyper_lora_factory = partial(
@@ -439,6 +440,12 @@ def main():
     
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
+
+    # Load NV-Embed-v2 model for HyperLoRA context embeddings
+    print(f"Loading {NV_EMBED_MODEL_NAME} for HyperLoRA context embeddings...")
+    nv_embed_model, nv_embed_tokenizer = load_nv_embed_model(
+        accelerator.device, torch.float16
+    )
     
     def encode(text: str):
         return tokenizer(
@@ -448,37 +455,29 @@ def main():
             truncation=True,
             return_tensors="pt",
         ).to(accelerator.device).input_ids
-    
+
     target_concepts = [c for c in concepts]
     target_embeddings = []
     for concept in target_concepts:
-        inputs = encode(concept)
         with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            emb = compute_nv_embed(concept, nv_embed_model, nv_embed_tokenizer, accelerator.device)
         target_embeddings.append(emb)
-    
+
     mapping_embeddings = []
     for concept in mapping_concept:
-        inputs = encode(concept)
         with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+            emb = compute_nv_embed(concept, nv_embed_model, nv_embed_tokenizer, accelerator.device)
         mapping_embeddings.append(emb)
-    
+
     retain_prompts = []
     retain_embeddings = []
-    
+
     if retain_csv_path and os.path.exists(retain_csv_path):
         print(f"Loading retain prompts from CSV: {retain_csv_path}")
         df = pd.read_csv(retain_csv_path)
         if 'prompt' not in df.columns:
             raise ValueError(f"CSV file must have a 'prompt' column. Found columns: {df.columns.tolist()}")
-        
+
         base_prompts = df['prompt'].dropna().tolist()
         if augment_retain:
             for prompt in base_prompts:
@@ -488,29 +487,27 @@ def main():
                 retain_prompts.extend(augmented)
         else:
             retain_prompts = base_prompts
-        
+
         cache_dir = os.path.join(output_dir, "cache")
         if is_main:
             os.makedirs(cache_dir, exist_ok=True)
-        
+
         csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
-        cache_key = f"{csv_name}_aug{augment_retain}_pooler{use_pooler}"
+        cache_key = f"{csv_name}_aug{augment_retain}_nvembed"
         cache_path = os.path.join(cache_dir, f"retain_embeddings_{cache_key}.pt")
-        
+
         cache_exists = os.path.exists(cache_path)
         if not cache_exists:
             if is_main:
-                for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                    inputs = encode(prompt)
-                    with torch.no_grad():
-                        if use_pooler:
-                            emb = clip_text_encoder(inputs).pooler_output.detach()
-                        else:
-                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
-                    retain_embeddings.append(emb.squeeze().cpu())
+                print(f"Computing NV-Embed embeddings for {len(retain_prompts)} retain prompts...")
+                all_embs = compute_nv_embed(
+                    retain_prompts, nv_embed_model, nv_embed_tokenizer,
+                    accelerator.device, batch_size=8
+                )
+                retain_embeddings = [emb.cpu() for emb in all_embs]
                 torch.save(retain_embeddings, cache_path)
             accelerator.wait_for_everyone()
-        
+
         retain_embeddings = torch.load(cache_path, map_location='cpu')
         retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
     
@@ -562,12 +559,10 @@ def main():
 
                 print(target_text_augmented, ' -> ', mapping_text_augmented)
 
-                inputs_aug = encode(target_text_augmented)
                 with torch.no_grad():
-                    if use_pooler:
-                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
-                    else:
-                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
+                    target_emb = compute_nv_embed(
+                        target_text_augmented, nv_embed_model, nv_embed_tokenizer, accelerator.device
+                    )
             else:
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
@@ -689,11 +684,12 @@ def main():
         if is_main:
             pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.6f}", "remove": f"{float(loss_remove_reduced.item()):.6f}"})
         
-        if is_main and use_wandb and (iteration + 1) % 400 == 0:
+        if is_main and use_wandb and (iteration + 1) % 100 == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
-                inputs_diag = encode(diag_prompt)
                 with torch.no_grad():
-                    diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach() if use_pooler else clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                    diag_emb = compute_nv_embed(
+                        diag_prompt, nv_embed_model, nv_embed_tokenizer, accelerator.device
+                    )
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
                 start_code_diag = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
@@ -767,7 +763,7 @@ def main():
         }
         with open(os.path.join(final_save_path, "train_config.json"), "w") as f:
             json.dump(config_save, f, indent=2)
-    
+
     if is_main and use_wandb:
         wandb.finish()
 
