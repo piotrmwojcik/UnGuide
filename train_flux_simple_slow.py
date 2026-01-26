@@ -1356,13 +1356,13 @@ def main():
             with torch.no_grad():
                 with base.hyper.no_lora():
                     pred_off = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
+                                guidance=start_guidance, timesteps=timestep, CPU_only=True)
                 pred_on = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
+                                guidance=start_guidance, timesteps=timestep, CPU_only=True)
                 print("functional delta meanabs:", (pred_on - pred_off).abs().mean().item())
 
             e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
+                                guidance=start_guidance, timesteps=timestep, CPU_only=True)
             e_0.requires_grad = False
             e_p.requires_grad = False
 
