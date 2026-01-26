@@ -804,8 +804,8 @@ def main():
     )
     text_encoder_one, text_encoder_two = load_text_encoders(text_encoder_cls_one, text_encoder_cls_two,
                                                             pretrained_model_name_or_path)
-    #text_encoder_one =text_encoder_one.to(accelerator.device)
-    #text_encoder_two = text_encoder_two.to(accelerator.device)
+    text_encoder_one =text_encoder_one.to(accelerator.device)
+    text_encoder_two = text_encoder_two.to(accelerator.device)
     vae = AutoencoderKL.from_pretrained(
         pretrained_model_name_or_path,
         subfolder="vae",
@@ -849,7 +849,7 @@ def main():
 
     # Flux's pooled_prompt_embeds is always 768-dim (from built-in CLIP text_encoder_one)
     clip_size = 768
-    target_modules = ["attn.add_k_proj", "attn.add_q_proj", "attn.add_v_proj", "attn.to_out"]
+    target_modules = ["attn.add_k_proj", "attn.add_q_proj", "attn.add_v_proj"]
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
