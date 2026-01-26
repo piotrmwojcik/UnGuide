@@ -1140,24 +1140,29 @@ def main():
         # # Random timestep
         steps = torch.arange(0, ddim_steps, device=accelerator.device)  # (0 to ddim_steps-1)
 
-        # normalize to (0, 1]
-        s = steps.float() / float(ddim_steps - 1)
-        # Piecewise weights (nudity removal bias)
-        # Early steps dominate structure & semantics
-        w = torch.where(
-            s > 0.70, torch.full_like(s, 6.0),  # EARLY (semantic / composition)
-            torch.where(
-                s > 0.30, torch.full_like(s, 2.5),  # MID
-                torch.full_like(s, 0.5)  # LATE (texture)
-            )
+        # # normalize to (0, 1]
+        # s = steps.float() / float(ddim_steps - 1)
+        # # Piecewise weights (nudity removal bias)
+        # # Early steps dominate structure & semantics
+        # w = torch.where(
+        #     s > 0.70, torch.full_like(s, 6.0),  # EARLY (semantic / composition)
+        #     torch.where(
+        #         s > 0.30, torch.full_like(s, 2.5),  # MID
+        #         torch.full_like(s, 0.5)  # LATE (texture)
+        #     )
+        # )
+        # # Normalize weights → probabilities
+        # probs = w / w.sum()
+        #
+        # # Sample ONE timestep index
+        # idx = torch.multinomial(probs, num_samples=1)
+
+        t_enc_ddpm = torch.randint(
+            low=0,
+            high=ddim_steps,
+            size=(1,),
+            device=accelerator.device
         )
-        # Normalize weights → probabilities
-        probs = w / w.sum()
-
-        # Sample ONE timestep index
-        idx = torch.multinomial(probs, num_samples=1)
-
-        t_enc_ddpm = steps[idx]
         #og_num = round((int(t_enc) / ddim_steps) * 100)
         #og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         #t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
@@ -1309,29 +1314,29 @@ def main():
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
                     #with base.hyper.no_lora():
-                    z, latent_image_ids, _, timesteps = latent_sample(model,
-                                                        noise_scheduler,
-                                                        1,
-                                                        model_input.shape[1],
-                                                        512,
-                                                        512,
-                                                        emb_p.to(accelerator.device),
-                                                        pooled_emb_p.to(accelerator.device),
-                                                        text_ids_p.to(accelerator.device),
-                                                        start_guidance,
-                                                        int(ddim_steps),
-                                                        stop_at_step=int(t_ddpm.item()))
+                    z, latent_image_ids, timestep = latent_sample(model,
+                                                            noise_scheduler,
+                                                            1,
+                                                            model_input.shape[1],
+                                                            512,
+                                                            512,
+                                                            emb_p.to(accelerator.device),
+                                                            pooled_emb_p.to(accelerator.device),
+                                                            text_ids_p.to(accelerator.device),
+                                                            start_guidance,
+                                                            int(ddim_steps),
+                                                            stop_at_step=int(t_ddpm.item()))
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=timesteps,
+                        timesteps=timestep,
                         CPU_only=True,
                     )
                     e_p = predict_noise(
                         model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=timesteps,
+                        timesteps=timestep,
                         CPU_only=True,
                     )
 
