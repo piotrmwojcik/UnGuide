@@ -118,7 +118,7 @@ def calculate_shift(
 
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, latents=None):
+                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, stop_at_step=None, latents=None):
     """
         Sample the model
         ESD quick_sample_till_t
@@ -166,8 +166,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         mu=mu,
     )
 
-    print(timesteps_tensor)
-
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
     prompt_embeds = prompt_embeds.bfloat16()
@@ -177,6 +175,10 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     for i, t in enumerate(timesteps_tensor):
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
+
+        if stop_at_step is not None and i >= stop_at_step:
+            print(f"Stopping sampling at step {i}")
+            return latents, latent_image_ids, timesteps
 
         # print(latents.shape, timestep)
         # self.transformer.config.guidance_embeds False => guidance = None
@@ -196,7 +198,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-    return latents, latent_image_ids
+    return latents, latent_image_ids, timesteps
 
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,

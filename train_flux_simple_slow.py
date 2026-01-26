@@ -1309,7 +1309,7 @@ def main():
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
                     #with base.hyper.no_lora():
-                    z, latent_image_ids = latent_sample(model,
+                    z, latent_image_ids, timesteps = latent_sample(model,
                                                         noise_scheduler,
                                                         1,
                                                         model_input.shape[1],
@@ -1319,18 +1319,19 @@ def main():
                                                         pooled_emb_p.to(accelerator.device),
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
-                                                        int(ddim_steps))
+                                                        int(ddim_steps),
+                                                        stop_at_step=t_ddpm)
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=t_ddpm,
+                        timesteps=timesteps / 1000,
                         CPU_only=True,
                     )
                     e_p = predict_noise(
                         model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=t_ddpm,
+                        timesteps=timesteps / 1000,
                         CPU_only=True,
                     )
 
