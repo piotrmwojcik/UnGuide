@@ -178,7 +178,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         if stop_at_step is not None and i >= stop_at_step:
             print(f"Stopping sampling at step {i}")
-            return latents, latent_image_ids, timesteps
+            return latents, latent_image_ids, timesteps_tensor
 
         # print(latents.shape, timestep)
         # self.transformer.config.guidance_embeds False => guidance = None
