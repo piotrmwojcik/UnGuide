@@ -166,6 +166,8 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
         mu=mu,
     )
 
+    print(timesteps_tensor)
+
     latents = latents.to(transformer.device).bfloat16()
     pooled_prompt_embeds = pooled_prompt_embeds.bfloat16()
     prompt_embeds = prompt_embeds.bfloat16()
