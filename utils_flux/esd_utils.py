@@ -180,7 +180,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
             return latents, latent_image_ids, t, timestep
 
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-        timestep = t.expand(latents.shape[0]).to(torch.bfloat16)_tensor
+        timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
 
         # print(latents.shape, timestep)
         # self.transformer.config.guidance_embeds False => guidance = None
@@ -200,7 +200,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-    return latents, latent_image_ids, timesteps_tensor
+    return latents, latent_image_ids, timestep
 
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,
