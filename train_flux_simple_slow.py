@@ -1158,6 +1158,7 @@ def main():
         idx = torch.multinomial(probs, num_samples=1)
 
         t_enc_ddpm = steps[idx]
+        t_enc = t_enc_ddpm
         #og_num = round((int(t_enc) / ddim_steps) * 100)
         #og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
         #t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=accelerator.device)
