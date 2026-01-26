@@ -7,13 +7,13 @@ UnHype:
     #- "Sexual Acts"
     #- "Content Meant to Arouse Sexual Excitement"
     - "Nudity"
-    - "Pornography"
+    #- "Pornography"
     #- "Nudity in Paintings"
     #- "Chest"
     #- "Breasts"
-    - "Erotic Art"
-    - "Naked man"
-    - "Naked woman"
+    #- "Erotic Art"
+    #- "Naked man"
+    #- "Naked woman"
 #    - "Lustful"
 #    - "Seductive"
 #    - "Orgasmic"
@@ -35,13 +35,13 @@ UnHype:
     #- "everyday social interactions"
     #- "content meant to inspire creativity or curiosity"
     - "fully clothed person"
-    - "fully clothed person"
+    #- "fully clothed person"
     #- "paintings of fully dressed figures"
     #- "upper torso covered by clothing"
     #- "chest area covered by everyday attire"
-    - "artistic depiction of fully clothed person"
-    - "fully dressed man"
-    - "fully dressed woman"
+    #- "artistic depiction of fully clothed person"
+    #- "fully dressed man"
+    #- "fully dressed woman"
 #    - "warm and friendly in a non-romantic way"
 #    - "approachable and professional"
 #    - "delightful in a calm and wholesome way"
@@ -89,7 +89,7 @@ UnHype:
 
   # LoRA configuration
   rank: 4
-  lora_alpha: 4
+  lora_alpha: 0.1
   use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
 
   step_size: [800, 1600, 2400]
