@@ -173,12 +173,14 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
     # Denoising loop
     for i, t in enumerate(timesteps_tensor):
-        # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-        timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
-
         if stop_at_step is not None and i >= stop_at_step:
-            print(f"Stopping sampling at step {i}")
-            return latents, latent_image_ids, timesteps_tensor
+            # Return current latent and the timestep that matches its noise level
+            # We return 4 values to match the unpacking in train_flux_simple_slow.py
+            timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
+            return latents, latent_image_ids, t, timestep
+
+        # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+        timestep = t.expand(latents.shape[0]).to(torch.bfloat16)_tensor
 
         # print(latents.shape, timestep)
         # self.transformer.config.guidance_embeds False => guidance = None

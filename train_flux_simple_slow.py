@@ -1138,7 +1138,7 @@ def main():
         vae_config_block_out_channels = diag_pipe.vae.config.block_out_channels
 
         # # Random timestep
-        steps = torch.arange(1, ddim_steps, device=accelerator.device)  # (ddim_steps-1,)
+        steps = torch.arange(0, ddim_steps, device=accelerator.device)  # (0 to ddim_steps-1)
 
         # normalize to (0, 1]
         s = steps.float() / float(ddim_steps - 1)
@@ -1309,7 +1309,7 @@ def main():
                 #base.hyper.retain_grad_for_cached_lora()
                 if True:
                     #with base.hyper.no_lora():
-                    z, latent_image_ids, timesteps = latent_sample(model,
+                    z, latent_image_ids, _, timesteps = latent_sample(model,
                                                         noise_scheduler,
                                                         1,
                                                         model_input.shape[1],
@@ -1320,18 +1320,18 @@ def main():
                                                         text_ids_p.to(accelerator.device),
                                                         start_guidance,
                                                         int(ddim_steps),
-                                                        stop_at_step=t_ddpm)
+                                                        stop_at_step=int(t_ddpm.item()))
                 with base.hyper.no_lora():
                     e_0 = predict_noise(
                         model, z, emb_0.to(dtype=weight_dtype), pooled_emb_0.to(dtype=weight_dtype), text_ids_0, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=timesteps / 1000,
+                        timesteps=timesteps,
                         CPU_only=True,
                     )
                     e_p = predict_noise(
                         model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
                         guidance=start_guidance,
-                        timesteps=timesteps / 1000,
+                        timesteps=timesteps,
                         CPU_only=True,
                     )
 
@@ -1351,13 +1351,13 @@ def main():
             with torch.no_grad():
                 with base.hyper.no_lora():
                     pred_off = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
+                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
                 pred_on = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
+                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
                 print("functional delta meanabs:", (pred_on - pred_off).abs().mean().item())
 
             e_n = predict_noise(model, z, emb_p.to(dtype=weight_dtype), pooled_emb_p.to(dtype=weight_dtype), text_ids_p, latent_image_ids,
-                                guidance=start_guidance, timesteps=t_ddpm, CPU_only=True)
+                                guidance=start_guidance, timesteps=timesteps, CPU_only=True)
             e_0.requires_grad = False
             e_p.requires_grad = False
 
