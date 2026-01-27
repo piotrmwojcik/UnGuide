@@ -303,11 +303,14 @@ def main():
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    # Recommended targets for Unlearning
-    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
-    
+    # Load target_modules from config or use default
+    target_modules = config.get('target_modules', ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"])
+    print(f"[INFO] target_modules: {target_modules}")
+    if WANDB_AVAILABLE and is_main:
+        wandb.config.update({'target_modules': target_modules}, allow_val_change=True)
+
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
-    
+
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(transformer)
 
