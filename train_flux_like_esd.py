@@ -648,7 +648,7 @@ def main():
         if is_main and ((step + 1) % 100 == 0 or step == max_train_steps - 1):
             os.makedirs(final_save_path, exist_ok=True)
             lora_path = os.path.join(final_save_path, f"hyper_lora_{step}.pth")
-            state_dict = {k: v.cpu() for k, v in unwrapped_model.named_parameters() if v.requires_grad}
+            state_dict = {k: v.cpu() for k, v in unwrapped_model.named_parameters() if ".hyper_lora." in k}
             torch.save(state_dict, lora_path)
             print(f"Saved: {lora_path}")
 
