@@ -112,7 +112,7 @@ if __name__ == "__main__":
                        help="Hypernetwork timesteps (must match training config)")
     parser.add_argument("--use_pooler", type=bool, default=True,
                        help="Use CLIP pooler output")
-    parser.add_argument("--use_orig_concat", type=bool, default=True,
+    parser.add_argument("--use_orig_concat", type=False, default=True,
                        help="Use original concat in HyperLoRA (must match training config)")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--seed", type=int, default=2024)
