@@ -63,7 +63,7 @@ UnHype:
 
   # >>> LORA CONFIGURATION (Fixed for Signal Strength) >>>
   rank: 4
-  lora_alpha: 0.1     # CHANGED from 0.1. Alpha should be close to Rank (1:1 ratio) for stable gradients.
+  lora_alpha: 0.5     # CHANGED from 0.1. Alpha should be close to Rank (1:1 ratio) for stable gradients.
   use_pooler: true    # Use CLIP pooler output (768-dim)
   internal_size: 100  # 200 is okay, 100 is lighter on VRAM
   use_orig_concat: true
