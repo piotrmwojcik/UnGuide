@@ -303,9 +303,12 @@ def main():
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    # Default targets or customized
-    target_modules = ["attn.to_k", "attn.to_q", "attn.add_k_proj", "attn.add_q_proj"]
-    
+    target_modules = [
+        "attn.to_k",
+        "attn.to_q",
+        "attn.add_k_proj",
+        "attn.add_q_proj",
+    ]
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
     
     for layer_name, layer in hyper_lora_layers:
@@ -628,7 +631,12 @@ def main():
                 
                 with torch.no_grad():
                     # Unpack
-                    latents = pipe._unpack_latents(latents, 64, 64, pipe.vae.config.latent_channels)
+                    # FIX: Use correct image dims (512) and scale factor (default 8 for Flux if unknown, or pipe.vae_scale_factor if accessible)
+                    # Standard Flux has VAE scale factor of 8 (spatial reduction)
+                    # The 4th argument must be scale factor (e.g. 8 or 16), not channels (16)
+                    # Let's assume 8 for standard Flux dev/schnell
+                    scale_factor = 8 
+                    latents = pipe._unpack_latents(latents, 512, 512, scale_factor)
                     latents = (latents / pipe.vae.config.scaling_factor) + pipe.vae.config.shift_factor
                     
                     # Decode
