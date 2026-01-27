@@ -303,12 +303,9 @@ def main():
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    target_modules = [
-        "attn.to_k",
-        "attn.to_q",
-        "attn.add_k_proj",
-        "attn.add_q_proj",
-    ]
+    # Recommended targets for Unlearning
+    target_modules = ["attn.to_k", "attn.to_q", "attn.add_k_proj", "attn.add_q_proj"]
+    
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
     
     for layer_name, layer in hyper_lora_layers:
@@ -343,7 +340,6 @@ def main():
     # PRE-COMPUTATION SECTION
     # =========================================================================
     print("Computing Prompt Embeddings (Target/Mapping)...")
-    # Move encoders to GPU for computation
     pipe.text_encoder.to(accelerator.device)
     pipe.text_encoder_2.to(accelerator.device)
 
@@ -396,7 +392,6 @@ def main():
             pe, ppe, tids = pipe.encode_prompt(
                 prompt=diag_prompt, prompt_2=diag_prompt, max_sequence_length=512
             )
-            # Store in CPU dict
             diagnostic_cache[diag_prompt] = {
                 "prompt_embeds": pe.cpu(),
                 "pooled_prompt_embeds": ppe.cpu(),
@@ -557,19 +552,16 @@ def main():
         if is_main and (step + 1) % 100 == 0:
             print("Generating diagnostic images... (Model Swapping Strategy)")
             
-            # 1. Clear Memory
             optimizer_remove.zero_grad(set_to_none=True)
             optimizer_retain.zero_grad(set_to_none=True)
             gc.collect()
             torch.cuda.empty_cache()
 
-            # 2. Swap Transformer to CPU
             if args.low_memory:
                 transformer.to("cpu")
                 torch.cuda.empty_cache()
 
             for diag_prompt in diagnostic_prompts:
-                # Retrieve pre-computed embeddings
                 d_data = diagnostic_cache.get(diag_prompt)
                 if not d_data: continue
                 
@@ -578,19 +570,27 @@ def main():
                 tids = d_data["text_ids"].to(accelerator.device, dtype=weight_dtype)
                 if tids.ndim == 3: tids = tids[0]
 
-                # 3. Bring Transformer to GPU for Denoising
                 transformer.to(accelerator.device)
                 
+                # >>> FIX: Set HyperLoRA Context for Diagnostic Prompt <<<
+                # Use max time step to simulate full removal effect
+                hyper_step_tensor = torch.tensor([hyper_train_steps - 1], device=accelerator.device, dtype=weight_dtype)
+                
+                # Unwrap to access hyper
+                model_for_gen = accelerator.unwrap_model(transformer)
+                
+                # 1. Set context
+                model_for_gen.hyper.set_context(ppe, hyper_step_tensor)
+                # 2. Compute weights
+                model_for_gen.hyper.compute_and_cache_loras(ppe, hyper_step_tensor)
+                
                 with torch.no_grad():
-                    # Initialize Latents
                     latents = torch.randn((1, 16, 64, 64), device=accelerator.device, dtype=weight_dtype)
                     latents = pipe._pack_latents(latents, 1, 16, 64, 64)
                     
-                    # Scheduler setup
                     num_inference_steps = 28
                     sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
                     
-                    # Calculate mu for dynamic shifting (CRITICAL FIX)
                     image_seq_len = latents.shape[1]
                     mu = calculate_shift(
                         image_seq_len, pipe.scheduler.config.base_image_seq_len, pipe.scheduler.config.max_image_seq_len,
@@ -602,11 +602,9 @@ def main():
                         timesteps=None, sigmas=sigmas, mu=mu
                     )
                     
-                    # IDs
                     latent_image_ids = pipe._prepare_latent_image_ids(1, 32, 32, accelerator.device, weight_dtype)
                     guidance = torch.tensor([3.5], device=accelerator.device, dtype=weight_dtype)
                     
-                    # Denoise Loop
                     for t in timesteps:
                         vec_t = t.expand(latents.shape[0]).to(dtype=weight_dtype)
                         noise_pred = transformer(
@@ -621,42 +619,32 @@ def main():
                         )[0]
                         latents = pipe.scheduler.step(noise_pred, t, latents, return_dict=False)[0]
                 
-                # 4. Swap Transformer -> CPU
                 if args.low_memory:
                     transformer.to("cpu")
                     torch.cuda.empty_cache()
                 
-                # 5. Bring VAE to GPU for Decoding
                 pipe.vae.to(accelerator.device)
                 
                 with torch.no_grad():
-                    # Unpack
-                    # FIX: Use correct image dims (512) and scale factor (default 8 for Flux if unknown, or pipe.vae_scale_factor if accessible)
-                    # Standard Flux has VAE scale factor of 8 (spatial reduction)
-                    # The 4th argument must be scale factor (e.g. 8 or 16), not channels (16)
-                    # Let's assume 8 for standard Flux dev/schnell
-                    scale_factor = 8 
+                    # Check for vae_scale_factor in pipe, else default to 8
+                    scale_factor = getattr(pipe, 'vae_scale_factor', 8)
                     latents = pipe._unpack_latents(latents, 512, 512, scale_factor)
                     latents = (latents / pipe.vae.config.scaling_factor) + pipe.vae.config.shift_factor
                     
-                    # Decode
                     image = pipe.vae.decode(latents, return_dict=False)[0]
                     image = pipe.image_processor.postprocess(image, output_type="pil")[0]
                     
                     if WANDB_AVAILABLE and config.get('report_to') == 'wandb':
                         wandb.log({f"diag_{diag_prompt}": wandb.Image(image)}, step=step)
                 
-                # 6. Cleanup VAE
                 if args.low_memory:
                     pipe.vae.to("cpu")
                     torch.cuda.empty_cache()
 
-            # Restore Transformer to GPU for Training
             transformer.to(accelerator.device)
             gc.collect()
             torch.cuda.empty_cache()
 
-        # Save Checkpoint
         if is_main and ((step + 1) % 100 == 0 or step == max_train_steps - 1):
             os.makedirs(final_save_path, exist_ok=True)
             lora_path = os.path.join(final_save_path, f"hyper_lora_{step}.pth")
