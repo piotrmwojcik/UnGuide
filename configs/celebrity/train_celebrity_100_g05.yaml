@@ -242,7 +242,7 @@ UnGuide_Celebrity_100:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.1     # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 0.01     # Weight for retain loss (regularization to preserve other concepts)
 
   retain_steps_per_remove: 1     # 1 step (default)
   retain_batch_size: 1000
