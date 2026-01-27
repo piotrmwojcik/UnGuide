@@ -470,20 +470,20 @@ def main():
                         hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
                         pooled_projections=pooled_target, encoder_hidden_states=emb_target,
                         txt_ids=txt_ids_target_curr, img_ids=latent_ids, return_dict=False
-                    )
+                    )[0]
                     current_txt_ids = txt_ids_map_curr if mapping_text else txt_ids_target_curr
                     e_0 = transformer(
                         hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
                         pooled_projections=pooled_map if mapping_text else pooled_target,
                         encoder_hidden_states=emb_map if mapping_text else emb_target,
                         txt_ids=current_txt_ids, img_ids=latent_ids, return_dict=False
-                    )
+                    )[0]
 
             e_n = transformer(
                 hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
                 pooled_projections=pooled_target, encoder_hidden_states=emb_target,
                 txt_ids=txt_ids_target_curr, img_ids=latent_ids, return_dict=False
-            )
+            )[0]
             
             target_signal = e_0 - negative_guidance * (e_p_base - e_0)
             loss_aux = loss_fn(e_n.float(), target_signal.float())
