@@ -25,7 +25,6 @@ from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
-import open_clip
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -448,6 +447,7 @@ def main():
     sampler = DDIMSampler(accelerator.unwrap_model(model))
     
     if args.use_huge:
+        import open_clip
         print("Using HUGE CLIP model: ViT-bigG-14 (1280 dim) via open_clip")
         clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
         clip_text_encoder = clip_model.to(accelerator.device).eval()
