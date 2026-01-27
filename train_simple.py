@@ -33,6 +33,126 @@ from utils import load_model_from_config, print_trainable_parameters
 from nv_embed_utils import load_nv_embed_model, compute_nv_embed, NV_EMBED_DIM, NV_EMBED_MODEL_NAME
 
 
+class HyperCache:
+    """
+    Cache for NV-Embed embeddings used as HyperLoRA context.
+    All embeddings stored on CPU, moved to device on access.
+    """
+
+    def __init__(
+        self,
+        prompts: list = None,
+        nv_embed_model=None,
+        nv_embed_tokenizer=None,
+        device: torch.device = None,
+        batch_size: int = 8,
+    ):
+        self.prompts = []
+        self.prompt_to_idx = {}
+        self.embeddings = None
+        self.dirty = False
+
+        if prompts and nv_embed_model is not None:
+            print(f"[HyperCache] Computing NV-Embed for {len(prompts)} prompts...")
+            self.prompts = list(prompts)
+            self.prompt_to_idx = {p: i for i, p in enumerate(self.prompts)}
+            self.embeddings = compute_nv_embed(
+                self.prompts, nv_embed_model, nv_embed_tokenizer, device, batch_size=batch_size
+            ).cpu()
+            self._print_memory_usage()
+
+    def get(self, prompt: str, device: torch.device) -> torch.Tensor:
+        """Get embedding for prompt, moved to device."""
+        idx = self.prompt_to_idx[prompt]
+        return self.embeddings[idx:idx+1].to(device)
+
+    def get_by_idx(self, idx: int, device: torch.device) -> torch.Tensor:
+        """Get embedding by index, moved to device."""
+        return self.embeddings[idx:idx+1].to(device)
+
+    def get_batch(self, prompts: list, device: torch.device) -> torch.Tensor:
+        """Get batch of embeddings, moved to device."""
+        indices = [self.prompt_to_idx[p] for p in prompts]
+        return self.embeddings[indices].to(device)
+
+    def get_batch_by_idx(self, indices: list, device: torch.device) -> torch.Tensor:
+        """Get batch of embeddings by indices, moved to device."""
+        return self.embeddings[indices].to(device)
+
+    def sample_batch(self, n: int, device: torch.device) -> torch.Tensor:
+        """Sample n random embeddings, moved to device."""
+        if self.embeddings is None or len(self.prompts) == 0:
+            return None
+        n = min(n, len(self.prompts))
+        indices = random.sample(range(len(self.prompts)), n)
+        return self.embeddings[indices].to(device)
+
+    def has(self, prompt: str) -> bool:
+        """Check if prompt is cached."""
+        return prompt in self.prompt_to_idx
+
+    def add(self, prompt: str, embedding: torch.Tensor):
+        """Add embedding to cache (stored on CPU)."""
+        if prompt in self.prompt_to_idx:
+            return
+        idx = len(self.prompts)
+        self.prompts.append(prompt)
+        self.prompt_to_idx[prompt] = idx
+        emb = embedding.cpu()
+        if emb.dim() == 1:
+            emb = emb.unsqueeze(0)
+        if self.embeddings is None:
+            self.embeddings = emb
+        else:
+            self.embeddings = torch.cat([self.embeddings, emb], dim=0)
+        self.dirty = True
+
+    def __len__(self) -> int:
+        return len(self.prompts)
+
+    def __contains__(self, prompt: str) -> bool:
+        return self.has(prompt)
+
+    def _print_memory_usage(self):
+        if self.embeddings is None:
+            print(f"[HyperCache] Empty cache")
+            return
+        mem_mb = self.embeddings.element_size() * self.embeddings.nelement() / (1024 ** 2)
+        print(f"[HyperCache] Memory: {mem_mb:.2f}MB ({len(self.prompts)} prompts)")
+
+    def save(self, path: str):
+        """Save cache to disk."""
+        dirname = os.path.dirname(path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        data = {
+            'prompts': self.prompts,
+            'embeddings': self.embeddings,
+            'version': 1,
+        }
+        torch.save(data, path)
+        print(f"[HyperCache] Saved to {path}")
+
+    @classmethod
+    def load(cls, path: str, expected_prompts: list = None):
+        """Load cache from disk."""
+        print(f"[HyperCache] Loading from {path}...")
+        data = torch.load(path, map_location='cpu', weights_only=False)
+
+        if expected_prompts is not None:
+            if set(data['prompts']) != set(expected_prompts):
+                print(f"[HyperCache] Prompt mismatch, cache invalid")
+                return None
+
+        instance = object.__new__(cls)
+        instance.prompts = data['prompts']
+        instance.prompt_to_idx = {p: i for i, p in enumerate(instance.prompts)}
+        instance.embeddings = data['embeddings']
+        instance.dirty = False
+        instance._print_memory_usage()
+        return instance
+
+
 class CombinedCFGModel:
     """Wrapper that uses the same model but toggles LoRA for unconditional/reference passes."""
 
@@ -457,21 +577,35 @@ def main():
         ).to(accelerator.device).input_ids
 
     target_concepts = [c for c in concepts]
-    target_embeddings = []
+
+    # Build list of all prompts to cache
+    all_prompts_to_cache = []
+
+    # Add augmented target prompts
+    all_augmented_targets = []
     for concept in target_concepts:
-        with torch.no_grad():
-            emb = compute_nv_embed(concept, nv_embed_model, nv_embed_tokenizer, accelerator.device)
-        target_embeddings.append(emb)
+        if augment_target:
+            augmented = prompt_augmentation(concept, augment=True, celebrity=celebrity_mode)
+            all_augmented_targets.extend(augmented)
+        else:
+            all_augmented_targets.append(concept)
+    all_prompts_to_cache.extend(all_augmented_targets)
 
-    mapping_embeddings = []
+    # Add augmented mapping prompts
+    all_augmented_mappings = []
     for concept in mapping_concept:
-        with torch.no_grad():
-            emb = compute_nv_embed(concept, nv_embed_model, nv_embed_tokenizer, accelerator.device)
-        mapping_embeddings.append(emb)
+        if augment_target:
+            augmented = prompt_augmentation(concept, augment=True, celebrity=celebrity_mode)
+            all_augmented_mappings.extend(augmented)
+        else:
+            all_augmented_mappings.append(concept)
+    all_prompts_to_cache.extend(all_augmented_mappings)
 
+    # Add diagnostic prompts
+    all_prompts_to_cache.extend(diagnostic_prompts)
+
+    # Add retain prompts from CSV
     retain_prompts = []
-    retain_embeddings = []
-
     if retain_csv_path and os.path.exists(retain_csv_path):
         print(f"Loading retain prompts from CSV: {retain_csv_path}")
         df = pd.read_csv(retain_csv_path)
@@ -487,29 +621,45 @@ def main():
                 retain_prompts.extend(augmented)
         else:
             retain_prompts = base_prompts
+        all_prompts_to_cache.extend(retain_prompts)
 
-        cache_dir = os.path.join(output_dir, "cache")
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_prompts = []
+    for p in all_prompts_to_cache:
+        if p not in seen:
+            seen.add(p)
+            unique_prompts.append(p)
+    all_prompts_to_cache = unique_prompts
+
+    # Setup cache directory and path
+    cache_dir = os.path.join(output_dir, "cache")
+    if is_main:
+        os.makedirs(cache_dir, exist_ok=True)
+
+    cache_name = concepts[0].replace(' ', '_').replace(',', '')[:30] if concepts else 'default'
+    cache_path = os.path.join(cache_dir, f"hyper_cache_{cache_name}.pt")
+
+    # Load or create HyperCache
+    hyper_cache = None
+    if os.path.exists(cache_path):
+        hyper_cache = HyperCache.load(cache_path, expected_prompts=all_prompts_to_cache)
+
+    if hyper_cache is None:
         if is_main:
-            os.makedirs(cache_dir, exist_ok=True)
+            hyper_cache = HyperCache(
+                prompts=all_prompts_to_cache,
+                nv_embed_model=nv_embed_model,
+                nv_embed_tokenizer=nv_embed_tokenizer,
+                device=accelerator.device,
+                batch_size=8,
+            )
+            hyper_cache.save(cache_path)
+        accelerator.wait_for_everyone()
+        if not is_main:
+            hyper_cache = HyperCache.load(cache_path)
 
-        csv_name = os.path.basename(retain_csv_path).replace('.csv', '')
-        cache_key = f"{csv_name}_aug{augment_retain}_nvembed"
-        cache_path = os.path.join(cache_dir, f"retain_embeddings_{cache_key}.pt")
-
-        cache_exists = os.path.exists(cache_path)
-        if not cache_exists:
-            if is_main:
-                print(f"Computing NV-Embed embeddings for {len(retain_prompts)} retain prompts...")
-                all_embs = compute_nv_embed(
-                    retain_prompts, nv_embed_model, nv_embed_tokenizer,
-                    accelerator.device, batch_size=8
-                )
-                retain_embeddings = [emb.cpu() for emb in all_embs]
-                torch.save(retain_embeddings, cache_path)
-            accelerator.wait_for_everyone()
-
-        retain_embeddings = torch.load(cache_path, map_location='cpu')
-        retain_embeddings = [emb.to(accelerator.device) for emb in retain_embeddings]
+    print(f"[HyperCache] {len(hyper_cache)} prompts cached")
     
     criterion = torch.nn.MSELoss()
     losses = []
@@ -539,10 +689,10 @@ def main():
         with accelerator.accumulate(model):
             rank_proc = accelerator.process_index
             world_size = accelerator.num_processes
-            valid_indices = list(range(rank_proc, len(target_embeddings), world_size))
+            valid_indices = list(range(rank_proc, len(target_concepts), world_size))
 
             if len(valid_indices) == 0:
-                concept_idx = rank_proc % len(target_embeddings)
+                concept_idx = rank_proc % len(target_concepts)
             else:
                 concept_idx = random.choice(valid_indices)
 
@@ -559,14 +709,12 @@ def main():
 
                 print(target_text_augmented, ' -> ', mapping_text_augmented)
 
-                with torch.no_grad():
-                    target_emb = compute_nv_embed(
-                        target_text_augmented, nv_embed_model, nv_embed_tokenizer, accelerator.device
-                    )
             else:
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
-                target_emb = target_embeddings[concept_idx]
+
+            # Get embedding from cache (moves from CPU to device)
+            target_emb = hyper_cache.get(target_text_augmented, accelerator.device)
 
             with torch.no_grad():
                 emb_p = base.get_learned_conditioning([target_text_augmented])
@@ -627,11 +775,11 @@ def main():
                     scheduler_remove.step()
 
             loss_retain_total = torch.tensor(0.0, device=accelerator.device)
-            if len(retain_embeddings) > 0:
+            if len(retain_prompts) > 0:
                 for retain_step in range(retain_steps_per_remove):
-                    num_retain_samples = min(retain_batch_size, len(retain_embeddings))
-                    sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
-                    batch_retain_embs = torch.stack(sampled_retain_embs, dim=0).to(accelerator.device)
+                    num_retain_samples = min(retain_batch_size, len(retain_prompts))
+                    sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
+                    batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
 
                     hyper = base.hyper
                     batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
@@ -686,10 +834,8 @@ def main():
         
         if is_main and use_wandb and (iteration + 1) % 100 == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
-                with torch.no_grad():
-                    diag_emb = compute_nv_embed(
-                        diag_prompt, nv_embed_model, nv_embed_tokenizer, accelerator.device
-                    )
+                # Get diagnostic embedding from cache
+                diag_emb = hyper_cache.get(diag_prompt, accelerator.device)
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
                 start_code_diag = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
@@ -763,6 +909,11 @@ def main():
         }
         with open(os.path.join(final_save_path, "train_config.json"), "w") as f:
             json.dump(config_save, f, indent=2)
+
+    # Save cache if modified during training
+    if is_main and hyper_cache is not None and hyper_cache.dirty:
+        print(f"[HyperCache] Saving updated cache...")
+        hyper_cache.save(cache_path)
 
     if is_main and use_wandb:
         wandb.finish()
