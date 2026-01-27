@@ -198,6 +198,12 @@ def parse_args():
         required=True,
         help="Path to YAML configuration file",
     )
+    parser.add_argument(
+        "--use_huge",
+        action="store_true",
+        default=False,
+        help="Use largest CLIP model (ViT-G/14, 1280 dim) instead of ViT-L/14 (768 dim)",
+    )
     return parser.parse_args()
 
 
@@ -364,7 +370,10 @@ def main():
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
     
-    clip_size = 768 if use_pooler else 512
+    if args.use_huge:
+        clip_size = 1280 if use_pooler else 1280
+    else:
+        clip_size = 768 if use_pooler else 512
     target_modules = ["attn2.to_k", "attn2.to_v"]
     
     hyper_lora_factory = partial(
@@ -437,8 +446,15 @@ def main():
     
     sampler = DDIMSampler(accelerator.unwrap_model(model))
     
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
+    if args.use_huge:
+        clip_model_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+        print(f"Using HUGE CLIP model: {clip_model_name} (ViT-G/14, 1280 dim)")
+    else:
+        clip_model_name = "openai/clip-vit-large-patch14"
+        print(f"Using standard CLIP model: {clip_model_name} (ViT-L/14, 768 dim)")
+
+    tokenizer = CLIPTokenizer.from_pretrained(clip_model_name)
+    clip_text_encoder = CLIPTextModel.from_pretrained(clip_model_name).to(accelerator.device).eval()
     
     def encode(text: str):
         return tokenizer(
