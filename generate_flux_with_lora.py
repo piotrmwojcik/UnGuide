@@ -8,11 +8,13 @@ from tqdm import tqdm
 import time
 from functools import partial
 import re
-from diffusers import FluxPipeline
+import dotenv
+dotenv.load_dotenv()
+from diffusers import FluxPipeline, AutoencoderKL, FlowMatchEulerDiscreteScheduler
+from diffusers.models import FluxTransformer2DModel
 from accelerate.utils import set_seed as hf_set_seed
 from huggingface_hub import login
-from transformers import CLIPTextModel, CLIPTokenizer
-from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
+from transformers import CLIPTextModel, CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
@@ -46,12 +48,53 @@ def coerce_prompt(v):
 
     return s
 
+def import_model_class_from_model_name_or_path(pretrained_model_name_or_path: str, revision: str = None, subfolder: str = "text_encoder"):
+        text_encoder_config = PretrainedConfig.from_pretrained(
+            pretrained_model_name_or_path, subfolder=subfolder, revision=revision
+        )
+        model_class = text_encoder_config.architectures[0]
+        if model_class == "CLIPTextModel":
+            from transformers import CLIPTextModel
+            return CLIPTextModel
+        elif model_class == "T5EncoderModel":
+            from transformers import T5EncoderModel
+            return T5EncoderModel
+        else:
+            raise ValueError(f"{model_class} is not supported.")
 
-import os
-import torch
+
+def load_flux_models(basemodel_id="black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, device='cuda:0'):
+    scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(basemodel_id, subfolder="scheduler")
+
+    text_encoder_cls_one = import_model_class_from_model_name_or_path(basemodel_id, None)
+    text_encoder_cls_two = import_model_class_from_model_name_or_path(basemodel_id, None, subfolder="text_encoder_2")
+
+    text_encoder = text_encoder_cls_one.from_pretrained(basemodel_id, subfolder="text_encoder", torch_dtype=torch_dtype)
+    text_encoder_2 = text_encoder_cls_two.from_pretrained(basemodel_id, subfolder="text_encoder_2", torch_dtype=torch_dtype)
+
+    tokenizer = CLIPTokenizer.from_pretrained(basemodel_id, subfolder="tokenizer")
+    tokenizer_2 = T5TokenizerFast.from_pretrained(basemodel_id, subfolder="tokenizer_2")
+
+    vae = AutoencoderKL.from_pretrained(basemodel_id, subfolder="vae", torch_dtype=torch_dtype)
+    transformer = FluxTransformer2DModel.from_pretrained(basemodel_id, subfolder="transformer", torch_dtype=torch_dtype)
+
+    pipe = FluxPipeline(
+        transformer=transformer,
+        scheduler=scheduler,
+        vae=vae,
+        text_encoder=text_encoder,
+        text_encoder_2=text_encoder_2,
+        tokenizer=tokenizer,
+        tokenizer_2=tokenizer_2,
+    )
+    return pipe, transformer, scheduler
 
 def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
-    transformer = model_wrapper.transformer
+    # Accept both transformer or pipe as input
+    if hasattr(model_wrapper, 'transformer'):
+        transformer = model_wrapper.transformer
+    else:
+        transformer = model_wrapper
 
     # real tensors
     tensor_map = {n: p for n, p in transformer.named_parameters()}
@@ -90,7 +133,8 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
             diff2 = (t.detach().float() - v.detach().float()).norm().item()
             print(f"[AFTER ] {k}: ||t||={after:.4e}, ||t-v||={diff2:.4e}")
 
-    return model_wrapper
+    return transformer
+
 
 
 if __name__ == "__main__":
@@ -120,29 +164,21 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
-
     torch.set_num_threads(torch.get_num_threads())
 
     # Load Flux pipeline
-    cache_dir = "./models"
-    os.makedirs(cache_dir, exist_ok=True)
-    pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16, cache_dir=cache_dir)
-    #pipe.vae.enable_slicing()
-    #pipe.vae.enable_tiling()
-    pipe = pipe.to(device)
 
+    # Load models exactly as in train_flux_like_esd.py
+    pipe, transformer, scheduler = load_flux_models(
+        basemodel_id="black-forest-labs/FLUX.1-dev",
+        torch_dtype=torch.bfloat16,
+        device=device
+    )
+    pipe = pipe.to(device)
     pipe_device = device
 
     # Load prompts
     df = pd.read_csv(args.csv_path, index_col=0)
-
-    model_wrapper = pipe.transformer
-
-    # Check if this is an NSFW dataset with nudity_percentage column
-    #if args.nudity and "nudity_percentage" in df.columns:
-    #    df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
-    #    df = df[df["nudity_percentage"].gt(0)]
-    #    df = df.sort_values(by="nudity_percentage", ascending=False)
 
     save_dir = os.path.join(args.output_dir, args.save_folder)
     os.makedirs(save_dir, exist_ok=True)
@@ -150,28 +186,11 @@ if __name__ == "__main__":
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(pipe_device).eval()
 
-
-    ALLOWED_PROMPTS = [
-        "Nudity",
-        "Pornography",
-        "Erotic Art",
-        "Naked man",
-        "a photo of a naked woman",
-        "a photo of a nude man",
-        "fully clothed person",
-        "educational or informational material",
-        "decorative art with non-romantic themes",
-        "fully dressed man",
-    ]
-
-    images_generated = 0
-
     print("Setting up HyperLoRA...")
-    model_wrapper.hyper = HypernetworkManager()
+    transformer.hyper = HypernetworkManager()
 
     clip_size = 768 if args.use_pooler else 512
     target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
-
 
     hyper_lora_factory = partial(
         HyperLoRALinear,
@@ -183,16 +202,16 @@ if __name__ == "__main__":
     )
 
     hyper_lora_layers = inject_hyper_lora(
-        model_wrapper, target_modules, hyper_lora_factory
+        transformer, target_modules, hyper_lora_factory
     )
 
     for layer_name, layer in hyper_lora_layers:
-        layer.set_parent_model(model_wrapper)
-        model_wrapper.hyper.add_hyperlora(layer_name, layer.hyper_lora)
+        layer.set_parent_model(transformer)
+        transformer.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    load_lora_weights(pipe, args.lora_path, device)
+    load_lora_weights(transformer, args.lora_path, device)
 
     df = pd.read_csv(args.csv_path, index_col=0)
 
@@ -227,8 +246,8 @@ if __name__ == "__main__":
 
         # Get the device where HyperLoRA layers are located
         hyper_device = (
-            model_wrapper.hyper.hyper_layers[0].alpha.device
-            if model_wrapper.hyper.hyper_layers
+            transformer.hyper.hyper_layers[0].alpha.device
+            if transformer.hyper.hyper_layers
             else torch.device("cpu")
         )
 
@@ -247,19 +266,19 @@ if __name__ == "__main__":
                 else:
                     context_emb = clip_text_encoder(inputs).last_hidden_state.detach()
 
+
         context_emb = context_emb.to(device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], device=hyper_device)
 
-
         STEP = 300
-        hyper_device = model_wrapper.hyper.hyper_layers[0].alpha.device if model_wrapper.hyper.hyper_layers else "cpu"
-        model_wrapper.hyper.set_context(context_emb.to(device=hyper_device),
-                                       torch.tensor([STEP], device=hyper_device))
-        model_wrapper.hyper.compute_and_cache_loras(context_emb.to(device=hyper_device),
-                                           torch.tensor([STEP], device=hyper_device))
+        hyper_device = transformer.hyper.hyper_layers[0].alpha.device if transformer.hyper.hyper_layers else "cpu"
+        transformer.hyper.set_context(context_emb.to(device=hyper_device),
+                         torch.tensor([STEP], device=hyper_device))
+        transformer.hyper.compute_and_cache_loras(context_emb.to(device=hyper_device),
+                           torch.tensor([STEP], device=hyper_device))
 
-        print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
-        print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
+        print("cache size:", len(transformer.hyper.lora_weights_cache))
+        print("example cache key:", next(iter(transformer.hyper.lora_weights_cache.keys())))
 
         seed = int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
