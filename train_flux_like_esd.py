@@ -275,7 +275,10 @@ def main():
     )
     
     is_main = accelerator.is_main_process
-    
+
+    if is_main and WANDB_AVAILABLE and config.get('report_to') == 'wandb':
+        wandb.init(project="UnGuide", name=f"{config_name}_training", config=config)
+
     hf_set_seed(seed)
 
     # Models
@@ -417,8 +420,6 @@ def main():
     # TRAINING LOOP
     # =========================================================================
 
-    if is_main and WANDB_AVAILABLE and config.get('report_to') == 'wandb':
-        wandb.init(project="UnGuide", name=f"{config_name}_training", config=config)
 
     print("Starting Training...")
     progress_bar = tqdm(range(max_train_steps), disable=not is_main)
