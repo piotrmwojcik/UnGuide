@@ -57,7 +57,7 @@ UnHype:
   gradient_accumulation_steps: 1
 
   # Caching
-  use_latent_cache: true
+  use_latent_cache: false
   cache_dir: "latents_cache_flux"
   cache_name: "nudity_optimized"
 
