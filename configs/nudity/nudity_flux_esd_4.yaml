@@ -52,7 +52,7 @@ UnHype:
   step_size: [800, 1600]
   gamma: 0.5                     # Gentler decay
 
-  max_train_steps: 2000          # 2000 steps usually enough for Flux LoRA
+  max_train_steps: 6000          # 2000 steps usually enough for Flux LoRA
   hyper_train_steps: 300         # Time-context range
   gradient_accumulation_steps: 1
 
@@ -69,18 +69,18 @@ UnHype:
   use_orig_concat: true
 
   # >>> LOSS WEIGHTS (Balanced to prevent noise) >>>
-  
+
   # ESD Guidance
-  negative_guidance: 0.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
+  negative_guidance: 1.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
   guidance_scale: 3.0
   start_guidance: 3.0     # Flux uses lower guidance naturally
   internal_lr: 1.0e-03    # Hypernetwork simulation LR
 
   # Loss Balancing
-  # CHANGED: 100.0/0.0001 caused exploding gradients (noise). 
+  # CHANGED: 100.0/0.0001 caused exploding gradients (noise).
   # 1.0/1.0 ensures equal attention to erasing nudity and keeping image quality.
-  remove_weight: 100.0      
-  retain_weight: 1.0      
+  remove_weight: 100.0
+  retain_weight: 1.0
 
   # >>> HARDWARE & PATHS >>>
   output_dir: output_nudity_flux_final_4
