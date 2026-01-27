@@ -61,7 +61,7 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     lora_state_dict = torch.load(lora_path, map_location="cpu")
 
     lora_state_dict = {
-        k.replace("single_transformer.", "transformer.", 1): v
+        k.replace("single_transformer", "transformer"): v
         for k, v in lora_state_dict.items()
     }
 
