@@ -135,7 +135,7 @@ class HyperLora(nn.Module):
         # )
         std_dev = 1 / (rank ** 0.5)
         self.register_buffer(
-            "xL_const_flat", torch.rand(1, in_dim * rank, dtype=self.dtype) * std_dev, persistent=False
+            "xL_const_flat", torch.randn(1, in_dim * rank, dtype=self.dtype) * std_dev, persistent=False
         )
         self.register_buffer(
             "xR_const_flat", torch.zeros(1, out_dim * rank, dtype=self.dtype), persistent=False

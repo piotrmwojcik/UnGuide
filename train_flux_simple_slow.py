@@ -1138,7 +1138,7 @@ def main():
         vae_config_block_out_channels = diag_pipe.vae.config.block_out_channels
 
         # # Random timestep
-        steps = torch.arange(0, ddim_steps, device=accelerator.device)  # (0 to ddim_steps-1)
+        #steps = torch.arange(0, ddim_steps, device=accelerator.device)  # (0 to ddim_steps-1)
 
         # # normalize to (0, 1]
         # s = steps.float() / float(ddim_steps - 1)
