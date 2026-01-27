@@ -564,7 +564,7 @@ def main():
         if len(retain_prompts) > 0:
             optimizer_retain.zero_grad(set_to_none=True)
             
-            num_samples = 5000
+            num_samples = 500
             indices = torch.randint(0, len(all_retain_pooled_tensor), (num_samples,))
             hyper_retain_emb = all_retain_pooled_tensor[indices].to(accelerator.device, dtype=weight_dtype)
             
