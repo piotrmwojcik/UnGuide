@@ -212,7 +212,7 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
 
     images_generated = 0
-    for image_id, prompt in tqdm(enumerate(ALLOWED_PROMPT), total=len(ALLOWED_PROMPT)):
+    for image_id, prompt in tqdm(enumerate(ALLOWED_PROMPTS), total=len(ALLOWED_PROMPTS)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
 
