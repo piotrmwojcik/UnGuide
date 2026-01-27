@@ -220,7 +220,7 @@ UnGuide_Celebrity_100_NVEmbed:
   # Training hyperparameters
   drop_lr_on_plateau: false
   learning_rate_remove: 5.0e-04
-  learning_rate_retain: 7.5e-04
+  learning_rate_retain: 5.0e-04
   plateau_patience_remove: 100
   plateau_patience_retain: 100
   max_train_steps: 6000  # Number of actual training iterations
@@ -231,7 +231,7 @@ UnGuide_Celebrity_100_NVEmbed:
   # Note: clip_size is now set automatically to 4096 (NV-Embed-v2 dimension) in train_simple.py
   rank: 6
   lora_alpha: 0.01
-  internal_size: 256  # Internal projection size for HyperLoRA (projects 4096 -> internal_size)
+  internal_size: 512  # Internal projection size for HyperLoRA (projects 4096 -> internal_size)
 
   # Loss weights
   negative_guidance: 0.3
