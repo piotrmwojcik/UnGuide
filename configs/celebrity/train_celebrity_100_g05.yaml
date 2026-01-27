@@ -233,6 +233,8 @@ UnGuide_Celebrity_100:
 
   internal_size: 256
 
+  use_huge: true
+
   # Loss weights
   negative_guidance: 1.5
   guidance_scale: 7.5
