@@ -42,12 +42,12 @@ UnHype:
   drop_lr_on_plateau: false
 
   # >>> CRITICAL HYPERPARAMETERS (Fixed for Stability) >>>
-  
+
   # Learning Rates - Lowered for Flux stability
   learning_rate: 1.0e-05         # Global base (safety fallback)
   learning_rate_remove: 1.0e-05  # Main erasing LR (Standard LoRA range)
   learning_rate_retain: 1.0e-05  # Retain LR (Keep similar to remove for balance)
-  
+
   # Schedulers
   step_size: [800, 1600]
   gamma: 0.5                     # Gentler decay
@@ -71,7 +71,7 @@ UnHype:
   # >>> LOSS WEIGHTS (Balanced to prevent noise) >>>
 
   # ESD Guidance
-  negative_guidance: 1.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
+  negative_guidance: 0.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
   guidance_scale: 3.0
   start_guidance: 3.0     # Flux uses lower guidance naturally
   internal_lr: 1.0e-03    # Hypernetwork simulation LR
@@ -79,7 +79,7 @@ UnHype:
   # Loss Balancing
   # CHANGED: 100.0/0.0001 caused exploding gradients (noise).
   # 1.0/1.0 ensures equal attention to erasing nudity and keeping image quality.
-  remove_weight: 70.0
+  remove_weight: 10.0
   retain_weight: 1.0
 
   # >>> HARDWARE & PATHS >>>
