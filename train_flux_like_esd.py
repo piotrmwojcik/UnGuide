@@ -351,8 +351,9 @@ def main():
 
     # 1. Target & Mapping Embeddings
     with torch.no_grad():
-        target_text = all_augmented_prompts[random.randint(0, len(all_augmented_prompts)-1)]
-        mapping_text = all_augmented_mapping[random.randint(0, len(all_augmented_mapping)-1)] if all_augmented_mapping else ""
+        p_id = random.randint(0, len(all_augmented_prompts)-1)
+        target_text = all_augmented_prompts[p_id]
+        mapping_text = all_augmented_mapping[p_id] if all_augmented_mapping else ""
         
         prompt_embeds_all, pooled_prompt_embeds_all, text_ids = pipe.encode_prompt(
             [target_text, mapping_text], prompt_2=[target_text, mapping_text], max_sequence_length=512
