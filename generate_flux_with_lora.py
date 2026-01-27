@@ -58,6 +58,16 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     tensor_map.update({n: b for n, b in transformer.named_buffers()})
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
+    # Compatible with both accelerator.save and torch.save (plain dict)
+    if isinstance(lora_state_dict, dict):
+        # Accept plain dict (torch.save from train_flux_like_esd.py)
+        if 'state_dict' in lora_state_dict:
+            lora_state_dict = lora_state_dict['state_dict']
+        elif 'module' in lora_state_dict:
+            lora_state_dict = lora_state_dict['module']
+        # If it's a flat dict of tensors, use as is
+    if not isinstance(lora_state_dict, dict):
+        raise ValueError(f"Loaded LoRA checkpoint is not a dict: {type(lora_state_dict)}")
 
     # pick a few keys that exist in both
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
