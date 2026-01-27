@@ -74,7 +74,7 @@ UnHype:
   negative_guidance: 0.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
   guidance_scale: 3.0
   start_guidance: 3.0     # Flux uses lower guidance naturally
-  internal_lr: 1.0e-03    # Hypernetwork simulation LR
+  internal_lr: 5.0e-04    # Hypernetwork simulation LR
 
   # Loss Balancing
   # CHANGED: 100.0/0.0001 caused exploding gradients (noise).
