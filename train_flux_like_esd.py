@@ -287,6 +287,10 @@ def main():
     pipe.text_encoder_2.requires_grad_(False)
     pipe.vae.requires_grad_(False)
     transformer.requires_grad_(False)
+    
+    if args.low_memory:
+        print("Enabling Gradient Checkpointing to save VRAM...")
+        transformer.enable_gradient_checkpointing()
 
     # HyperLoRA
     transformer.hyper = HypernetworkManager()
@@ -295,7 +299,15 @@ def main():
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    target_modules = ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"]
+    target_modules = [
+        # Image Stream
+        "attn.to_k",
+        "attn.to_q",
+        
+        # Text Stream
+        "attn.add_k_proj",
+        "attn.add_q_proj",
+    ]
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
     
     for layer_name, layer in hyper_lora_layers:
