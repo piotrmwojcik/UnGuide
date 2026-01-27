@@ -303,12 +303,9 @@ def main():
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    target_modules = [
-        "attn.to_k",
-        "attn.to_q",
-        "attn.add_k_proj",
-        "attn.add_q_proj",
-    ]
+    # Default targets or customized
+    target_modules = ["attn.to_k", "attn.to_q", "attn.add_k_proj", "attn.add_q_proj"]
+    
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
     
     for layer_name, layer in hyper_lora_layers:
@@ -587,8 +584,20 @@ def main():
                     latents = pipe._pack_latents(latents, 1, 16, 64, 64)
                     
                     # Scheduler setup
-                    pipe.scheduler.set_timesteps(28, device=accelerator.device)
-                    timesteps = pipe.scheduler.timesteps
+                    num_inference_steps = 28
+                    sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
+                    
+                    # Calculate mu for dynamic shifting (CRITICAL FIX)
+                    image_seq_len = latents.shape[1]
+                    mu = calculate_shift(
+                        image_seq_len, pipe.scheduler.config.base_image_seq_len, pipe.scheduler.config.max_image_seq_len,
+                        pipe.scheduler.config.base_shift, pipe.scheduler.config.max_shift,
+                    )
+                    
+                    timesteps, _ = retrieve_timesteps(
+                        pipe.scheduler, num_inference_steps, device=accelerator.device, 
+                        timesteps=None, sigmas=sigmas, mu=mu
+                    )
                     
                     # IDs
                     latent_image_ids = pipe._prepare_latent_image_ids(1, 32, 32, accelerator.device, weight_dtype)
