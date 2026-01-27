@@ -25,6 +25,7 @@ from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
+import open_clip
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
@@ -447,14 +448,14 @@ def main():
     sampler = DDIMSampler(accelerator.unwrap_model(model))
     
     if args.use_huge:
-        clip_model_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
-        print(f"Using HUGE CLIP model: {clip_model_name} (ViT-G/14, 1280 dim)")
+        print("Using HUGE CLIP model: ViT-bigG-14 (1280 dim) via open_clip")
+        clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
+        clip_text_encoder = clip_model.to(accelerator.device).eval()
+        tokenizer = open_clip.get_tokenizer('ViT-bigG-14')
     else:
-        clip_model_name = "openai/clip-vit-large-patch14"
-        print(f"Using standard CLIP model: {clip_model_name} (ViT-L/14, 768 dim)")
-
-    tokenizer = CLIPTokenizer.from_pretrained(clip_model_name)
-    clip_text_encoder = CLIPTextModel.from_pretrained(clip_model_name).to(accelerator.device).eval()
+        print("Using standard CLIP model: ViT-L/14 (768 dim)")
+        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+        clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
     
     def encode(text: str):
         return tokenizer(
