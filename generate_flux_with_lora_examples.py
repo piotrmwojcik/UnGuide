@@ -260,7 +260,7 @@ if __name__ == "__main__":
         print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
 
-        seed = int(row.get("evaluation_seed", 0))
+        seed = int(1024)
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
