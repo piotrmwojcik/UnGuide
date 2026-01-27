@@ -288,8 +288,12 @@ def main():
     pipe.vae.requires_grad_(False)
     transformer.requires_grad_(False)
     
+    # >>> VAE OPTIMIZATIONS <<<
     if args.low_memory:
-        print("Enabling Gradient Checkpointing to save VRAM...")
+        print("Enabling VAE Slicing and Tiling for Low Memory...")
+        pipe.vae.enable_slicing()
+        pipe.vae.enable_tiling()
+        print("Enabling Gradient Checkpointing for Transformer...")
         transformer.enable_gradient_checkpointing()
 
     # HyperLoRA
@@ -300,11 +304,8 @@ def main():
         dtype=torch.float32, internal_size=internal_size
     )
     target_modules = [
-        # Image Stream
         "attn.to_k",
         "attn.to_q",
-        
-        # Text Stream
         "attn.add_k_proj",
         "attn.add_q_proj",
     ]
@@ -346,8 +347,7 @@ def main():
     pipe.text_encoder.to(accelerator.device)
     pipe.text_encoder_2.to(accelerator.device)
 
-    # 1. Target & Mapping Embeddings (For the current concept pair)
-    # We sample ONE pair for the whole run to keep it simple, or you can loop later.
+    # 1. Target & Mapping Embeddings
     with torch.no_grad():
         target_text = all_augmented_prompts[random.randint(0, len(all_augmented_prompts)-1)]
         mapping_text = all_augmented_mapping[random.randint(0, len(all_augmented_mapping)-1)] if all_augmented_mapping else ""
@@ -367,7 +367,6 @@ def main():
         hyper_emb_target = pooled_target[0:1].detach()
 
     # 2. Process ALL Retain Prompts (COCO)
-    # We only need 'pooled_prompt_embeds' (768-dim) for HyperNetwork regularization.
     print(f"Pre-computing pooled embeddings for ALL {len(retain_prompts)} retain prompts...")
     all_retain_pooled_list = []
     encode_batch_size = 128 
@@ -375,17 +374,13 @@ def main():
     for i in tqdm(range(0, len(retain_prompts), encode_batch_size), desc="Encoding Retain Set"):
         batch_prompts = retain_prompts[i : i + encode_batch_size]
         with torch.no_grad():
-            # encode_prompt returns (prompt_embeds, pooled_prompt_embeds, text_ids)
-            # We ignore prompt_embeds (T5) to save massive RAM
             _, batch_pooled, _ = pipe.encode_prompt(
                 batch_prompts, 
                 prompt_2=batch_prompts, 
-                max_sequence_length=77 # Standard for CLIP
+                max_sequence_length=77 
             )
-            # Store in CPU list
             all_retain_pooled_list.append(batch_pooled.cpu())
 
-    # Concatenate into one large tensor [N, 768]
     if len(all_retain_pooled_list) > 0:
         all_retain_pooled_tensor = torch.cat(all_retain_pooled_list, dim=0)
         print(f"Retain Embeddings Shape: {all_retain_pooled_tensor.shape} (Size: {all_retain_pooled_tensor.element_size() * all_retain_pooled_tensor.nelement() / 1024**2:.2f} MB)")
@@ -394,7 +389,7 @@ def main():
         all_retain_pooled_tensor = hyper_emb_target.cpu()
 
     # 3. Pre-compute Diagnostic Embeddings
-    print("Pre-computing Diagnostic Embeddings (to avoid loading T5 later)...")
+    print("Pre-computing Diagnostic Embeddings...")
     diagnostic_cache = {}
     for diag_prompt in diagnostic_prompts:
         with torch.no_grad():
@@ -411,7 +406,6 @@ def main():
     # 4. Remove Encoders if Low Memory
     if args.low_memory:
         print("Removing Text Encoders from memory completely to save VRAM...")
-        # Set to None to prevent usage and allow GC
         pipe.text_encoder = None
         pipe.text_encoder_2 = None
         gc.collect()
@@ -443,7 +437,6 @@ def main():
         with accelerator.accumulate(transformer):
             run_till = random.randint(0, config.get('num_inference_steps', 28) - 1)
             
-            # Use pre-computed training embeddings (moved to GPU)
             txt_ids_input = text_ids_target.to(accelerator.device, dtype=weight_dtype)
             if txt_ids_input.ndim == 3: 
                 txt_ids_input = txt_ids_input[0]
@@ -461,7 +454,6 @@ def main():
             
             unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
             unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-            # IMPORTANT: retain_grad to allow gradient flow from loss_aux to hypernetwork
             unwrapped_model.hyper.retain_grad_for_cached_lora()
 
             guidance_vec = torch.full((batch_size,), 3.0, device=accelerator.device, dtype=weight_dtype)
@@ -497,59 +489,46 @@ def main():
             target_signal = e_0 - negative_guidance * (e_p_base - e_0)
             loss_aux = loss_fn(e_n.float(), target_signal.float())
             
-            # Backward Pass 1: Get gradients w.r.t LoRA weights
             accelerator.backward(loss_aux)
             
             grads_flat = unwrapped_model.hyper.flatten_cached_grads_from_cache()
             
             if grads_flat is not None:
-                # Detach to stop gradient flow back to loss_aux
                 target_delta = (-1.0 * internal_lr) * grads_flat.detach()
                 
-                # Clear accumulated gradients from loss_aux
                 optimizer_remove.zero_grad(set_to_none=True)
                 
-                # Re-run HyperNet for Loss Remove (Fresh Graph)
-                # t state
-                unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-                tensors_flat_t = unwrapped_model.hyper.flatten_cached_from_cache()
-                
-                # t+1 state
                 t_next = hyper_t_tensor + 1
                 unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), t_next)
                 unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), t_next)
                 tensors_flat_t1 = unwrapped_model.hyper.flatten_cached_from_cache()
                 
+                unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
+                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
+                tensors_flat_t = unwrapped_model.hyper.flatten_cached_from_cache()
+
                 delta_live = tensors_flat_t1 - tensors_flat_t
                 loss_remove = weight_remove * loss_fn(delta_live, target_delta)
                 
-                # Backward Pass 2: Optimize HyperNet
                 accelerator.backward(loss_remove)
                 optimizer_remove.step()
             else:
                 loss_remove = torch.tensor(0.0)
 
-        # --- Retain Step (Sampled from ALL COCO) ---
+        # --- Retain Step ---
         if len(retain_prompts) > 0:
             optimizer_retain.zero_grad(set_to_none=True)
             
-            # Randomly sample indices from the pre-computed 30k+ tensor
             num_samples = 8 
             indices = torch.randint(0, len(all_retain_pooled_tensor), (num_samples,))
-            
-            # Fetch embeddings and move to GPU
             hyper_retain_emb = all_retain_pooled_tensor[indices].to(accelerator.device, dtype=weight_dtype)
             
-            # Calculate at t=0
             unwrapped_model.hyper.compute_and_cache_loras(hyper_retain_emb, torch.zeros(num_samples, device=accelerator.device))
             retain_t0 = unwrapped_model.hyper.flatten_cached_from_cache()
             
-            # Calculate at t=1
             unwrapped_model.hyper.compute_and_cache_loras(hyper_retain_emb, torch.ones(num_samples, device=accelerator.device))
             retain_t1 = unwrapped_model.hyper.flatten_cached_from_cache()
             
-            # Minimize change
             loss_retain = weight_retain * (retain_t1 - retain_t0).pow(2).mean()
             accelerator.backward(loss_retain)
             optimizer_retain.step()
@@ -574,18 +553,20 @@ def main():
         
         progress_bar.set_postfix(rem=f"{loss_remove.item():.2e}", ret=f"{loss_retain.item():.2e}")
 
-        # Image Gen (Using Pre-computed Embeddings)
+        # Image Gen (Manual VAE/Transformer Swap)
         if is_main and (step + 1) % 100 == 0:
-            print("Generating diagnostic images...")
+            print("Generating diagnostic images... (Model Swapping Strategy)")
             
-            # Clear state
+            # 1. Clear Memory
             optimizer_remove.zero_grad(set_to_none=True)
             optimizer_retain.zero_grad(set_to_none=True)
             gc.collect()
             torch.cuda.empty_cache()
 
-            # Ensure VAE is on GPU (usually small enough)
-            pipe.vae.to(accelerator.device)
+            # 2. Swap Transformer to CPU
+            if args.low_memory:
+                transformer.to("cpu")
+                torch.cuda.empty_cache()
 
             for diag_prompt in diagnostic_prompts:
                 # Retrieve pre-computed embeddings
@@ -594,27 +575,67 @@ def main():
                 
                 pe = d_data["prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
                 ppe = d_data["pooled_prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
-                # Text IDs are inside 'prompt_embeds' or handled by pipe if we pass embeds
-                # Note: FluxPipeline normally handles text_ids if prompt_embeds is passed.
-                # However, to be safe, we can manually pass what we cached if pipe supports it,
-                # or rely on standard pipe behavior which computes ids if missing (but we killed encoders).
-                
-                # We need to rely on pipe using passed embeddings ONLY.
-                # FluxPipeline's __call__ accepts prompt_embeds and pooled_prompt_embeds.
+                tids = d_data["text_ids"].to(accelerator.device, dtype=weight_dtype)
+                if tids.ndim == 3: tids = tids[0]
+
+                # 3. Bring Transformer to GPU for Denoising
+                transformer.to(accelerator.device)
                 
                 with torch.no_grad():
-                    img = pipe(
-                        prompt_embeds=pe,
-                        pooled_prompt_embeds=ppe,
-                        height=512, width=512, num_inference_steps=28,
-                        guidance_scale=3.5, generator=torch.Generator(device=accelerator.device).manual_seed(seed)
-                    ).images[0]
+                    # Initialize Latents
+                    latents = torch.randn((1, 16, 64, 64), device=accelerator.device, dtype=weight_dtype)
+                    latents = pipe._pack_latents(latents, 1, 16, 64, 64)
+                    
+                    # Scheduler setup
+                    pipe.scheduler.set_timesteps(28, device=accelerator.device)
+                    timesteps = pipe.scheduler.timesteps
+                    
+                    # IDs
+                    latent_image_ids = pipe._prepare_latent_image_ids(1, 32, 32, accelerator.device, weight_dtype)
+                    guidance = torch.tensor([3.5], device=accelerator.device, dtype=weight_dtype)
+                    
+                    # Denoise Loop
+                    for t in timesteps:
+                        vec_t = t.expand(latents.shape[0]).to(dtype=weight_dtype)
+                        noise_pred = transformer(
+                            hidden_states=latents,
+                            timestep=vec_t / 1000,
+                            guidance=guidance,
+                            pooled_projections=ppe,
+                            encoder_hidden_states=pe,
+                            txt_ids=tids,
+                            img_ids=latent_image_ids,
+                            return_dict=False
+                        )[0]
+                        latents = pipe.scheduler.step(noise_pred, t, latents, return_dict=False)[0]
+                
+                # 4. Swap Transformer -> CPU
+                if args.low_memory:
+                    transformer.to("cpu")
+                    torch.cuda.empty_cache()
+                
+                # 5. Bring VAE to GPU for Decoding
+                pipe.vae.to(accelerator.device)
+                
+                with torch.no_grad():
+                    # Unpack
+                    latents = pipe._unpack_latents(latents, 64, 64, pipe.vae.config.latent_channels)
+                    latents = (latents / pipe.vae.config.scaling_factor) + pipe.vae.config.shift_factor
+                    
+                    # Decode
+                    image = pipe.vae.decode(latents, return_dict=False)[0]
+                    image = pipe.image_processor.postprocess(image, output_type="pil")[0]
                     
                     if WANDB_AVAILABLE and config.get('report_to') == 'wandb':
-                        wandb.log({f"diag_{diag_prompt}": wandb.Image(img)}, step=step)
-            
-            # Cleanup VAE if super tight
-            # pipe.vae.to("cpu") 
+                        wandb.log({f"diag_{diag_prompt}": wandb.Image(image)}, step=step)
+                
+                # 6. Cleanup VAE
+                if args.low_memory:
+                    pipe.vae.to("cpu")
+                    torch.cuda.empty_cache()
+
+            # Restore Transformer to GPU for Training
+            transformer.to(accelerator.device)
             gc.collect()
             torch.cuda.empty_cache()
 
