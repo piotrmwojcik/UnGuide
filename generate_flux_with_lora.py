@@ -160,7 +160,7 @@ if __name__ == "__main__":
     model_wrapper.hyper = HypernetworkManager()
 
     clip_size = 768 if args.use_pooler else 512
-    target_modules = ["attn.add_k_proj", "attn.add_q_proj", "attn.add_v_proj"]
+    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
 
 
     hyper_lora_factory = partial(
