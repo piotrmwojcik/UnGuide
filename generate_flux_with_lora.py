@@ -117,6 +117,7 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     # pick a few keys that exist in both
     #print(tensor_map.keys())
     #print(lora_state_dict.keys())
+    print(tensor_map.keys())
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
     print("ckpt keys:", len(lora_state_dict), "common keys:", len(common))
     print("example common keys:", common[:10])
