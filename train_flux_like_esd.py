@@ -63,8 +63,7 @@ def load_config(config_path: str) -> dict:
 def parse_args():
     parser = argparse.ArgumentParser(description="HyperLoRA Training for Flux (Merged)")
     parser.add_argument('--config', type=str, required=True, help="Path to YAML configuration file")
-    # NEW FLAG: Controls aggressive VRAM optimization
-    parser.add_argument('--low_memory', action='store_true', help="Offload/Remove text encoders to save VRAM (recommended for <80GB VRAM)")
+    parser.add_argument('--low_memory', action='store_true', help="Offload/Remove text encoders to save VRAM")
     return parser.parse_args()
 
 def import_model_class_from_model_name_or_path(pretrained_model_name_or_path: str, revision: str, subfolder: str = "text_encoder"):
@@ -118,13 +117,9 @@ def get_noisy_latents(pipe, prompt_embeds, pooled_prompt_embeds, text_ids, num_i
     h_latent = height // 8
     w_latent = width // 8
     
-    # 1. Generate random latents
     latents = torch.randn((batch_size, num_channels_latents, h_latent, w_latent), generator=generator, device=device, dtype=dtype)
-    
-    # 2. Pack latents (Flux specific packing)
     latents = pipe._pack_latents(latents, batch_size, num_channels_latents, h_latent, w_latent)
     
-    # 3. Timesteps
     sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps)
     image_seq_len = latents.shape[1]
     mu = calculate_shift(
@@ -135,18 +130,15 @@ def get_noisy_latents(pipe, prompt_embeds, pooled_prompt_embeds, text_ids, num_i
         pipe.scheduler, num_inference_steps, device, None, sigmas, mu=mu,
     )
     
-    # 4. Prepare Image IDs (Use halved dimensions for packed latents)
     latent_image_ids = pipe._prepare_latent_image_ids(batch_size, h_latent // 2, w_latent // 2, device, dtype)
     
     prompt_embeds = prompt_embeds.to(dtype)
     pooled_prompt_embeds = pooled_prompt_embeds.to(dtype)
     text_ids = text_ids.to(dtype)
     
-    # Handle text_ids batch dimension
     if text_ids.ndim == 3:
         text_ids = text_ids[0]
 
-    # Guidance vector
     guidance_vec = torch.full((batch_size,), 3.5, device=device, dtype=dtype)
     
     current_timestep = None
@@ -177,7 +169,6 @@ def main():
     if args.low_memory:
         print(">>> LOW MEMORY MODE ENABLED (Pre-computing & Removing Encoders) <<<")
     
-    # Extract params
     pretrained_model_name_or_path = config.get('pretrained_model_name_or_path', "black-forest-labs/FLUX.1-dev")
     max_train_steps = config.get('max_train_steps', 120)
     hyper_train_steps = config.get('hyper_train_steps', 500)
@@ -205,12 +196,10 @@ def main():
     mapping_concept = config.get('mapping_concept', [])
     retain_csv_path = config.get('retain_csv_path', None)
     
-    # Diagnostic
     diagnostic_prompts = config.get('diagnostic_prompts', [])
     if not diagnostic_prompts:
         diagnostic_prompts = [f"a photo of {concepts[0]}" if concepts else "a photo of a person"]
 
-    # Scheduler Params
     gamma = config.get('gamma', 0.9)
     step_size = config.get('step_size', 300)
     drop_lr_on_plateau = config.get('drop_lr_on_plateau', False)
@@ -218,7 +207,6 @@ def main():
     plateau_patience_remove = config.get('plateau_patience_remove', 10)
     plateau_patience_retain = config.get('plateau_patience_retain', 10)
 
-    # W&B check
     try:
         import wandb
         WANDB_AVAILABLE = hasattr(wandb, 'init')
@@ -226,7 +214,7 @@ def main():
         wandb = None
         WANDB_AVAILABLE = False
 
-    # Prep Data
+    # --- Data Preparation ---
     all_augmented_prompts = []
     target_concepts = concepts if isinstance(concepts, list) else [concepts]
     if augment_target:
@@ -243,11 +231,16 @@ def main():
                 mapping_per_target.append(mapping_concept[i])
             else:
                 mapping_per_target.append(mapping_concept[0])
+        
         if augment_target:
             for mapping_text in mapping_per_target:
                 all_augmented_mapping.extend(prompt_augmentation(mapping_text, augment=True))
         else:
             all_augmented_mapping = mapping_per_target.copy()
+            
+        if len(all_augmented_mapping) != len(all_augmented_prompts):
+             while len(all_augmented_mapping) < len(all_augmented_prompts):
+                 all_augmented_mapping.extend(all_augmented_mapping[:len(all_augmented_prompts) - len(all_augmented_mapping)])
     else:
         all_augmented_mapping = []
 
@@ -265,7 +258,6 @@ def main():
     else:
         retain_prompts = [config.get('retain_concept', 'a photo of a person')]
 
-    # Accelerator
     project_config = ProjectConfiguration(project_dir=output_dir, logging_dir="logs")
     accelerator = Accelerator(
         mixed_precision=config.get('mixed_precision', 'bf16'),
@@ -281,17 +273,14 @@ def main():
 
     hf_set_seed(seed)
 
-    # Models
     weight_dtype = torch.bfloat16 if accelerator.mixed_precision == "bf16" else torch.float32
     pipe, transformer, scheduler = load_flux_models(pretrained_model_name_or_path, torch_dtype=weight_dtype, device=accelerator.device)
     
-    # Freeze
     pipe.text_encoder.requires_grad_(False)
     pipe.text_encoder_2.requires_grad_(False)
     pipe.vae.requires_grad_(False)
     transformer.requires_grad_(False)
     
-    # >>> VAE OPTIMIZATIONS <<<
     if args.low_memory:
         print("Enabling VAE Slicing and Tiling for Low Memory...")
         pipe.vae.enable_slicing()
@@ -299,30 +288,23 @@ def main():
         print("Enabling Gradient Checkpointing for Transformer...")
         transformer.enable_gradient_checkpointing()
 
-    # HyperLoRA
     transformer.hyper = HypernetworkManager()
     hyper_lora_factory = partial(
         HyperLoRALinear, clip_size=768, rank=rank, alpha=lora_alpha,
         train_steps=hyper_train_steps, use_orig_concat=use_orig_concat,
         dtype=torch.float32, internal_size=internal_size
     )
-    # Load target_modules from config or use default
+    
     target_modules = config.get('target_modules', ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"])
-    print(f"[INFO] target_modules: {target_modules}")
-    if WANDB_AVAILABLE and is_main:
-        wandb.config.update({'target_modules': target_modules}, allow_val_change=True)
-
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(transformer)
 
-    # Optimizers
     trainable_params = [p for p in transformer.parameters() if p.requires_grad]
     optimizer_remove = torch.optim.Adam(trainable_params, lr=learning_rate_remove)
     optimizer_retain = torch.optim.Adam(trainable_params, lr=learning_rate_retain)
 
-    # Schedulers
     if drop_lr_on_plateau:
         scheduler_remove = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer_remove, mode='min', factor=plateau_factor, patience=plateau_patience_remove, verbose=True
@@ -335,7 +317,6 @@ def main():
         scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(optimizer_remove, milestones=milestones, gamma=gamma)
         scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(optimizer_retain, milestones=milestones, gamma=gamma)
 
-    # Prepare
     transformer, optimizer_remove, optimizer_retain = accelerator.prepare(transformer, optimizer_remove, optimizer_retain)
     unwrapped_model = accelerator.unwrap_model(transformer)
     for layer_name, layer in hyper_lora_layers:
@@ -345,30 +326,42 @@ def main():
     # =========================================================================
     # PRE-COMPUTATION SECTION
     # =========================================================================
-    print("Computing Prompt Embeddings (Target/Mapping)...")
+    print("Computing Prompt Embeddings (Target/Mapping/Retain)...")
     pipe.text_encoder.to(accelerator.device)
     pipe.text_encoder_2.to(accelerator.device)
 
-    # 1. Target & Mapping Embeddings
-    with torch.no_grad():
-        target_text = all_augmented_prompts[random.randint(0, len(all_augmented_prompts)-1)]
-        mapping_text = all_augmented_mapping[random.randint(0, len(all_augmented_mapping)-1)] if all_augmented_mapping else ""
-        
-        prompt_embeds_all, pooled_prompt_embeds_all, text_ids = pipe.encode_prompt(
-            [target_text, mapping_text], prompt_2=[target_text, mapping_text], max_sequence_length=512
-        )
-        emb_target, emb_map = prompt_embeds_all.chunk(2)
-        pooled_target, pooled_map = pooled_prompt_embeds_all.chunk(2)
-        
-        if text_ids.ndim == 3 and text_ids.shape[0] == 2:
-            text_ids_target, text_ids_map = text_ids.chunk(2)
-        else:
-            text_ids_target = text_ids
-            text_ids_map = text_ids
-        
-        hyper_emb_target = pooled_target[0:1].detach()
+    target_embeds_cache = []
+    mapping_embeds_cache = []
 
-    # 2. Process ALL Retain Prompts (COCO)
+    print(f"Pre-computing {len(all_augmented_prompts)} target/mapping pairs...")
+    
+    chunk_size = 16
+    for i in range(0, len(all_augmented_prompts), chunk_size):
+        batch_targets = all_augmented_prompts[i:i+chunk_size]
+        batch_mappings = all_augmented_mapping[i:i+chunk_size] if all_augmented_mapping else [""] * len(batch_targets)
+        
+        for t_txt, m_txt in zip(batch_targets, batch_mappings):
+            with torch.no_grad():
+                pe, ppe, tids = pipe.encode_prompt(
+                    [t_txt, m_txt], prompt_2=[t_txt, m_txt], max_sequence_length=512
+                )
+                emb_t, emb_m = pe.chunk(2)
+                pool_t, pool_m = ppe.chunk(2)
+                
+                target_embeds_cache.append({
+                    "prompt_embeds": emb_t.cpu(),
+                    "pooled_prompt_embeds": pool_t.cpu(),
+                    "pooled_ctx": pool_t[0:1].detach().cpu() 
+                })
+                
+                if m_txt:
+                    mapping_embeds_cache.append({
+                        "prompt_embeds": emb_m.cpu(),
+                        "pooled_prompt_embeds": pool_m.cpu(),
+                    })
+                else:
+                    mapping_embeds_cache.append(None) 
+
     print(f"Pre-computing pooled embeddings for ALL {len(retain_prompts)} retain prompts...")
     all_retain_pooled_list = []
     encode_batch_size = 128 
@@ -385,12 +378,9 @@ def main():
 
     if len(all_retain_pooled_list) > 0:
         all_retain_pooled_tensor = torch.cat(all_retain_pooled_list, dim=0)
-        print(f"Retain Embeddings Shape: {all_retain_pooled_tensor.shape} (Size: {all_retain_pooled_tensor.element_size() * all_retain_pooled_tensor.nelement() / 1024**2:.2f} MB)")
     else:
-        print("Warning: No retain prompts found. Using target pooled embedding as fallback.")
-        all_retain_pooled_tensor = hyper_emb_target.cpu()
+        all_retain_pooled_tensor = target_embeds_cache[0]["pooled_ctx"].cpu()
 
-    # 3. Pre-compute Diagnostic Embeddings
     print("Pre-computing Diagnostic Embeddings...")
     diagnostic_cache = {}
     for diag_prompt in diagnostic_prompts:
@@ -401,12 +391,10 @@ def main():
             diagnostic_cache[diag_prompt] = {
                 "prompt_embeds": pe.cpu(),
                 "pooled_prompt_embeds": ppe.cpu(),
-                "text_ids": tids.cpu()
             }
 
-    # 4. Remove Encoders if Low Memory
     if args.low_memory:
-        print("Removing Text Encoders from memory completely to save VRAM...")
+        print("Removing Text Encoders from memory completely...")
         pipe.text_encoder = None
         pipe.text_encoder_2 = None
         gc.collect()
@@ -420,7 +408,6 @@ def main():
     # TRAINING LOOP
     # =========================================================================
 
-
     print("Starting Training...")
     progress_bar = tqdm(range(max_train_steps), disable=not is_main)
     loss_fn = torch.nn.MSELoss()
@@ -429,17 +416,48 @@ def main():
     batch_size = config.get('batch_size', 1)
 
     for step in progress_bar:
-        # Zero Grads (Memory Efficient)
+        # Zero Grads
         optimizer_remove.zero_grad(set_to_none=True)
         optimizer_retain.zero_grad(set_to_none=True)
         
         with accelerator.accumulate(transformer):
+            rank_idx = accelerator.process_index
+            world_size = accelerator.num_processes
+            
+            valid_indices = list(range(rank_idx, len(target_embeds_cache), world_size))
+            if not valid_indices:
+                concept_idx = rank_idx % len(target_embeds_cache)
+            else:
+                concept_idx = random.choice(valid_indices)
+
+            t_data = target_embeds_cache[concept_idx]
+            emb_target = t_data["prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
+            pooled_target = t_data["pooled_prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
+            hyper_emb_target = t_data["pooled_ctx"].to(accelerator.device, dtype=weight_dtype)
+            
+            # FIX: Manually create text_ids to match embedding length (Flux uses zeros for text)
+            # This prevents 1536 vs 1280 mismatch if encode_prompt returns 256-length ids
+            text_ids_target = torch.zeros(emb_target.shape[0], emb_target.shape[1], 3, device=accelerator.device, dtype=weight_dtype)
+
+            if mapping_embeds_cache and mapping_embeds_cache[concept_idx] is not None:
+                m_data = mapping_embeds_cache[concept_idx]
+                emb_map = m_data["prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
+                pooled_map = m_data["pooled_prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
+                text_ids_map = torch.zeros(emb_map.shape[0], emb_map.shape[1], 3, device=accelerator.device, dtype=weight_dtype)
+                has_mapping = True
+            else:
+                has_mapping = False
+                emb_map, pooled_map, text_ids_map = None, None, None
+
             run_till = random.randint(0, config.get('num_inference_steps', 28) - 1)
             
-            txt_ids_input = text_ids_target.to(accelerator.device, dtype=weight_dtype)
+            txt_ids_input = text_ids_target
             if txt_ids_input.ndim == 3: 
                 txt_ids_input = txt_ids_input[0]
 
+            # -------------------------------------------------------------
+            # 1. Get Latents (Live)
+            # -------------------------------------------------------------
             with torch.no_grad():
                 with unwrapped_model.hyper.no_lora():
                     latents_t, latent_ids, t_tensor = get_noisy_latents(
@@ -448,64 +466,90 @@ def main():
                         None, accelerator.device, weight_dtype
                     )
 
+            # -------------------------------------------------------------
+            # 2. HyperLoRA Setup (Exactly like simple_slow)
+            # -------------------------------------------------------------
             hyper_t_idx = random.randint(0, hyper_train_steps - 1)
             hyper_t_tensor = torch.tensor([hyper_t_idx], device=accelerator.device, dtype=weight_dtype)
             
-            unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-            unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-            unwrapped_model.hyper.retain_grad_for_cached_lora()
+            # Initial Set Context
+            unwrapped_model.hyper.set_context(hyper_emb_target, hyper_t_tensor)
+            _, current_timestep = unwrapped_model.hyper.get_context()
+            unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep)
+            #unwrapped_model.hyper.retain_grad_for_cached_lora() # Not used here in simple_slow loop yet
 
             guidance_vec = torch.full((batch_size,), 3.0, device=accelerator.device, dtype=weight_dtype)
             t_input = t_tensor.expand(batch_size).to(dtype=weight_dtype) / 1000
             
-            txt_ids_target_curr = text_ids_target.to(accelerator.device, dtype=weight_dtype)
-            txt_ids_map_curr = text_ids_map.to(accelerator.device, dtype=weight_dtype)
-            
-            if txt_ids_target_curr.ndim == 3: txt_ids_target_curr = txt_ids_target_curr[0]
-            if txt_ids_map_curr.ndim == 3: txt_ids_map_curr = txt_ids_map_curr[0]
+            if text_ids_target.ndim == 3: text_ids_target = text_ids_target[0]
+            if has_mapping and text_ids_map.ndim == 3: text_ids_map = text_ids_map[0]
 
+            # -------------------------------------------------------------
+            # 3. Predictions (No LoRA)
+            # -------------------------------------------------------------
             with torch.no_grad():
                 with unwrapped_model.hyper.no_lora():
+                    # e_p (Positive/Target)
                     e_p_base = transformer(
                         hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
                         pooled_projections=pooled_target, encoder_hidden_states=emb_target,
-                        txt_ids=txt_ids_target_curr, img_ids=latent_ids, return_dict=False
+                        txt_ids=text_ids_target, img_ids=latent_ids, return_dict=False
                     )[0]
-                    current_txt_ids = txt_ids_map_curr if mapping_text else txt_ids_target_curr
-                    e_0 = transformer(
-                        hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
-                        pooled_projections=pooled_map if mapping_text else pooled_target,
-                        encoder_hidden_states=emb_map if mapping_text else emb_target,
-                        txt_ids=current_txt_ids, img_ids=latent_ids, return_dict=False
-                    )[0]
+                    
+                    # e_0 (Mapping/Neutral)
+                    if has_mapping:
+                        e_0 = transformer(
+                            hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
+                            pooled_projections=pooled_map, encoder_hidden_states=emb_map,
+                            txt_ids=text_ids_map, img_ids=latent_ids, return_dict=False
+                        )[0]
+                    else:
+                        e_0 = e_p_base
+
+            # -------------------------------------------------------------
+            # 4. Predictions (With LoRA) & Context Reset
+            # -------------------------------------------------------------
+            # simple_slow re-sets context here before forward pass
+            unwrapped_model.hyper.set_context(hyper_emb_target, current_timestep)
+            _, current_timestep = unwrapped_model.hyper.get_context()
+            unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep)
+            unwrapped_model.hyper.retain_grad_for_cached_lora()
 
             e_n = transformer(
                 hidden_states=latents_t, timestep=t_input, guidance=guidance_vec,
                 pooled_projections=pooled_target, encoder_hidden_states=emb_target,
-                txt_ids=txt_ids_target_curr, img_ids=latent_ids, return_dict=False
+                txt_ids=text_ids_target, img_ids=latent_ids, return_dict=False
             )[0]
             
-            target_signal = e_0 - negative_guidance * (e_p_base - e_0)
-            loss_aux = loss_fn(e_n.float(), target_signal.float())
+            # -------------------------------------------------------------
+            # 5. Loss Aux (ESD)
+            # -------------------------------------------------------------
+            target_signal = (e_0 - negative_guidance * (e_p_base - e_0)).float()
+            loss_aux = loss_fn(e_n.float(), target_signal)
             
             accelerator.backward(loss_aux)
             
+            # -------------------------------------------------------------
+            # 6. Loss Remove (Gradient Matching)
+            # -------------------------------------------------------------
             grads_flat = unwrapped_model.hyper.flatten_cached_grads_from_cache()
             
             if grads_flat is not None:
                 target_delta = (-1.0 * internal_lr) * grads_flat.detach()
                 
-                optimizer_remove.zero_grad(set_to_none=True)
+                # Retrieve current context (like simple_slow)
+                _, current_timestep = unwrapped_model.hyper.get_context()
                 
-                t_next = hyper_t_tensor + 1
-                unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), t_next)
-                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), t_next)
-                tensors_flat_t1 = unwrapped_model.hyper.flatten_cached_from_cache()
-                
-                unwrapped_model.hyper.set_context(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
-                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target.to(dtype=weight_dtype), hyper_t_tensor)
+                # State t
+                unwrapped_model.hyper.set_context(hyper_emb_target, current_timestep)
+                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep)
                 tensors_flat_t = unwrapped_model.hyper.flatten_cached_from_cache()
 
+                # State t+1
+                unwrapped_model.hyper.set_context(hyper_emb_target, current_timestep + 1)
+                unwrapped_model.hyper.compute_and_cache_loras(hyper_emb_target, current_timestep + 1)
+                tensors_flat_t1 = unwrapped_model.hyper.flatten_cached_from_cache()
+                
                 delta_live = tensors_flat_t1 - tensors_flat_t
                 loss_remove = weight_remove * loss_fn(delta_live, target_delta)
                 
@@ -514,7 +558,9 @@ def main():
             else:
                 loss_remove = torch.tensor(0.0)
 
-        # --- Retain Step ---
+        # -------------------------------------------------------------
+        # 7. Retain Step
+        # -------------------------------------------------------------
         if len(retain_prompts) > 0:
             optimizer_retain.zero_grad(set_to_none=True)
             
@@ -522,10 +568,15 @@ def main():
             indices = torch.randint(0, len(all_retain_pooled_tensor), (num_samples,))
             hyper_retain_emb = all_retain_pooled_tensor[indices].to(accelerator.device, dtype=weight_dtype)
             
+            # t = 0
             unwrapped_model.hyper.compute_and_cache_loras(hyper_retain_emb, torch.zeros(num_samples, device=accelerator.device))
             retain_t0 = unwrapped_model.hyper.flatten_cached_from_cache()
             
-            unwrapped_model.hyper.compute_and_cache_loras(hyper_retain_emb, torch.ones(num_samples, device=accelerator.device))
+            # t = dynamic
+            dtype_hyper = next(unwrapped_model.hyper.parameters()).dtype
+            t_retain_dynamic = (torch.arange(num_samples, device=accelerator.device, dtype=dtype_hyper) % num_samples) + 1
+            
+            unwrapped_model.hyper.compute_and_cache_loras(hyper_retain_emb, t_retain_dynamic)
             retain_t1 = unwrapped_model.hyper.flatten_cached_from_cache()
             
             loss_retain = weight_retain * (retain_t1 - retain_t0).pow(2).mean()
@@ -552,9 +603,9 @@ def main():
         
         progress_bar.set_postfix(rem=f"{loss_remove.item():.2e}", ret=f"{loss_retain.item():.2e}")
 
-        # Image Gen (Manual VAE/Transformer Swap)
+        # Image Gen
         if is_main and (step + 1) % 100 == 0:
-            print("Generating diagnostic images... (Model Swapping Strategy)")
+            print("Generating diagnostic images...")
             
             optimizer_remove.zero_grad(set_to_none=True)
             optimizer_retain.zero_grad(set_to_none=True)
@@ -571,21 +622,16 @@ def main():
                 
                 pe = d_data["prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
                 ppe = d_data["pooled_prompt_embeds"].to(accelerator.device, dtype=weight_dtype)
-                tids = d_data["text_ids"].to(accelerator.device, dtype=weight_dtype)
-                if tids.ndim == 3: tids = tids[0]
+                
+                # FIX: Create text_ids for diagnostic as well
+                tids = torch.zeros(pe.shape[0], pe.shape[1], 3, device=accelerator.device, dtype=weight_dtype)
 
                 transformer.to(accelerator.device)
                 
-                # >>> FIX: Set HyperLoRA Context for Diagnostic Prompt <<<
-                # Use max time step to simulate full removal effect
                 hyper_step_tensor = torch.tensor([hyper_train_steps - 1], device=accelerator.device, dtype=weight_dtype)
-                
-                # Unwrap to access hyper
                 model_for_gen = accelerator.unwrap_model(transformer)
                 
-                # 1. Set context
                 model_for_gen.hyper.set_context(ppe, hyper_step_tensor)
-                # 2. Compute weights
                 model_for_gen.hyper.compute_and_cache_loras(ppe, hyper_step_tensor)
                 
                 with torch.no_grad():
@@ -630,7 +676,6 @@ def main():
                 pipe.vae.to(accelerator.device)
                 
                 with torch.no_grad():
-                    # Check for vae_scale_factor in pipe, else default to 8
                     scale_factor = getattr(pipe, 'vae_scale_factor', 8)
                     latents = pipe._unpack_latents(latents, 512, 512, scale_factor)
                     latents = (latents / pipe.vae.config.scaling_factor) + pipe.vae.config.shift_factor
