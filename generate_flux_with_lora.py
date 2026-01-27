@@ -89,6 +89,7 @@ def load_flux_models(basemodel_id="black-forest-labs/FLUX.1-dev", torch_dtype=to
     )
     return pipe, transformer, scheduler
 
+
 def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     # Accept both transformer or pipe as input
     if hasattr(model_wrapper, 'transformer'):
@@ -101,6 +102,7 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     tensor_map.update({n: b for n, b in transformer.named_buffers()})
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
+
     # Compatible with both accelerator.save and torch.save (plain dict)
     if isinstance(lora_state_dict, dict):
         # Accept plain dict (torch.save from train_flux_like_esd.py)
@@ -113,6 +115,8 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
         raise ValueError(f"Loaded LoRA checkpoint is not a dict: {type(lora_state_dict)}")
 
     # pick a few keys that exist in both
+    print(tensor_map.keys())
+    print(lora_state_dict.keys())
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
     print("ckpt keys:", len(lora_state_dict), "common keys:", len(common))
     print("example common keys:", common[:10])
