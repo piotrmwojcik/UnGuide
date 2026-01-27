@@ -60,11 +60,6 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
 
-    lora_state_dict = {
-        k.replace("single_transformer", "transformer"): v
-        for k, v in lora_state_dict.items()
-    }
-
     # Compatible with both accelerator.save and torch.save (plain dict)
     if isinstance(lora_state_dict, dict):
         # Accept plain dict (torch.save from train_flux_like_esd.py)
@@ -192,7 +187,7 @@ if __name__ == "__main__":
     )
 
     hyper_lora_layers = inject_hyper_lora(
-        model_wrapper, target_modules, hyper_lora_factory
+        model_wrapper.transformer, target_modules, hyper_lora_factory
     )
 
     for layer_name, layer in hyper_lora_layers:
