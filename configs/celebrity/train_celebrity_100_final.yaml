@@ -1,0 +1,286 @@
+UnGuide_Celebrity_100:
+  # >>> Primary Settings >>>
+  # Exact 100 celebrities from MACE erase_cele_100.yaml
+
+  # Target celebrities for removal (all 100 from MACE)
+  concepts:
+    - "adam driver"
+    - "adriana lima"
+    - "amber heard"
+    - "amy adams"
+    - "andrew garfield"
+    - "angelina jolie"
+    - "anjelica huston"
+    - "anna faris"
+    - "anna kendrick"
+    - "anne hathaway"
+    - "arnold schwarzenegger"
+    - "barack obama"
+    - "beth behrs"
+    - "bill clinton"
+    - "bob dylan"
+    - "bob marley"
+    - "bradley cooper"
+    - "bruce willis"
+    - "bryan cranston"
+    - "cameron diaz"
+    - "channing tatum"
+    - "charlie sheen"
+    - "charlize theron"
+    - "chris evans"
+    - "chris hemsworth"
+    - "chris pine"
+    - "chuck norris"
+    - "courteney cox"
+    - "demi lovato"
+    - "drake"
+    - "drew barrymore"
+    - "dwayne johnson"
+    - "ed sheeran"
+    - "elon musk"
+    - "elvis presley"
+    - "emma stone"
+    - "frida kahlo"
+    - "george clooney"
+    - "glenn close"
+    - "gwyneth paltrow"
+    - "harrison ford"
+    - "hillary clinton"
+    - "hugh jackman"
+    - "idris elba"
+    - "jake gyllenhaal"
+    - "james franco"
+    - "jared leto"
+    - "jason momoa"
+    - "jennifer aniston"
+    - "jennifer lawrence"
+    - "jennifer lopez"
+    - "jeremy renner"
+    - "jessica biel"
+    - "jessica chastain"
+    - "john oliver"
+    - "john wayne"
+    - "johnny depp"
+    - "julianne hough"
+    - "justin timberlake"
+    - "kate bosworth"
+    - "kate winslet"
+    - "leonardo dicaprio"
+    - "margot robbie"
+    - "mariah carey"
+    - "meryl streep"
+    - "mick jagger"
+    - "mila kunis"
+    - "milla jovovich"
+    - "morgan freeman"
+    - "nick jonas"
+    - "nicolas cage"
+    - "nicole kidman"
+    - "octavia spencer"
+    - "olivia wilde"
+    - "oprah winfrey"
+    - "paul mccartney"
+    - "paul walker"
+    - "peter dinklage"
+    - "philip seymour hoffman"
+    - "reese witherspoon"
+    - "richard gere"
+    - "ricky gervais"
+    - "rihanna"
+    - "robin williams"
+    - "ronald reagan"
+    - "ryan gosling"
+    - "ryan reynolds"
+    - "shia labeouf"
+    - "shirley temple"
+    - "spike lee"
+    - "stan lee"
+    - "theresa may"
+    - "tom cruise"
+    - "tom hanks"
+    - "tom hardy"
+    - "tom hiddleston"
+    - "whoopi goldberg"
+    - "zac efron"
+    - "zayn malik"
+    - "melania trump"
+
+  # Mapping concepts - all map to 'a person'
+  mapping_concept:
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a man"
+  - "a woman"
+  - "a man"
+  - "a man"
+  - "a woman"
+
+  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
+  # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
+  retain_csv_path: ./celebrity_retain_improved.csv
+
+  augment_target: true   # Augment target concepts to be removed
+  augment_retain: false  # Augment retain prompts from CSV
+  celebrity_mode: true   # Use celebrity-specific prompt augmentations
+
+  # Training hyperparameters
+  drop_lr_on_plateau: false
+  learning_rate_remove: 5.0e-04
+  learning_rate_retain: 1.0e-04
+  plateau_patience_remove: 100
+  plateau_patience_retain: 100
+  max_train_steps: 6000  # Number of actual training iterations
+  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  gradient_accumulation_steps: 1
+
+  # LoRA configuration
+  rank: 6
+  lora_alpha: 0.01
+  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
+
+  hidden_size: 256
+
+  # Loss weights
+  negative_guidance: 0.3
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+
+  # Training weights - for combining removal and retain losses
+  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
+  remove_weight: 50.0    # Weight for removal loss (main training objective)
+  retain_weight: 2.000     # Weight for retain loss (regularization to preserve other concepts)
+
+  retain_steps_per_remove: 1     # 1 step (default)
+  retain_batch_size: 1000
+
+  # Data and paths
+  output_dir: output_pw/celebrities_100_final  # output_dir from args
+  final_save_path: output_pw/celebrities_100_final/LoRA_fusion_model
+
+  # Model configuration
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
+
+  # Training settings
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+
+  # Logging
+  logging_dir: logs
+  report_to: wandb  # use-wandb flag enabled
+
+  # Diagnostic prompts for monitoring training progress
+  diagnostic_prompts:
+    - "a photo of adam driver"
+    - "a portrait of adriana lima"
+    - "amber heard at an event"
+    - "amy adams smiling"
+    - "andrew garfield acting"
+    - "a photo of a person"
+    - "a portrait of a person"
+    - "a photo of a woman"
+    - "a portrait of a woman"
+    - "a photo of a man"
+    - "a portrait of a man"
+    - "a photo of dr dre"
+    - "a photo of emma roberts"
+    - "a photo of fred rogers"
+    - "a photo of jimmy carter"
+    - "a portrait of robert de niro"
+
+  # <<< Primary Settings <<<
