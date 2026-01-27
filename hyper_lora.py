@@ -156,6 +156,10 @@ class HyperLora(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(internal_size, out_dim * rank),
         ).to(dtype=self.dtype)
+
+        nn.init.zeros_(self.right_head[-1].weight)
+        nn.init.zeros_(self.right_head[-1].bias)
+
         self.time_feat = TimeFourier(T=self.train_steps + 1, dtype=self.dtype)
 
         self.use_scaling = use_scaling
