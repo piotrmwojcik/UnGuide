@@ -242,7 +242,7 @@ UnGuide_Celebrity_100:
   # Training weights - for combining removal and retain losses
   # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
   remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.1     # Weight for retain loss (regularization to preserve other concepts)
+  retain_weight: 0.01     # Weight for retain loss (regularization to preserve other concepts)
 
   retain_steps_per_remove: 1     # 1 step (default)
   retain_batch_size: 1000
@@ -274,9 +274,9 @@ UnGuide_Celebrity_100:
     - "a photo of a person"
     - "a portrait of a person"
     - "a photo of bob dylan"
-    - "a portrait of a woman"
+    - "a portrait of Arnold Schwarzenegger"
     - "a photo of a man"
-    - "a portrait of a man"
+    - "a photo of Bob Marley"
     - "a photo of dr dre"
     - "a photo of emma roberts"
     - "a photo of fred rogers"

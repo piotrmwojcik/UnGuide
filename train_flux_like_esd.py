@@ -304,7 +304,7 @@ def main():
         dtype=torch.float32, internal_size=internal_size
     )
     # Recommended targets for Unlearning
-    target_modules = ["attn.to_k", "attn.to_q", "attn.add_k_proj", "attn.add_q_proj"]
+    target_modules = ["attn.add_k_proj", "attn.add_q_proj"]
     
     hyper_lora_layers = inject_hyper_lora(transformer, target_modules, hyper_lora_factory)
     
