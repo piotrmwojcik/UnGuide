@@ -294,6 +294,7 @@ def main():
     augment_target = config.get('augment_target', True)
     augment_retain = config.get('augment_retain', False)
     celebrity_mode = config.get('celebrity_mode', False)
+    use_huge = config.get('use_huge', False)
 
     # Retain balancing parameters
     retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
@@ -370,7 +371,7 @@ def main():
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
     
-    if args.use_huge:
+    if use_huge:
         clip_size = 1280 if use_pooler else 1280
     else:
         clip_size = 768 if use_pooler else 512
@@ -446,7 +447,7 @@ def main():
     
     sampler = DDIMSampler(accelerator.unwrap_model(model))
     
-    if args.use_huge:
+    if use_huge:
         import open_clip
         print("Using HUGE CLIP model: ViT-bigG-14 (1280 dim) via open_clip")
         clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
@@ -480,6 +481,10 @@ def main():
 
     target_concepts = [c for c in concepts]
     target_embeddings = []
+    # Print embedding dimensionality for verification
+    if target_concepts:
+        test_emb = get_clip_embedding(target_concepts[0])
+        print(f"CLIP embedding shape: {test_emb.shape} (first concept: '{target_concepts[0]}')")
     for concept in target_concepts:
         emb = get_clip_embedding(concept)
         target_embeddings.append(emb)
