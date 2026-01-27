@@ -79,7 +79,7 @@ UnHype:
   # Loss Balancing
   # CHANGED: 100.0/0.0001 caused exploding gradients (noise). 
   # 1.0/1.0 ensures equal attention to erasing nudity and keeping image quality.
-  remove_weight: 50.0
+  remove_weight: 10.0
   retain_weight: 1.0      
 
   # >>> HARDWARE & PATHS >>>
