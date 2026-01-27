@@ -452,39 +452,41 @@ def main():
         clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
         clip_text_encoder = clip_model.to(accelerator.device).eval()
         tokenizer = open_clip.get_tokenizer('ViT-bigG-14')
+        use_open_clip = True
     else:
         print("Using standard CLIP model: ViT-L/14 (768 dim)")
         tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
         clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
-    
-    def encode(text: str):
-        return tokenizer(
-            text,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(accelerator.device).input_ids
-    
+        use_open_clip = False
+
+    def get_clip_embedding(text: str):
+        with torch.no_grad():
+            if use_open_clip:
+                tokens = tokenizer(text).to(accelerator.device)
+                emb = clip_text_encoder.encode_text(tokens).detach()
+            else:
+                inputs = tokenizer(
+                    text,
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(accelerator.device).input_ids
+                if use_pooler:
+                    emb = clip_text_encoder(inputs).pooler_output.detach()
+                else:
+                    emb = clip_text_encoder(inputs).last_hidden_state.detach()
+        return emb
+
     target_concepts = [c for c in concepts]
     target_embeddings = []
     for concept in target_concepts:
-        inputs = encode(concept)
-        with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+        emb = get_clip_embedding(concept)
         target_embeddings.append(emb)
-    
+
     mapping_embeddings = []
     for concept in mapping_concept:
-        inputs = encode(concept)
-        with torch.no_grad():
-            if use_pooler:
-                emb = clip_text_encoder(inputs).pooler_output.detach()
-            else:
-                emb = clip_text_encoder(inputs).last_hidden_state.detach()
+        emb = get_clip_embedding(concept)
         mapping_embeddings.append(emb)
     
     retain_prompts = []
@@ -518,12 +520,7 @@ def main():
         if not cache_exists:
             if is_main:
                 for prompt in tqdm(retain_prompts, desc="Creating retain embeddings"):
-                    inputs = encode(prompt)
-                    with torch.no_grad():
-                        if use_pooler:
-                            emb = clip_text_encoder(inputs).pooler_output.detach()
-                        else:
-                            emb = clip_text_encoder(inputs).last_hidden_state.detach()
+                    emb = get_clip_embedding(prompt)
                     retain_embeddings.append(emb.squeeze().cpu())
                 torch.save(retain_embeddings, cache_path)
             accelerator.wait_for_everyone()
@@ -579,12 +576,7 @@ def main():
 
                 print(target_text_augmented, ' -> ', mapping_text_augmented)
 
-                inputs_aug = encode(target_text_augmented)
-                with torch.no_grad():
-                    if use_pooler:
-                        target_emb = clip_text_encoder(inputs_aug).pooler_output.detach()
-                    else:
-                        target_emb = clip_text_encoder(inputs_aug).last_hidden_state.detach()
+                target_emb = get_clip_embedding(target_text_augmented)
             else:
                 target_text_augmented = target_text
                 mapping_text_augmented = mapping_text
@@ -708,9 +700,7 @@ def main():
         
         if is_main and use_wandb and (iteration + 1) % 400 == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
-                inputs_diag = encode(diag_prompt)
-                with torch.no_grad():
-                    diag_emb = clip_text_encoder(inputs_diag).pooler_output.detach() if use_pooler else clip_text_encoder(inputs_diag).last_hidden_state.detach()
+                diag_emb = get_clip_embedding(diag_prompt)
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
                 start_code_diag = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
