@@ -213,7 +213,6 @@ if __name__ == "__main__":
     load_seed = 42  # global seed for hypernetwork init/load only
 
     with temporary_global_seed(load_seed):
-
         hyper_lora_factory = partial(
             HyperLoRALinear,
             clip_size=clip_size,
