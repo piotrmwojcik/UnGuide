@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     lora_path = os.path.join(final_save_path, f"hyper_lora_.pth")
     # --- SAVE ONLY HYPERLORA WEIGHTS (no accelerator) ---
-    hyperlora_state_dict = {k: v.detach().cpu() for k, v in model_wrapper.state_dict().items()}
+    hyperlora_state_dict = {k: v.detach().cpu() for k, v in model_wrapper.state_dict().items() if ".hyper_lora." in k}
 
     lora_path = os.path.join(final_save_path, f"hyper_lora.pth")
     torch.save(hyperlora_state_dict, lora_path)
