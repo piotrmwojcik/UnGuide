@@ -197,7 +197,7 @@ if __name__ == "__main__":
     final_save_path = "./test_ckp"
     os.makedirs(final_save_path, exist_ok=True)
 
-    lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
+    lora_path = os.path.join(final_save_path, f"hyper_lora_.pth")
     # --- SAVE ONLY HYPERLORA WEIGHTS (no accelerator) ---
     hyperlora_state_dict = {k: v.detach().cpu() for k, v in model_wrapper.hyper.state_dict().items()}
 
