@@ -286,7 +286,12 @@ if __name__ == "__main__":
 
         seed = int(time.time() * 1e6) % 2 ** 32
 
-        hf_set_seed(seed)
+        new_seed = int(time.time_ns() % 2 ** 32)
+
+        random.seed(new_seed)
+        np.random.seed(new_seed)
+        torch.manual_seed(new_seed)
+        torch.cuda.manual_seed_all(new_seed)
 
         seed = int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
