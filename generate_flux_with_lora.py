@@ -55,7 +55,8 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
 
     # real tensors
     tensor_map = {n: p for n, p in transformer.named_parameters()}
-    tensor_map.update({n: b for n, b in transformer.named_buffers()})
+    buffer_map = {n: b for n, b in transformer.named_buffers()}
+    tensor_map.update(buffer_map)
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
     print(lora_state_dict.keys())
@@ -74,6 +75,12 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
     print("ckpt keys:", len(lora_state_dict), "common keys:", len(common))
     print("example common keys:", common[:10])
+
+    missing_buffers = [k for k in buffer_map if k not in lora_state_dict]
+    if missing_buffers:
+        print("[WARNING] The following buffers were NOT overwritten from checkpoint and may have random values:")
+        for k in missing_buffers:
+            print(f"  - {k}")
 
     with torch.no_grad():
         for i, k in enumerate(common):
