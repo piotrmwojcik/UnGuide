@@ -25,7 +25,6 @@ from functools import partial
 from typing import List, Tuple
 from tqdm import tqdm
 
-from transformers import CLIPTextModel, CLIPTokenizer
 from torchvision.transforms.functional import to_pil_image
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
@@ -95,20 +94,20 @@ def parse_args():
         help="DDIM eta"
     )
     parser.add_argument(
-        "--hyper_timestep", type=int, default=500,
-        help="Timestep for HyperLoRA context"
+        "--hyper_timestep", type=int, default=300,
+        help="Timestep for HyperLoRA context (must match hyper_train_steps from training config)"
     )
     parser.add_argument(
-        "--alpha", type=float, default=0.00001,
-        help="LoRA alpha scaling factor"
+        "--alpha", type=float, default=0.01,
+        help="LoRA alpha scaling factor (should match training value)"
     )
     parser.add_argument(
-        "--lora_rank", type=int, default=1,
-        help="Rank of LoRA layers"
+        "--lora_rank", type=int, default=6,
+        help="Rank of LoRA layers (must match training value)"
     )
     parser.add_argument(
-        "--hidden_size", type=int, default=100,
-        help="Hidden/Internal size for Hypernetwork"
+        "--hidden_size", type=int, default=512,
+        help="Hidden/Internal size for Hypernetwork (must match training value)"
     )
     parser.add_argument(
         "--seed", type=int, default=2024,
@@ -267,9 +266,10 @@ def main():
     for subdir, _ in all_names:
         (output_dir / subdir).mkdir(parents=True, exist_ok=True)
 
-    # Load CLIP
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device).eval()
+    # Load NV-Embed-v2 for celebrity model (4096-dim embeddings)
+    from nv_embed_utils import load_nv_embed_model
+    nv_embed_model, _ = load_nv_embed_model(device=device, dtype=torch.float16)
+    print(f"[Rank {RANK}] Loaded NV-Embed-v2 model", flush=True)
 
     # Load model with HyperLoRA
     print(f"[Rank {RANK}] Loading model...", flush=True)
@@ -278,7 +278,7 @@ def main():
     lora_sd = torch.load(args.hypernetwork_path, map_location=device)
     hyper_lora_factory = partial(
         HyperLoRALinear,
-        clip_size=768,
+        clip_size=4096,  # NV-Embed-v2 dimension
         rank=args.lora_rank,
         train_steps=args.hyper_timestep,
         alpha=args.alpha,
@@ -292,20 +292,20 @@ def main():
         layer.set_parent_model(model)
         model.hyper.add_hyperlora(layer_name, layer.hyper_lora)
 
-    # Load weights
-    sd = model.model.diffusion_model.state_dict()
-    updated = 0
-    with torch.no_grad():
-        for k, v in lora_sd.items():
-            if k in sd:
-                if torch.is_tensor(lora_sd[k]) and torch.is_tensor(sd[k]) and lora_sd[k].shape == sd[k].shape:
-                    sd[k].copy_(v.to(sd[k].dtype))
-                    updated += 1
+    # Load weights into the diffusion model with HyperLoRA layers
+    missing, unexpected = model.model.diffusion_model.load_state_dict(lora_sd, strict=False)
+    print(f"[Rank {RANK}] Loaded checkpoint with {len(missing)} missing keys and {len(unexpected)} unexpected keys", flush=True)
 
-    print(f"[Rank {RANK}] Loaded {updated} tensors from checkpoint", flush=True)
+    # Print alpha values to verify loading
+    alpha_count = 0
+    for name, param in model.model.diffusion_model.named_parameters():
+        if 'hyper_lora.alpha' in name:
+            print(f"[Rank {RANK}] {name}: {param.item():.6f}", flush=True)
+            alpha_count += 1
+            if alpha_count >= 3:  # Just print first few
+                break
 
-    model.tokenizer = tokenizer
-    model.clip_text_encoder = clip_text_encoder
+    model.nv_embed_model = nv_embed_model
     model.hyper_timestep = args.hyper_timestep
 
     # Create combined CFG model and sampler
@@ -344,16 +344,22 @@ def main():
             generator=gen, device=device
         )
 
-        # Compute HyperLoRA context
-        inputs = tokenizer(
-            prompt,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(device).input_ids
+        # Compute HyperLoRA context using NV-Embed-v2
+        from nv_embed_utils import NV_EMBED_INSTRUCTION
+        embedding = nv_embed_model.encode(
+            [prompt],
+            instruction=NV_EMBED_INSTRUCTION,
+            max_length=4096,
+        )
+        if not isinstance(embedding, torch.Tensor):
+            embedding = torch.tensor(embedding, device=device, dtype=torch.float32)
+        else:
+            embedding = embedding.to(device=device, dtype=torch.float32)
 
-        t_prompt = clip_text_encoder(inputs).pooler_output.detach()
+        # Normalize
+        import torch.nn.functional as F
+        t_prompt = F.normalize(embedding, p=2, dim=-1)
+
         timestep = torch.tensor([args.hyper_timestep]).to(device)
         model.hyper.set_context(t_prompt, timestep)
         model.hyper.compute_and_cache_loras(t_prompt, timestep)
