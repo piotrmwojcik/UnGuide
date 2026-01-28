@@ -80,7 +80,7 @@ UnHype:
   # CHANGED: 100.0/0.0001 caused exploding gradients (noise).
   # 1.0/1.0 ensures equal attention to erasing nudity and keeping image quality.
   remove_weight: 5.0
-  retain_weight: 0.1
+  retain_weight: 1.0
 
   # >>> HARDWARE & PATHS >>>
   output_dir: output_nudity_flux_final_4
