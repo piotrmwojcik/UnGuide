@@ -16,6 +16,8 @@ from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
+from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
+
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 token = os.environ.get("HF_TOKEN")
 if token:
@@ -128,6 +130,7 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
+    hf_set_seed(2024)
 
     torch.set_num_threads(torch.get_num_threads())
 
