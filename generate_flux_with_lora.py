@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     clip_size = 768 if args.use_pooler else 512
     target_modules = ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"]
-    load_seed = 1234  # global seed for hypernetwork init/load only
+    load_seed = 42  # global seed for hypernetwork init/load only
 
     with temporary_global_seed(load_seed):
 
