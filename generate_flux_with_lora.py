@@ -194,6 +194,15 @@ if __name__ == "__main__":
 
     load_lora_weights(pipe, args.lora_path, device)
 
+    final_save_path = "./test_ckp"
+    # --- SAVE ONLY HYPERLORA WEIGHTS (no accelerator) ---
+    hyperlora_state_dict = {k: v.detach().cpu() for k, v in model_wrapper.hyper.state_dict().items()}
+
+    lora_path = os.path.join(final_save_path, f"hyper_lora.pth")
+    torch.save(hyperlora_state_dict, lora_path)
+
+    print(f"HyperLoRA saved to: {lora_path}")
+
     df = pd.read_csv(args.csv_path, index_col=0)
 
     if args.nudity and "nudity_percentage" in df.columns:
