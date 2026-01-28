@@ -446,7 +446,7 @@ def generate_images_after_training(
 
 def should_save_diagnostic(iteration, max_iterations):
     """Check if diagnostics should be saved at this iteration.
-    Saves at 100 * 2^n (100, 200, 400, 800, ...) and at the last iteration.
+    Only saves on the last iteration.
 
     Args:
         iteration: Current iteration (0-based)
@@ -457,22 +457,8 @@ def should_save_diagnostic(iteration, max_iterations):
     """
     iter_num = iteration + 1  # Convert to 1-based
 
-    # Always save on last iteration
-    if iter_num == max_iterations:
-        return True
-
-    # Check if iter_num is of the form 100 * 2^n
-    if iter_num < 100:
-        return False
-
-    # Check if iter_num / 100 is a power of 2
-    ratio = iter_num / 100
-    # Check if ratio is a power of 2 (must be an integer and a power of 2)
-    if ratio != int(ratio):
-        return False
-
-    ratio = int(ratio)
-    return ratio > 0 and (ratio & (ratio - 1)) == 0
+    # Only save on last iteration
+    return iter_num == max_iterations
 
 
 def prompt_augmentation(content, augment=True, celebrity=False):
@@ -1171,12 +1157,9 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
             os.makedirs(final_save_path, exist_ok=True)
 
-            # Save LoRA weights
-            lora_state_dict = {}
+            # Save LoRA weights (includes parameters + buffers)
             model_unwrapped = accelerator.unwrap_model(model)
-            for name, param in model_unwrapped.model.diffusion_model.state_dict():
-                if param.requires_grad:
-                    lora_state_dict[name] = param.detach().cpu().clone()
+            lora_state_dict = model_unwrapped.model.diffusion_model.state_dict()
 
             lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
             accelerator.save(lora_state_dict, lora_path)
@@ -1188,7 +1171,7 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(final_save_path, exist_ok=True)
         model_unwrapped = accelerator.unwrap_model(model)
-        lora_state_dict = {n: p.detach().cpu().clone() for n, p in model_unwrapped.model.diffusion_model.named_parameters() if p.requires_grad}
+        lora_state_dict = model_unwrapped.model.diffusion_model.state_dict()
         lora_path = os.path.join(final_save_path, f"hyper_lora_final.pth")
         accelerator.save(lora_state_dict, lora_path)
         
