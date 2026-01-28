@@ -58,6 +58,7 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     tensor_map.update({n: b for n, b in transformer.named_buffers()})
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
+    print(lora_state_dict.keys())
     # Compatible with both accelerator.save and torch.save (plain dict)
     if isinstance(lora_state_dict, dict):
         # Accept plain dict (torch.save from train_flux_like_esd.py)
