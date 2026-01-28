@@ -1174,7 +1174,7 @@ def main():
             # Save LoRA weights
             lora_state_dict = {}
             model_unwrapped = accelerator.unwrap_model(model)
-            for name, param in model_unwrapped.model.diffusion_model.named_parameters():
+            for name, param in model_unwrapped.model.diffusion_model.state_dict():
                 if param.requires_grad:
                     lora_state_dict[name] = param.detach().cpu().clone()
 
