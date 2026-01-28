@@ -18,6 +18,36 @@ from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 
+
+from contextlib import contextmanager
+
+@contextmanager
+def temporary_global_seed(seed: int):
+    # Save current RNG states
+    py_state = random.getstate()
+    np_state = np.random.get_state()
+    torch_state = torch.random.get_rng_state()
+    cuda_states = None
+    if torch.cuda.is_available():
+        cuda_states = torch.cuda.get_rng_state_all()
+
+    try:
+        # Set global seed (equivalent to hf_set_seed behavior)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+
+        yield
+    finally:
+        # Restore previous RNG states
+        random.setstate(py_state)
+        np.random.set_state(np_state)
+        torch.random.set_rng_state(torch_state)
+        if cuda_states is not None:
+            torch.cuda.set_rng_state_all(cuda_states)
+
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 token = os.environ.get("HF_TOKEN")
 if token:
@@ -130,8 +160,6 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
-    hf_set_seed(2024)
-
     torch.set_num_threads(torch.get_num_threads())
 
     # Load Flux pipeline
@@ -182,16 +210,18 @@ if __name__ == "__main__":
 
     clip_size = 768 if args.use_pooler else 512
     target_modules = ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"]
+    load_seed = 1234  # global seed for hypernetwork init/load only
 
+    with temporary_global_seed(load_seed):
 
-    hyper_lora_factory = partial(
-        HyperLoRALinear,
-        clip_size=clip_size,
-        rank=args.rank,
-        alpha=args.lora_alpha,
-        train_steps=args.hyper_train_steps,
-        use_orig_concat=args.use_orig_concat
-    )
+        hyper_lora_factory = partial(
+            HyperLoRALinear,
+            clip_size=clip_size,
+            rank=args.rank,
+            alpha=args.lora_alpha,
+            train_steps=args.hyper_train_steps,
+            use_orig_concat=args.use_orig_concat
+        )
 
     hyper_lora_layers = inject_hyper_lora(
         model_wrapper, target_modules, hyper_lora_factory
@@ -283,15 +313,6 @@ if __name__ == "__main__":
 
         print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
-
-        seed = int(time.time() * 1e6) % 2 ** 32
-
-        new_seed = int(time.time_ns() % 2 ** 32)
-
-        random.seed(new_seed)
-        np.random.seed(new_seed)
-        torch.manual_seed(new_seed)
-        torch.cuda.manual_seed_all(new_seed)
 
         seed = int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
