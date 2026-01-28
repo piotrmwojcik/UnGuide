@@ -284,6 +284,13 @@ if __name__ == "__main__":
         print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
 
+        seed = int(time.time() * 1e6) % 2 ** 32
+
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
         seed = int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
 
