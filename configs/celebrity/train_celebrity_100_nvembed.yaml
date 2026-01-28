@@ -230,7 +230,7 @@ UnGuide_Celebrity_100_NVEmbed:
   # LoRA configuration
   # Note: clip_size is now set automatically to 4096 (NV-Embed-v2 dimension) in train_simple.py
   rank: 6
-  lora_alpha: 0.01
+  lora_alpha: 1.0  # Increased from 0.01 for stronger erasure (similar to nudity model scale)
   internal_size: 512  # Internal projection size for HyperLoRA (projects 4096 -> internal_size)
 
   # Loss weights
