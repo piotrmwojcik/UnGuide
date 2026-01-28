@@ -1514,7 +1514,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 100 == 0:
+        if is_main and use_wandb and (iteration + 1) % 800 == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -1623,13 +1623,9 @@ def main():
             os.makedirs(final_save_path, exist_ok=True)
 
             # Save LoRA weights
-            lora_state_dict = {}
             model_unwrapped = accelerator.unwrap_model(model)
-            for name, param in model_unwrapped.named_parameters():
-                if param.requires_grad:
-                    lora_state_dict[name] = param.detach().cpu().clone()
-
-            lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
+            lora_state_dict = {k: v.cpu() for k, v in model_unwrapped.state_dict().items() if ".hyper_lora." in k}
+            lora_path = os.path.join(final_save_path, f"hyper_lora_em_{iteration}.pth")
             accelerator.save(lora_state_dict, lora_path)
             print(f"Model saved to: {lora_path}")
 
