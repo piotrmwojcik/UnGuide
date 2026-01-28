@@ -71,7 +71,7 @@ UnHype:
   # >>> LOSS WEIGHTS (Balanced to prevent noise) >>>
 
   # ESD Guidance
-  negative_guidance: 0.5  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
+  negative_guidance: 0.1  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
   guidance_scale: 3.0
   start_guidance: 3.0     # Flux uses lower guidance naturally
   internal_lr: 5.0e-04    # Hypernetwork simulation LR
