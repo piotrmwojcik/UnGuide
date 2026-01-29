@@ -11,11 +11,38 @@ echo "========================================"
 echo "UnGuide Test Suite"
 echo "========================================"
 
+# Check Python version (requires 3.8+)
+PYTHON_CMD="${PYTHON:-python3}"
+
+# Try to find a suitable Python
+for cmd in python3.10 python3.9 python3.8 python3; do
+    if command -v $cmd &> /dev/null; then
+        version=$($cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+        major=$(echo $version | cut -d. -f1)
+        minor=$(echo $version | cut -d. -f2)
+        if [ "$major" -ge 3 ] && [ "$minor" -ge 8 ]; then
+            PYTHON_CMD=$cmd
+            break
+        fi
+    fi
+done
+
+echo "Using Python: $PYTHON_CMD"
+$PYTHON_CMD --version
+
+# Verify Python version
+$PYTHON_CMD -c "import sys; assert sys.version_info >= (3, 8), 'Python 3.8+ required'" || {
+    echo "ERROR: Python 3.8+ is required. Found: $($PYTHON_CMD --version)"
+    echo "Please install Python 3.8+ or set PYTHON environment variable."
+    echo "Example: PYTHON=/path/to/python3.10 ./run_test.sh"
+    exit 1
+}
+
 # Create virtual environment
 echo ""
 echo "[1/7] Creating virtual environment: unhype_test"
 if [ ! -d "unhype_test" ]; then
-    python -m venv unhype_test
+    $PYTHON_CMD -m venv unhype_test
 fi
 source unhype_test/bin/activate
 
