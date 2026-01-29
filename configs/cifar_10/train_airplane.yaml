@@ -1,67 +1,67 @@
 UnGuide_Airplane:
-  # >>> Primary Settings >>>
+  # CIFAR-10 airplane unlearning config
+  # For use with train_sd.py
 
   # Target concepts for removal
   concepts:
     - "an airplane"
     - "an airliner"
     - "an airship"
-    - "an fighter"
+    - "a fighter jet"
 
-  # Mapping concepts - what the target concepts should map to when erased
+  # Mapping concepts
   mapping_concept:
-    - 'a ground'
-    - 'a ground'
-    - 'a ground'
-    - 'a ground'
+    - "a ground"
+    - "a ground"
+    - "a ground"
+    - "a ground"
 
-  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
-  # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
+  # Retain prompts (CIFAR-100 categories)
   retain_csv_path: ./data/cifar100.csv
 
-  augment_target: true   # Augment target concepts to be removed
-  augment_retain: false  # Augment retain prompts from CSV
-  
+  # Augmentation
+  augment_target: true
+  augment_retain: false
+
   # Training hyperparameters
-  learning_rate: 1.0e-03  # 1e-4 as specified
-  max_train_steps: 1000  # Number of actual training iterations
-  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  learning_rate: 1.0e-03
+  max_train_steps: 1000
+  hyper_train_steps: 300
   gradient_accumulation_steps: 1
-  
+
   # LoRA configuration
   rank: 1
   lora_alpha: 1.0e-03
-  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
-  
+  use_pooler: true
+
   # Loss weights
   negative_guidance: 2.0
   guidance_scale: 7.5
   start_guidance: 9.0
-  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
-  
-  # Training weights - for combining removal and retain losses
-  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 1.0   # Weight for retain loss (regularization to preserve other concepts)
-  
-  # Data and paths
-  output_dir: output_pw/airplane_pw  # output_dir from args
-  final_save_path: output_pw/airplane_pw/LoRA_fusion_model
-  
-  # Model configuration
+  internal_lr: 1.0e-04
+
+  # Training weights
+  remove_weight: 10.0
+  retain_weight: 1.0
+
+  # Paths
+  output_dir: output/cifar10_airplane
+  final_save_path: output/cifar10_airplane/LoRA_fusion_model
+
+  # Model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
-  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
-  
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
-  
+  mixed_precision: "no"
+
   # Logging
   logging_dir: logs
-  report_to: wandb  # use-wandb flag enabled
+  report_to: wandb
 
-  # Diagnostic prompts for monitoring training progress
+  # Diagnostic prompts
   diagnostic_prompts:
     - "a photo of the airplane"
     - "a photo of the aircraft"
@@ -76,5 +76,3 @@ UnGuide_Airplane:
     - "a photo of the horse"
     - "a photo of the ship"
     - "a photo of the truck"
-
-  # <<< Primary Settings <<<

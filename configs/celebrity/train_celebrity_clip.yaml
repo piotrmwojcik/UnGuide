@@ -1,6 +1,8 @@
-UnGuide_Celebrity_100_G05:
-  # >>> Primary Settings >>>
-  # Target celebrities for removal (all 100 from MACE)
+UnGuide_Celebrity_CLIP:
+  # Celebrity unlearning config using CLIP embeddings (768-dim)
+  # For use with train_sd.py
+
+  # Target celebrities for removal (100 from MACE benchmark)
   concepts:
     - "adam driver"
     - "adriana lima"
@@ -103,116 +105,116 @@ UnGuide_Celebrity_100_G05:
     - "zayn malik"
     - "melania trump"
 
-  # Mapping concepts - all map to 'a person'
+  # Mapping concepts - gender-appropriate replacements
   mapping_concept:
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a man"
-  - "a woman"
-  - "a man"
-  - "a man"
-  - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a man"
+    - "a woman"
+    - "a man"
+    - "a man"
+    - "a woman"
 
-  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
-  # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
+  # Retain prompts (other celebrities to preserve generation ability)
   retain_csv_path: ./data/celebrity_retain_improved.csv
 
-  augment_target: true   # Augment target concepts to be removed
-  augment_retain: false  # Augment retain prompts from CSV
-  celebrity_mode: true   # Use celebrity-specific prompt augmentations
+  # Augmentation
+  augment_target: true
+  augment_retain: false
+  celebrity_mode: true
 
   # Training hyperparameters
   drop_lr_on_plateau: false
@@ -220,50 +222,48 @@ UnGuide_Celebrity_100_G05:
   learning_rate_retain: 5.0e-04
   plateau_patience_remove: 100
   plateau_patience_retain: 100
-  max_train_steps: 6000  # Number of actual training iterations
-  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  max_train_steps: 6000
+  hyper_train_steps: 300
   gradient_accumulation_steps: 1
 
-  use_huge: true
+  # Embedding model
+  use_huge: true  # Use CLIP-ViT-H (1024-dim) instead of CLIP-ViT-L (768-dim)
 
   # LoRA configuration
-  # Note: clip_size is now set automatically to 4096 (NV-Embed-v2 dimension) in train_simple.py
   rank: 6
   lora_alpha: 0.01
-  internal_size: 512  # Internal projection size for HyperLoRA (projects 4096 -> internal_size)
+  internal_size: 512
 
   # Loss weights
   negative_guidance: 0.3
   guidance_scale: 7.5
   start_guidance: 9.0
-  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+  internal_lr: 1.0e-04
 
-  # Training weights - for combining removal and retain losses
-  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 5.000   # Weight for retain loss (regularization to preserve other concepts)
-
-  retain_steps_per_remove: 20     # Retain steps per removal step
+  # Training weights
+  remove_weight: 10.0
+  retain_weight: 5.0
+  retain_steps_per_remove: 20
   retain_batch_size: 1000
 
-  # Data and paths
-  output_dir: output_pw/celebrities_100_g05  # output_dir from args
-  final_save_path: output_pw/celebrities_100_g05/LoRA_fusion_model
+  # Paths
+  output_dir: output/celebrity_clip
+  final_save_path: output/celebrity_clip/LoRA_fusion_model
 
-  # Model configuration
+  # Model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
-  pretrained_model_name_or_path: models/sd-v1-4.ckpt  # ckpt_path from args
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
 
   # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: "no"  # None for no mixed precision, or "fp16"/"bf16" for mixed precision
+  mixed_precision: "no"
 
   # Logging
   logging_dir: logs
-  report_to: wandb  # use-wandb flag enabled
+  report_to: wandb
 
-  # Diagnostic prompts for monitoring training progress
+  # Diagnostic prompts
   diagnostic_prompts:
     - "a photo of adam driver"
     - "a portrait of adriana lima"
@@ -281,6 +281,3 @@ UnGuide_Celebrity_100_G05:
     - "a photo of fred rogers"
     - "a photo of jimmy carter"
     - "a portrait of robert de niro"
-
-  # <<< Primary Settings <<<
-
