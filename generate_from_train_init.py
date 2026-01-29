@@ -304,16 +304,41 @@ def main():
         if is_main:
             print(f"Output directory: {output_dir}")
 
+        # Scan existing files and extract IDs (handles both old and new patterns)
+        # Old pattern: {case_num}_{prompt}_{seed}.png
+        # New pattern: {case_num}.png
+        existing_ids = set()
+        for f in output_dir.glob("*.png"):
+            # Extract ID from filename (first part before _ or before .png)
+            fname = f.stem  # filename without extension
+            case_id = fname.split('_')[0]
+            try:
+                existing_ids.add(int(case_id))
+            except ValueError:
+                pass  # skip files that don't start with a number
+
+        if is_main and existing_ids:
+            print(f"Found {len(existing_ids)} existing images, will skip those IDs")
+
         # Build task list: (prompt, filepath, eval_seed)
         tasks = []
+        skipped = 0
         for idx, row in df.iterrows():
             prompt = row['prompt']
             eval_seed = int(row['evaluation_seed'])
             case_num = row['case_number'] if 'case_number' in df.columns else idx
 
+            # Skip if this ID already has an image
+            if int(case_num) in existing_ids:
+                skipped += 1
+                continue
+
             filename = f"{case_num}.png"
             filepath = output_dir / filename
             tasks.append((prompt, filepath, eval_seed))
+
+        if is_main and skipped:
+            print(f"Skipped {skipped} already generated images")
 
     else:
         # Celebrity mode
