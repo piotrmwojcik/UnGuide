@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
-from data_utils import  TargetReferenceDataset, collate_prompts
+from utils.data_utils import  TargetReferenceDataset, collate_prompts
 from torchvision.transforms.functional import to_pil_image
 import numpy as np
 from transformers import CLIPTextModel, CLIPTokenizer

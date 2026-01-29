@@ -11,7 +11,7 @@ from functools import partial
 import time
 
 from utils import set_seed, load_model_from_config, apply_lora_to_model
-from sampling import sample_model
+from utils.sampling import sample_model
 from hyper_lora import (HyperLoRALinear, inject_hyper_lora,
                         inject_hyper_lora_nsfw)
 from ldm.models.diffusion.ddimcopy import DDIMSampler

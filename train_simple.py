@@ -28,7 +28,7 @@ from tqdm import tqdm
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
-from sampling import sample_model
+from utils.sampling import sample_model
 from utils import load_model_from_config, print_trainable_parameters
 
 # Lazy imports for NV-Embed (only loaded when needed)

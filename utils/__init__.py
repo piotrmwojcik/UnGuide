@@ -25,3 +25,6 @@ from utils.esd_utils import (
     calculate_shift,
     retrieve_timesteps,
 )
+
+# Re-export from sampling.py
+from utils.sampling import sample_model
