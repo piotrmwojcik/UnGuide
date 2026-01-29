@@ -68,7 +68,7 @@ class BERTTokenizer(AbstractEncoder):
         super().__init__()
         from transformers import BertTokenizerFast
 
-        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased", local_files_only=True)
+        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased", local_files_only=False)
         self.device = device
         self.vq_interface = vq_interface
         self.max_length = max_length
@@ -151,8 +151,8 @@ class FrozenT5Embedder(AbstractEncoder):
         self, version="google/t5-v1_1-large", device="cuda", max_length=77
     ):  # others are google/t5-v1_1-xl and google/t5-v1_1-xxl
         super().__init__()
-        self.tokenizer = T5Tokenizer.from_pretrained(version, local_files_only=True)
-        self.transformer = T5EncoderModel.from_pretrained(version, local_files_only=True)
+        self.tokenizer = T5Tokenizer.from_pretrained(version, local_files_only=False)
+        self.transformer = T5EncoderModel.from_pretrained(version, local_files_only=False)
         self.device = device
         self.max_length = max_length
         self.freeze()
@@ -234,8 +234,8 @@ class FrozenCLIPEmbedder(AbstractEncoder):
         self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77
     ):  # clip-vit-base-patch32
         super().__init__()
-        self.tokenizer = CLIPTokenizer.from_pretrained(version, local_files_only=True)
-        self.transformer = CLIPTextModel.from_pretrained(version, local_files_only=True)
+        self.tokenizer = CLIPTokenizer.from_pretrained(version, local_files_only=False)
+        self.transformer = CLIPTextModel.from_pretrained(version, local_files_only=False)
         self.device = device
         self.max_length = max_length
         self.freeze()
@@ -279,7 +279,7 @@ class ClipImageProjector(AbstractEncoder):
         self, version="openai/clip-vit-large-patch14", max_length=77
     ):  # clip-vit-base-patch32
         super().__init__()
-        self.model = CLIPVisionModel.from_pretrained(version, local_files_only=True)
+        self.model = CLIPVisionModel.from_pretrained(version, local_files_only=False)
         self.model.train()
         self.max_length = max_length
         self.antialias = True
