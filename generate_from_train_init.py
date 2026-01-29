@@ -311,8 +311,7 @@ def main():
             eval_seed = int(row['evaluation_seed'])
             case_num = row['case_number'] if 'case_number' in df.columns else idx
 
-            safe_prompt = prompt.replace(' ', '_').replace(',', '').replace("'", "").replace('"', '')[:60]
-            filename = f"{case_num}_{safe_prompt}_{eval_seed}.png"
+            filename = f"{case_num}.png"
             filepath = output_dir / filename
             tasks.append((prompt, filepath, eval_seed))
 
