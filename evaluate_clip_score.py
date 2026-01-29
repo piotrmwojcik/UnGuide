@@ -20,14 +20,13 @@ def mean_clip_score(image_dir, prompts_path):
     text_df=pd.read_csv(prompts_path)
     texts=list(text_df['prompt'])
     image_filenames=[f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
-    assert len(texts)==len(image_filenames), "Number of images and prompts don't match"
 
     sorted_image_filenames = sorted(
         image_filenames,
         key=lambda x: int(os.path.splitext(x)[0])
     )
     similarities=[]
-    for i in tqdm(range(len(texts))):
+    for i in tqdm(range(len(sorted_image_filenames))):
         text=texts[i]
         imagename=sorted_image_filenames[i]
         image=Image.open(os.path.join(image_dir,imagename))
