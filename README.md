@@ -5,7 +5,7 @@ Concept unlearning for diffusion models using HyperLoRA.
 ## Installation
 
 ```bash
-pip install torch torchvision transformers accelerate diffusers pandas pyyaml wandb tqdm
+pip install -r requirements.txt
 ```
 
 ## Training
