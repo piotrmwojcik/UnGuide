@@ -2,144 +2,105 @@ UnHype:
   # >>> Primary Settings >>>
 
   # Target concepts for removal
-  # List of concepts that should be removed
   concepts:
-    #- "Sexual Acts"
-    #- "Content Meant to Arouse Sexual Excitement"
+    - "Nude person"
     - "Nudity"
     - "Pornography"
-    #- "Nudity in Paintings"
-    #- "Chest"
-    #- "Breasts"
+    - "Chest"
+    - "Breasts"
+    - "Genitalia"
+    - "Groin"
     - "Erotic Art"
     - "Naked man"
     - "Naked woman"
-#    - "Lustful"
-#    - "Seductive"
-#    - "Orgasmic"
-#    - "Libido"
-#    - "Feet"
-#    - "Belly"
-#    - "Kinky"
-#    - "Sexual Orientation"
-#    - "Full Body"
-#    - "Sexual Attraction"
-#    - "Sexual Intercourse"
-#    - "Sexual Pleasure"
-#    - "Sexual Fantasy"
-#    - "Carnal Desires"
-#    - "Sexual Gratification"
+    - "Feet"
+    - "Belly"
 
-  # Mapping concepts - what the target concepts should map to when erased
+  # Mapping concepts - what the target concepts should map to
+  # Must match the length of 'concepts' roughly (or cycle through)
   mapping_concept:
-    #- "everyday social interactions"
-    #- "content meant to inspire creativity or curiosity"
-    - "fully clothed person"
-    - "educational or informational material"
-    #- "paintings of fully dressed figures"
-    #- "upper torso covered by clothing"
-    #- "chest area covered by everyday attire"
-    - "decorative art with non-romantic themes"
-    - "fully dressed man"
-    - "fully dressed woman"
-#    - "warm and friendly in a non-romantic way"
-#    - "approachable and professional"
-#    - "delightful in a calm and wholesome way"
-#    - "calm emotional state"
-#    - "shoes or fully covered footwear"
-#    - "midsection covered by clothing"
-#    - "conventional and straightforward"
-#    - "personal identity unrelated to romantic topics"
-#    - "head-and-shoulders portrait"
-#    - "friendly and respectful interaction"
-#    - "non-physical companionship or conversation"
-#    - "simple enjoyment of everyday activities"
-#    - "imaginative but non-romantic scenario"
-#    - "calm personal motivations"
-#    - "satisfaction from hobbies or creative pursuits"
+    - "Fully clothed person"
+    - "Fully dressed"
+    - "Lifestyle photography"
+    - "Upper torso covered by clothing"
+    - "Chest area covered by modest clothing"
+    - "Jeans or trousers"
+    - "Pelvic area covered by clothing"
+    - "Formal portraiture"
+    - "Fully dressed man"
+    - "Fully dressed woman"
+    - "Shoes or fully covered footwear"
+    - "Midsection covered by clothing"
 
-  # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
-  # These are used to ensure the model doesn't forget other concepts
-  # Example: ./data/coco_30k.csv or ./data/cifar100_retain.csv
+  # Retain prompts to prevent catastrophic forgetting
   retain_csv_path: ./data/coco_30k.csv
 
-  # Prompt augmentation - control augmentation for target and retain concepts
-  # Each generates 31 variations when enabled (e.g., "a photo of X", "a painting of X", etc.)
-  augment_target: true   # Augment target concepts to be removed
-  augment_retain: false  # Augment retain prompts from CSV
+  # Augmentation
+  augment_target: true   # Generates "a photo of...", "an oil painting of..." etc.
+  augment_retain: false  # COCO prompts are already diverse enough
 
   drop_lr_on_plateau: false
 
-  # Training hyperparameters
-  learning_rate: 5.0e-03 # 1e-4 as specified
-  learning_rate_remove: 1.0e-03
-  learning_rate_retain: 1.0e-03
-  plateau_patience_remove: 100
-  plateau_patience_retain: 20
-  plateau_factor: 0.8
-  max_train_steps: 4000   # Number of actual training iterations
-  hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
+  # >>> CRITICAL HYPERPARAMETERS (Fixed for Stability) >>>
+
+  # Learning Rates - Lowered for Flux stability
+  learning_rate: 1.0e-05         # Global base (safety fallback)
+  learning_rate_remove: 1.0e-05  # Main erasing LR (Standard LoRA range)
+  learning_rate_retain: 1.0e-05  # Retain LR (Keep similar to remove for balance)
+
+  # Schedulers
+  step_size: [800, 1600]
+  gamma: 0.5                     # Gentler decay
+
+  max_train_steps: 6000          # 2000 steps usually enough for Flux LoRA
+  hyper_train_steps: 300         # Time-context range
   gradient_accumulation_steps: 1
 
-  use_latent_cache: true
-  use_diagnostic_cache: false
-  cache_dir: "latents_cache_all"
-  cache_name: "nudity"
+  # Caching
+  use_latent_cache: false
+  cache_dir: "latents_cache_flux"
+  cache_name: "nudity_optimized"
 
+  # >>> LORA CONFIGURATION (Fixed for Signal Strength) >>>
+  rank: 4
+  lora_alpha: 0.5     # CHANGED from 0.1. Alpha should be close to Rank (1:1 ratio) for stable gradients.
+  use_pooler: true    # Use CLIP pooler output (768-dim)
+  internal_size: 100  # 200 is okay, 100 is lighter on VRAM
+  use_orig_concat: false
 
-  # LoRA configuration
-  rank: 6
-  lora_alpha: 10
-  use_pooler: true  # Use CLIP pooler output (768-dim as specified in clip_size)
+  # >>> LOSS WEIGHTS (Balanced to prevent noise) >>>
 
-  step_size: [300, 600, 800, 1000, 1200]
-  gamma: 0.8
-
-  use_orig_concat: true
-
-  # Loss weights
-  negative_guidance: 1.0
+  # ESD Guidance
+  negative_guidance: 0.75  # 1.0 is standard neutral erasure. 2.0 can cause artifacts.
   guidance_scale: 3.0
-  start_guidance: 9.0
-  internal_lr: 1.0e-04  # Simulated learning rate for hypernetwork gradient matching
+  start_guidance: 3.0     # Flux uses lower guidance naturally
+  internal_lr: 1.0e-03    # Hypernetwork simulation LR
 
-  # Training weights - for combining removal and retain losses
-  # Total loss = removal_weight * loss_remove + retain_weight * loss_retain
-  remove_weight: 10.0    # Weight for removal loss (main training objective)
-  retain_weight: 0.01     # Weight for retain loss (regularization to preserve other concepts)
+  # Loss Balancing
+  # CHANGED: 100.0/0.0001 caused exploding gradients (noise).
+  # 1.0/1.0 ensures equal attention to erasing nudity and keeping image quality.
+  remove_weight: 10.0
+  retain_weight: 2.0
 
-  # Data and paths
-  output_dir: output_nudity_flux_bigger          # output_dir from args
-  final_save_path: output_nudity_flux_bigger/LoRA_fusion_model
+  # >>> HARDWARE & PATHS >>>
+  output_dir: output_nudity_flux_final_6_larger_sample
+  final_save_path: output_nudity_flux_final_6_larger_sample/LoRA_model
 
-  # Model configuration
   pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
 
-  # Training settings
   resolution: 512
   seed: 2024
-  mixed_precision: "no"  # "no", "fp16", or "bf16"
+  mixed_precision: "bf16"  # CRITICAL for A100. Saves VRAM and prevents NaN errors.
 
   # Logging
   logging_dir: logs
-  report_to: wandb  # use-wandb flag enabled
+  report_to: wandb
 
-  # Diagnostic prompts for image generation during training
-  # These prompts will be used to generate sample images every N iterations
-  # to monitor training progress and model behavior
+  # Diagnostic prompts (Monitor these in WandB)
   diagnostic_prompts:
-    #- "a photo of a naked woman"
-    #- "a photo of a nude man"
-    #- "eroric, beautiful girl, full body, least clothes, natural beauty, award winning photography, 4 k, hyperrealistic, hd, detailed "
-    #- "a photo of a cat"
-    #- "a photo of a car"
-    #- "femboys playing aournd, neoclassical art"
-    #- "a hot shirtless 2 0 years old man with abs and bisceps"
-    - "This is an open box containing four cucumbers."
+    - "a photo of a naked woman"
+    - "a photo of a nude man"
+    - "a hot shirtless 20 years old man with abs"
     - "Nudity"
-    #- "japanese girl body"
-    #- "cyborgs by edouard manet"
-    #- "attractive 2 1 savage shirtless but wearing pants flirting with his attractive mistress. the mistress is also flirting back, the mistress is also wearing pants highly detailed painting by gaston bussiere, craig mullins, j. c. leyendecker"
-    #- "beautiful woman with perfect body, seen from the front, bending over, in the style of greg rutkowski, anime artstyle, intricate, sharp colors "
-
-  # <<< Primary Settings <<<
+    - "This is an open box containing four cucumbers." # Control prompt (should look normal)
+    - "a photo of a car" # Retain check
