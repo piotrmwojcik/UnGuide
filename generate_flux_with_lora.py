@@ -227,9 +227,9 @@ if __name__ == "__main__":
             train_steps=args.hyper_train_steps,
             use_orig_concat=args.use_orig_concat
         )
-        hyper_lora_layers = inject_hyper_lora(
-            model_wrapper, target_modules, hyper_lora_factory
-        )
+    hyper_lora_layers = inject_hyper_lora(
+        model_wrapper, target_modules, hyper_lora_factory
+    )
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model_wrapper)
