@@ -16,38 +16,6 @@ from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 
 from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 
-from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
-
-
-from contextlib import contextmanager
-
-@contextmanager
-def temporary_global_seed(seed: int):
-    # Save current RNG states
-    py_state = random.getstate()
-    np_state = np.random.get_state()
-    torch_state = torch.random.get_rng_state()
-    cuda_states = None
-    if torch.cuda.is_available():
-        cuda_states = torch.cuda.get_rng_state_all()
-
-    try:
-        # Set global seed (equivalent to hf_set_seed behavior)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-
-        yield
-    finally:
-        # Restore previous RNG states
-        random.setstate(py_state)
-        np.random.set_state(np_state)
-        torch.random.set_rng_state(torch_state)
-        if cuda_states is not None:
-            torch.cuda.set_rng_state_all(cuda_states)
-
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 token = os.environ.get("HF_TOKEN")
 if token:
@@ -87,11 +55,9 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
 
     # real tensors
     tensor_map = {n: p for n, p in transformer.named_parameters()}
-    buffer_map = {n: b for n, b in transformer.named_buffers()}
-    tensor_map.update(buffer_map)
+    tensor_map.update({n: b for n, b in transformer.named_buffers()})
 
     lora_state_dict = torch.load(lora_path, map_location="cpu")
-    print(lora_state_dict.keys())
     # Compatible with both accelerator.save and torch.save (plain dict)
     if isinstance(lora_state_dict, dict):
         # Accept plain dict (torch.save from train_flux_like_esd.py)
@@ -107,12 +73,6 @@ def load_lora_weights(model_wrapper, lora_path, device, check_keys=5):
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
     print("ckpt keys:", len(lora_state_dict), "common keys:", len(common))
     print("example common keys:", common[:10])
-
-    missing_buffers = [k for k in buffer_map if k not in lora_state_dict]
-    if missing_buffers:
-        print("[WARNING] The following buffers were NOT overwritten from checkpoint and may have random values:")
-        for k in missing_buffers:
-            print(f"  - {k}")
 
     with torch.no_grad():
         for i, k in enumerate(common):
@@ -160,11 +120,6 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
-    # Determinism settings
-    hf_set_seed(args.seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True, warn_only=True)
 
     torch.set_num_threads(torch.get_num_threads())
 
@@ -216,20 +171,20 @@ if __name__ == "__main__":
 
     clip_size = 768 if args.use_pooler else 512
     target_modules = ["attn.add_v_proj", "attn.to_v", "attn.to_out.0"]
-    load_seed = 42  # global seed for hypernetwork init/load only
 
-    with temporary_global_seed(load_seed):
-        hyper_lora_factory = partial(
-            HyperLoRALinear,
-            clip_size=clip_size,
-            rank=args.rank,
-            alpha=args.lora_alpha,
-            train_steps=args.hyper_train_steps,
-            use_orig_concat=args.use_orig_concat
-        )
-        hyper_lora_layers = inject_hyper_lora(
-            model_wrapper, target_modules, hyper_lora_factory
-        )
+
+    hyper_lora_factory = partial(
+        HyperLoRALinear,
+        clip_size=clip_size,
+        rank=args.rank,
+        alpha=args.lora_alpha,
+        train_steps=args.hyper_train_steps,
+        use_orig_concat=args.use_orig_concat
+    )
+
+    hyper_lora_layers = inject_hyper_lora(
+        model_wrapper, target_modules, hyper_lora_factory
+    )
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model_wrapper)
@@ -238,18 +193,6 @@ if __name__ == "__main__":
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
     load_lora_weights(pipe, args.lora_path, device)
-
-    final_save_path = "./test_ckp"
-    os.makedirs(final_save_path, exist_ok=True)
-
-    lora_path = os.path.join(final_save_path, f"hyper_lora_.pth")
-    # --- SAVE ONLY HYPERLORA WEIGHTS (no accelerator) ---
-    hyperlora_state_dict = {k: v.detach().cpu() for k, v in model_wrapper.state_dict().items() if ".hyper_lora." in k}
-
-    lora_path = os.path.join(final_save_path, f"hyper_lora.pth")
-    torch.save(hyperlora_state_dict, lora_path)
-
-    print(f"HyperLoRA saved to: {lora_path}")
 
     df = pd.read_csv(args.csv_path, index_col=0)
 
@@ -269,16 +212,15 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
 
     images_generated = 0
-    for image_id, row in tqdm(df.iterrows(), total=len(df)):
+    for image_id, prompt in tqdm(enumerate(ALLOWED_PROMPTS), total=len(ALLOWED_PROMPTS)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
+
         image_path = os.path.join(save_dir, f"{image_id:05d}.png")
         if os.path.exists(image_path):
             continue
-        prompt = coerce_prompt(row.get("prompt", ""))
-        if not isinstance(prompt, str) or not prompt.strip():
-            print(f"Skip [{image_id}] empty prompt")
-            continue
+
+        prompt = coerce_prompt(prompt)
 
         weight_dtype = torch.bfloat16
 
@@ -318,8 +260,7 @@ if __name__ == "__main__":
         print("cache size:", len(model_wrapper.hyper.lora_weights_cache))
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
 
-        seed = int(row.get("evaluation_seed", 0))
-        hf_set_seed(seed)
+        seed = int(1024)
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()

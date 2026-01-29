@@ -30,35 +30,52 @@ from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
 from ldm.models.diffusion.ddimcopy import DDIMSampler
 from sampling import sample_model
 from utils import load_model_from_config, print_trainable_parameters
-from nv_embed_utils import load_nv_embed_model, compute_nv_embed, NV_EMBED_DIM, NV_EMBED_MODEL_NAME
+
+# Lazy imports for NV-Embed (only loaded when needed)
+_nv_embed_module = None
+
+def _load_nv_embed_module():
+    global _nv_embed_module
+    if _nv_embed_module is None:
+        import nv_embed_utils
+        _nv_embed_module = nv_embed_utils
+    return _nv_embed_module
 
 
 class HyperCache:
     """
-    Cache for NV-Embed embeddings used as HyperLoRA context.
+    Cache for embeddings used as HyperLoRA context.
+    Supports NV-Embed, CLIP, or any embedding function.
     All embeddings stored on CPU, moved to device on access.
     """
 
     def __init__(
         self,
         prompts: list = None,
-        nv_embed_model=None,
-        nv_embed_tokenizer=None,
+        embed_fn=None,
         device: torch.device = None,
         batch_size: int = 8,
+        embed_model_name: str = "unknown",
     ):
         self.prompts = []
         self.prompt_to_idx = {}
         self.embeddings = None
         self.dirty = False
+        self.embed_model_name = embed_model_name
 
-        if prompts and nv_embed_model is not None:
-            print(f"[HyperCache] Computing NV-Embed for {len(prompts)} prompts...")
+        if prompts and embed_fn is not None:
+            print(f"[HyperCache] Computing {embed_model_name} embeddings for {len(prompts)} prompts...")
             self.prompts = list(prompts)
             self.prompt_to_idx = {p: i for i, p in enumerate(self.prompts)}
-            self.embeddings = compute_nv_embed(
-                self.prompts, nv_embed_model, nv_embed_tokenizer, device, batch_size=batch_size
-            ).cpu()
+
+            # Compute embeddings in batches
+            all_embeddings = []
+            for i in range(0, len(prompts), batch_size):
+                batch = prompts[i:i+batch_size]
+                batch_embs = [embed_fn(p).cpu() for p in batch]
+                all_embeddings.extend(batch_embs)
+
+            self.embeddings = torch.cat([e if e.dim() == 2 else e.unsqueeze(0) for e in all_embeddings], dim=0)
             self._print_memory_usage()
 
     def get(self, prompt: str, device: torch.device) -> torch.Tensor:
@@ -319,6 +336,12 @@ def parse_args():
         required=True,
         help="Path to YAML configuration file",
     )
+    parser.add_argument(
+        "--use_huge",
+        action="store_true",
+        default=False,
+        help="Use largest CLIP model (ViT-G/14, 1280 dim) instead of ViT-L/14 (768 dim)",
+    )
     return parser.parse_args()
 
 
@@ -408,6 +431,11 @@ def main():
     augment_target = config.get('augment_target', True)
     augment_retain = config.get('augment_retain', False)
     celebrity_mode = config.get('celebrity_mode', False)
+    use_huge = config.get('use_huge', False)
+
+    # Embedding model configuration: "clip", "clip_huge", or "nv_embed"
+    embedding_model = config.get('embedding_model', 'clip')
+    use_pooler = config.get('use_pooler', True)
 
     # Retain balancing parameters
     retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
@@ -484,8 +512,15 @@ def main():
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
 
-    # NV-Embed-v2 embeddings (4096-dim) for HyperLoRA context
-    clip_size = NV_EMBED_DIM
+    # Determine embedding dimension based on embedding_model config
+    if embedding_model == 'nv_embed':
+        nv_embed_mod = _load_nv_embed_module()
+        clip_size = nv_embed_mod.NV_EMBED_DIM  # 4096
+    elif embedding_model == 'clip_huge':
+        clip_size = 1280
+    else:  # default: clip
+        clip_size = 768 if use_pooler else 512
+
     target_modules = ["attn2.to_k", "attn2.to_v"]
     
     hyper_lora_factory = partial(
@@ -557,26 +592,73 @@ def main():
         accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
     
     sampler = DDIMSampler(accelerator.unwrap_model(model))
-    
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
 
-    # Load NV-Embed-v2 model for HyperLoRA context embeddings
-    print(f"Loading {NV_EMBED_MODEL_NAME} for HyperLoRA context embeddings...")
-    nv_embed_model, nv_embed_tokenizer = load_nv_embed_model(
-        accelerator.device, torch.float16
-    )
-    
-    def encode(text: str):
-        return tokenizer(
-            text,
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        ).to(accelerator.device).input_ids
+    # Setup embedding model based on config
+    nv_embed_model = None
+    nv_embed_tokenizer = None
+    clip_text_encoder = None
+    tokenizer = None
+    use_open_clip = False
 
+    if embedding_model == 'nv_embed':
+        nv_embed_mod = _load_nv_embed_module()
+        print(f"Loading {nv_embed_mod.NV_EMBED_MODEL_NAME} for HyperLoRA context embeddings...")
+        nv_embed_model, nv_embed_tokenizer = nv_embed_mod.load_nv_embed_model(
+            accelerator.device, torch.float16
+        )
+        # Still need CLIP tokenizer for the diffusion model conditioning
+        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+        clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
+
+        def get_embedding(text: str):
+            with torch.no_grad():
+                return nv_embed_mod.compute_nv_embed(
+                    [text], nv_embed_model, nv_embed_tokenizer, accelerator.device
+                ).detach()
+
+        embed_model_name = "nv_embed"
+
+    elif embedding_model == 'clip_huge':
+        import open_clip
+        print("Using HUGE CLIP model: ViT-bigG-14 (1280 dim) via open_clip")
+        clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
+        clip_text_encoder = clip_model.to(accelerator.device).eval()
+        tokenizer = open_clip.get_tokenizer('ViT-bigG-14')
+        use_open_clip = True
+
+        def get_embedding(text: str):
+            with torch.no_grad():
+                tokens = tokenizer(text).to(accelerator.device)
+                return clip_text_encoder.encode_text(tokens).detach()
+
+        embed_model_name = "clip_huge"
+
+    else:  # default: clip
+        print("Using standard CLIP model: ViT-L/14 (768 dim)")
+        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+        clip_text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(accelerator.device).eval()
+
+        def get_embedding(text: str):
+            with torch.no_grad():
+                inputs = tokenizer(
+                    text,
+                    max_length=tokenizer.model_max_length,
+                    padding="max_length",
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(accelerator.device).input_ids
+                if use_pooler:
+                    return clip_text_encoder(inputs).pooler_output.detach()
+                else:
+                    return clip_text_encoder(inputs).last_hidden_state.detach()
+
+        embed_model_name = "clip"
+
+    # Print embedding dimensionality for verification
     target_concepts = [c for c in concepts]
+    if target_concepts:
+        test_emb = get_embedding(target_concepts[0])
+        print(f"Embedding shape ({embed_model_name}): {test_emb.shape} (first concept: '{target_concepts[0]}')")
 
     # Build list of all prompts to cache
     all_prompts_to_cache = []
@@ -604,7 +686,6 @@ def main():
     # Add diagnostic prompts
     all_prompts_to_cache.extend(diagnostic_prompts)
 
-    # Add retain prompts from CSV
     retain_prompts = []
     if retain_csv_path and os.path.exists(retain_csv_path):
         print(f"Loading retain prompts from CSV: {retain_csv_path}")
@@ -649,17 +730,17 @@ def main():
         if is_main:
             hyper_cache = HyperCache(
                 prompts=all_prompts_to_cache,
-                nv_embed_model=nv_embed_model,
-                nv_embed_tokenizer=nv_embed_tokenizer,
+                embed_fn=get_embedding,
                 device=accelerator.device,
                 batch_size=8,
+                embed_model_name=embed_model_name,
             )
             hyper_cache.save(cache_path)
         accelerator.wait_for_everyone()
         if not is_main:
             hyper_cache = HyperCache.load(cache_path)
 
-    print(f"[HyperCache] {len(hyper_cache)} prompts cached")
+    print(f"[HyperCache] {len(hyper_cache)} prompts cached ({embed_model_name})")
     
     criterion = torch.nn.MSELoss()
     losses = []

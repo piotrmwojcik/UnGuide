@@ -118,7 +118,7 @@ def calculate_shift(
 
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
-                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, latents=None):
+                  pooled_prompt_embeds, text_ids, guidance, num_inference_steps, stop_at_step=None, latents=None):
     """
         Sample the model
         ESD quick_sample_till_t
@@ -171,8 +171,15 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     prompt_embeds = prompt_embeds.bfloat16()
     text_ids = text_ids.bfloat16()
 
+    timestep = None
     # Denoising loop
     for i, t in enumerate(timesteps_tensor):
+        if stop_at_step is not None and i >= stop_at_step:
+            # Return current latent and the timestep that matches its noise level
+            # We return 4 values to match the unpacking in train_flux_simple_slow.py
+            timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
+            return latents, latent_image_ids, timestep
+
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
 
@@ -194,7 +201,7 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
         latents = scheduler.step(noise_pred, t, latents, return_dict=False)[0]
 
-    return latents, latent_image_ids
+    return latents, latent_image_ids, timestep
 
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,
