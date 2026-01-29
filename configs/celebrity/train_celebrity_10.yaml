@@ -29,7 +29,7 @@ UnGuide_Celebrity_10:
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses 100 other celebrities (domain-specific) to ensure the model retains celebrity generation ability
-  retain_csv_path: ./celebrity_retain_improved.csv
+  retain_csv_path: ./data/celebrity_retain_improved.csv
 
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV

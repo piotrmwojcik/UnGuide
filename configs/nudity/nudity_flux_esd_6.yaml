@@ -35,7 +35,7 @@ UnHype:
     - "Covered arms"
 
   # Retain prompts to prevent catastrophic forgetting
-  retain_csv_path: ./mscoco/coco_30k.csv
+  retain_csv_path: ./data/coco_30k.csv
 
   # Augmentation
   augment_target: true   # Generates "a photo of...", "an oil painting of..." etc.

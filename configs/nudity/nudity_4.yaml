@@ -56,8 +56,8 @@ UnHype:
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # These are used to ensure the model doesn't forget other concepts
-  # Example: ./mscoco/coco_30k.csv or ./data/cifar100_retain.csv
-  retain_csv_path: ./mscoco/coco_30k.csv
+  # Example: ./data/coco_30k.csv or ./data/cifar100_retain.csv
+  retain_csv_path: ./data/coco_30k.csv
 
   # Prompt augmentation - control augmentation for target and retain concepts
   # Each generates 31 variations when enabled (e.g., "a photo of X", "a painting of X", etc.)

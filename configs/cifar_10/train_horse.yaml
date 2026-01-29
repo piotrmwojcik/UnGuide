@@ -17,7 +17,7 @@ UnGuide_Horse:
 
   # Retain prompts - CSV file with 'prompt' column containing prompts that should remain unchanged
   # Uses CIFAR100 categories to ensure the model doesn't forget other concepts
-  retain_csv_path: ./cifar100.csv
+  retain_csv_path: ./data/cifar100.csv
 
   augment_target: true   # Augment target concepts to be removed
   augment_retain: false  # Augment retain prompts from CSV
