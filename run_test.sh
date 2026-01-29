@@ -1,43 +1,18 @@
 #!/bin/bash
 # UnGuide Test Script
-# Creates conda environment, installs dependencies, runs training and generation tests
+# Runs training and generation tests
 
 set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-ENV_NAME="unhype_test"
-
 echo "========================================"
 echo "UnGuide Test Suite"
 echo "========================================"
 
-# Check if conda is available
-if ! command -v conda &> /dev/null; then
-    echo "ERROR: conda not found. Please install Anaconda or Miniconda."
-    exit 1
-fi
-
-# Create conda environment with Python 3.11
-echo ""
-echo "[1/7] Creating conda environment: $ENV_NAME (Python 3.11)"
-if ! conda env list | grep -q "^${ENV_NAME} "; then
-    conda create -n $ENV_NAME python=3.11 -y
-fi
-
-# Activate environment
-eval "$(conda shell.bash hook)"
-conda activate $ENV_NAME
-
 echo "Using Python: $(which python)"
 python --version
-
-# Install requirements
-echo ""
-echo "[2/7] Installing requirements..."
-pip install --upgrade pip
-pip install -r requirements.txt
 
 # Create output directory
 mkdir -p output
@@ -53,35 +28,35 @@ fi
 
 # Training 1: CIFAR-10 Airplane
 echo ""
-echo "[3/7] Training: CIFAR-10 Airplane..."
+echo "[1/5] Training: CIFAR-10 Airplane..."
 python train_sd.py --config configs_test/cifar_10/train_airplane.yaml || {
     echo "Training failed for cifar10_airplane"
 }
 
 # Training 2: Celebrity CLIP
 echo ""
-echo "[4/7] Training: Celebrity CLIP..."
+echo "[2/5] Training: Celebrity CLIP..."
 python train_sd.py --config configs_test/celebrity/train_celebrity_clip.yaml || {
     echo "Training failed for celebrity_clip"
 }
 
 # Training 3: Celebrity NV-Embed
 echo ""
-echo "[5/7] Training: Celebrity NV-Embed..."
+echo "[3/5] Training: Celebrity NV-Embed..."
 python train_sd.py --config configs_test/celebrity/train_celebrity_nvembed.yaml || {
     echo "Training failed for celebrity_nvembed"
 }
 
 # Training 4: Nudity SD
 echo ""
-echo "[6/7] Training: Nudity SD..."
+echo "[4/5] Training: Nudity SD..."
 python train_sd.py --config configs_test/nudity/nudity_sd.yaml || {
     echo "Training failed for nudity_sd"
 }
 
 # Training 5: Nudity Flux
 echo ""
-echo "[7/7] Training: Nudity Flux..."
+echo "[5/5] Training: Nudity Flux..."
 python train_flux.py --config configs_test/nudity/nudity_flux.yaml || {
     echo "Training failed for nudity_flux"
 }
