@@ -260,7 +260,7 @@ if __name__ == "__main__":
         )
 
         # Keep only rows with non-zero nudity
-        df = df[df["nudity_percentage"] > 0]
+        #df = df[df["nudity_percentage"] > 0]
 
         # Sort by highest nudity first
         df = df.sort_values(by="nudity_percentage", ascending=False)
