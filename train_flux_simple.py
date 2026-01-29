@@ -38,7 +38,7 @@ from torchvision.transforms.functional import to_tensor
 from generate_bare_flux import retrieve_timesteps, inference_latent_sample, generate_one_image_from_prompt
 from accelerate import Accelerator
 from tools.scheduler_process import FlowMatchEulerDiscreteScheduler
-from utils_flux.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
+from utils.esd_utils import latent_sample, predict_noise, flux_pack_latents, _prepare_latent_image_ids
 from transformers import CLIPTokenizer, PretrainedConfig, T5TokenizerFast
 from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
 from torchvision.transforms.functional import to_pil_image
@@ -180,7 +180,7 @@ class Cache:
         return embeddings
 
     def _compute_all_latents(self, transformer, noise_scheduler, num_channels_latents, height, width, seed, guidance):
-        from utils_flux.esd_utils import flux_pack_latents, calculate_shift, retrieve_timesteps
+        from utils.esd_utils import flux_pack_latents, calculate_shift, retrieve_timesteps
         import numpy as np
 
         num_prompts = len(self.target_prompts)

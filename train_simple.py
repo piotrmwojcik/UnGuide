@@ -37,7 +37,7 @@ _nv_embed_module = None
 def _load_nv_embed_module():
     global _nv_embed_module
     if _nv_embed_module is None:
-        import nv_embed_utils
+        import utils.nv_embed_utils as nv_embed_utils
         _nv_embed_module = nv_embed_utils
     return _nv_embed_module
 

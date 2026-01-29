@@ -17,7 +17,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Import embedding models
-from nv_embed_utils import load_nv_embed_model, compute_nv_embed
+from utils.nv_embed_utils import load_nv_embed_model, compute_nv_embed
 from nemo_neva_utils import load_neva_model, compute_neva_embed
 
 
