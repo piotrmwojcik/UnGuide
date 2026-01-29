@@ -269,10 +269,12 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
 
     images_generated = 0
-    for image_id, row in tqdm(df.iterrows(), total=len(df)):
+    for idx, row in tqdm(df.iterrows(), total=len(df)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
-        image_path = os.path.join(save_dir, f"{image_id:05d}.png")
+        # Use case_number if available (COCO), otherwise use index
+        image_id = row['case_number'] if 'case_number' in df.columns else idx
+        image_path = os.path.join(save_dir, f"{image_id}.png")
         if os.path.exists(image_path):
             continue
         prompt = coerce_prompt(row.get("prompt", ""))
