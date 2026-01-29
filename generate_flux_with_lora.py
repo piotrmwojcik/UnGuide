@@ -160,6 +160,12 @@ if __name__ == "__main__":
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
+    # Determinism settings
+    hf_set_seed(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
     torch.set_num_threads(torch.get_num_threads())
 
     # Load Flux pipeline
@@ -221,10 +227,9 @@ if __name__ == "__main__":
             train_steps=args.hyper_train_steps,
             use_orig_concat=args.use_orig_concat
         )
-
-    hyper_lora_layers = inject_hyper_lora(
-        model_wrapper, target_modules, hyper_lora_factory
-    )
+        hyper_lora_layers = inject_hyper_lora(
+            model_wrapper, target_modules, hyper_lora_factory
+        )
 
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model_wrapper)
@@ -314,6 +319,7 @@ if __name__ == "__main__":
         print("example cache key:", next(iter(model_wrapper.hyper.lora_weights_cache.keys())))
 
         seed = int(row.get("evaluation_seed", 0))
+        hf_set_seed(seed)
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
