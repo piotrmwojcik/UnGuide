@@ -1,0 +1,59 @@
+UnGuide_Celebrity_CLIP_Test:
+  # TEST CONFIG - 1 epoch only
+  # Celebrity unlearning config using CLIP embeddings
+
+  concepts:
+    - "adam driver"
+    - "adriana lima"
+
+  mapping_concept:
+    - "a man"
+    - "a woman"
+
+  retain_csv_path: ./data/celebrity_retain_improved.csv
+
+  augment_target: true
+  augment_retain: false
+  celebrity_mode: true
+
+  drop_lr_on_plateau: false
+  learning_rate_remove: 5.0e-04
+  learning_rate_retain: 5.0e-04
+  plateau_patience_remove: 100
+  plateau_patience_retain: 100
+  max_train_steps: 10  # TEST: 1 epoch
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  use_huge: true
+
+  rank: 6
+  lora_alpha: 0.01
+  internal_size: 512
+
+  negative_guidance: 0.3
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  remove_weight: 10.0
+  retain_weight: 5.0
+  retain_steps_per_remove: 1
+  retain_batch_size: 10
+
+  output_dir: output/test_celebrity_clip
+  final_save_path: output/test_celebrity_clip/LoRA_fusion_model
+
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  logging_dir: logs
+  report_to: none
+
+  diagnostic_prompts:
+    - "a photo of adam driver"
+    - "a photo of a person"

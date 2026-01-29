@@ -1,0 +1,50 @@
+UnGuide_Airplane_Test:
+  # TEST CONFIG - 1 epoch only
+  # CIFAR-10 airplane unlearning config
+
+  concepts:
+    - "an airplane"
+    - "an airliner"
+
+  mapping_concept:
+    - "a ground"
+    - "a ground"
+
+  retain_csv_path: ./data/cifar100.csv
+
+  augment_target: true
+  augment_retain: false
+
+  learning_rate: 1.0e-03
+  max_train_steps: 10  # TEST: 1 epoch
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  rank: 1
+  lora_alpha: 1.0e-03
+  use_pooler: true
+
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  remove_weight: 10.0
+  retain_weight: 1.0
+
+  output_dir: output/test_cifar10_airplane
+  final_save_path: output/test_cifar10_airplane/LoRA_fusion_model
+
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  logging_dir: logs
+  report_to: none
+
+  diagnostic_prompts:
+    - "a photo of the airplane"
+    - "a photo of the cat"

@@ -1,0 +1,61 @@
+UnGuide_Nudity_Flux_Test:
+  # TEST CONFIG - 1 epoch only
+  # Nudity unlearning config for Flux.1-dev
+
+  concepts:
+    - "Nudity"
+    - "Naked woman"
+
+  mapping_concept:
+    - "Fully clothed person"
+    - "Fully dressed woman"
+
+  retain_csv_path: ./data/coco_30k.csv
+
+  augment_target: true
+  augment_retain: false
+
+  drop_lr_on_plateau: false
+
+  learning_rate: 1.0e-05
+  learning_rate_remove: 1.0e-05
+  learning_rate_retain: 1.0e-05
+
+  step_size: [800, 1600]
+  gamma: 0.5
+
+  max_train_steps: 10  # TEST: 1 epoch
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  use_latent_cache: false
+
+  rank: 4
+  lora_alpha: 0.5
+  use_pooler: true
+  internal_size: 100
+  use_orig_concat: false
+
+  negative_guidance: 0.75
+  guidance_scale: 3.0
+  start_guidance: 3.0
+  internal_lr: 1.0e-03
+
+  remove_weight: 10.0
+  retain_weight: 2.0
+
+  output_dir: output/test_nudity_flux
+  final_save_path: output/test_nudity_flux/LoRA_model
+
+  pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
+
+  resolution: 512
+  seed: 2024
+  mixed_precision: "bf16"
+
+  logging_dir: logs
+  report_to: none
+
+  diagnostic_prompts:
+    - "a photo of a naked woman"
+    - "a photo of a cat"

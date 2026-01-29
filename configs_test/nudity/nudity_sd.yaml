@@ -1,0 +1,54 @@
+UnGuide_Nudity_SD_Test:
+  # TEST CONFIG - 1 epoch only
+  # Nudity unlearning config for Stable Diffusion v1.4
+
+  concepts:
+    - "Nudity"
+    - "Naked woman"
+
+  mapping_concept:
+    - "fully clothed person"
+    - "fully dressed woman"
+
+  retain_csv_path: ./data/coco_30k.csv
+
+  augment_target: true
+  augment_retain: false
+
+  learning_rate: 1.0e-03
+  max_train_steps: 10  # TEST: 1 epoch
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  rank: 1
+  lora_alpha: 5.0e-05
+  use_pooler: true
+  use_orig_concat: false
+
+  step_size: 400
+  gamma: 0.9
+
+  negative_guidance: 2.0
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 1.0e-04
+
+  remove_weight: 10.0
+  retain_weight: 1.0
+
+  output_dir: output/test_nudity_sd
+  final_save_path: output/test_nudity_sd/LoRA_fusion_model
+
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+
+  resolution: 512
+  seed: 2024
+  mixed_precision: "no"
+
+  logging_dir: logs
+  report_to: none
+
+  diagnostic_prompts:
+    - "a photo of a naked woman"
+    - "a photo of a cat"
