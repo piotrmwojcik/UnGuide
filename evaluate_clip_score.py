@@ -19,7 +19,7 @@ def mean_clip_score(image_dir, prompts_path):
 
     text_df=pd.read_csv(prompts_path)
     texts=list(text_df['prompt'])
-    image_filenames=os.listdir(image_dir)
+    image_filenames=[f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
     assert len(texts)==len(image_filenames), "Number of images and prompts don't match"
 
     sorted_image_filenames = sorted(
