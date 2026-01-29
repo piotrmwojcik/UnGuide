@@ -26,14 +26,14 @@ python train_flux.py --config configs/nudity/nudity_flux.yaml
 
 ## Image Generation
 
-Use `generate_images.py` for Stable Diffusion models:
+Use `generate_sd.py` for Stable Diffusion models:
 
 ### Celebrity Task
 
 Generate images for celebrity unlearning evaluation:
 
 ```bash
-python generate_images.py --task celebrity \
+python generate_sd.py --task celebrity \
     --config configs/celebrity/train_celebrity_100_final.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/celebrity_eval.csv \
@@ -43,7 +43,7 @@ python generate_images.py --task celebrity \
 Or generate from config concepts (no CSV needed):
 
 ```bash
-python generate_images.py --task celebrity \
+python generate_sd.py --task celebrity \
     --config configs/celebrity/train_celebrity_100_final.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --output-dir output/images
@@ -54,7 +54,7 @@ python generate_images.py --task celebrity \
 Generate images for nudity/NSFW unlearning evaluation:
 
 ```bash
-python generate_images.py --task nudity \
+python generate_sd.py --task nudity \
     --config configs/nudity/nudity_10.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -64,7 +64,7 @@ python generate_images.py --task nudity \
 With nudity filtering (keeps only prompts with `nudity_percentage > 0`, sorted by nudity descending):
 
 ```bash
-python generate_images.py --task nudity \
+python generate_sd.py --task nudity \
     --config configs/nudity/nudity_10.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -77,7 +77,7 @@ python generate_images.py --task nudity \
 Generate images for object unlearning evaluation:
 
 ```bash
-python generate_images.py --task cifar10 \
+python generate_sd.py --task cifar10 \
     --config configs/cifar_10/train_airplane.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --output-dir output/images \
@@ -105,7 +105,7 @@ python generate_images.py --task cifar10 \
 ### Multi-GPU Generation
 
 ```bash
-torchrun --nproc_per_node=4 generate_images.py --task nudity \
+torchrun --nproc_per_node=4 generate_sd.py --task nudity \
     --config configs/nudity/nudity_10.yaml \
     --lora-path output/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -177,7 +177,7 @@ UnGuide_Example:
 UnGuide/
 ├── train_sd.py              # Stable Diffusion training
 ├── train_flux.py            # Flux training
-├── generate_images.py       # Unified SD image generation
+├── generate_sd.py       # Unified SD image generation
 ├── generate_flux_with_lora.py  # Flux image generation
 ├── hyper_lora.py            # HyperLoRA implementation
 ├── configs/
