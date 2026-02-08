@@ -1,6 +1,6 @@
-UnGuide_Airplane:
+UnHype_Airplane:
   # CIFAR-10 airplane unlearning config
-  # For use with train_sd.py
+  backend: sd
 
   # Target concepts for removal
   concepts:
@@ -24,7 +24,8 @@ UnGuide_Airplane:
   augment_retain: false
 
   # Training hyperparameters
-  learning_rate: 1.0e-03
+  learning_rate_remove: 1.0e-03
+  learning_rate_retain: 1.0e-03
   max_train_steps: 1000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1

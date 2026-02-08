@@ -1,4 +1,3 @@
-"""shout-out to https://github.com/lucidrains/x-transformers/tree/main/x_transformers"""
 from collections import namedtuple
 from functools import partial
 from inspect import isfunction
@@ -259,8 +258,6 @@ class Attention(nn.Module):
         # explicit topk sparse attention
         self.sparse_topk = sparse_topk
 
-        # entmax
-        # self.attn_fn = entmax15 if use_entmax15 else F.softmax
         self.attn_fn = F.softmax
 
         # add memory key / values

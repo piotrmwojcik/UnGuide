@@ -1,4 +1,4 @@
-# UnGuide
+# UnHype
 
 Concept unlearning for diffusion models using HyperLoRA.
 
@@ -17,38 +17,35 @@ export HF_TOKEN=your_token_here
 
 ## Training
 
-### Stable Diffusion
+All training goes through the unified `train.py` entry point, which auto-detects the backend (SD or Flux) from the config:
 
 ```bash
 # Celebrity unlearning (CLIP embeddings)
-python train_sd.py --config configs/celebrity/train_celebrity_clip.yaml
+python train.py --config configs/celebrity/train_celebrity_clip.yaml
 
 # Celebrity unlearning (NV-Embed embeddings - requires HF auth)
-python train_sd.py --config configs/celebrity/train_celebrity_nvembed.yaml
+python train.py --config configs/celebrity/train_celebrity_nvembed.yaml
 
-# Nudity unlearning
-python train_sd.py --config configs/nudity/nudity_sd.yaml
+# Nudity unlearning (Stable Diffusion)
+python train.py --config configs/nudity/nudity_sd.yaml
+
+# Nudity unlearning (Flux)
+python train.py --config configs/nudity/nudity_flux.yaml
 
 # CIFAR-10 object unlearning
-python train_sd.py --config configs/cifar_10/train_airplane.yaml
-```
-
-### Flux
-
-```bash
-python train_flux.py --config configs/nudity/nudity_flux.yaml
+python train.py --config configs/cifar_10/train_airplane.yaml
 ```
 
 ## Image Generation
 
-Use `generate_sd.py` for Stable Diffusion models:
+All generation goes through the unified `generate.py` entry point, which auto-detects the backend from the config:
 
 ### Celebrity Task
 
 Generate images for celebrity unlearning evaluation:
 
 ```bash
-python generate_sd.py --task celebrity \
+python generate.py --task celebrity \
     --config configs/celebrity/train_celebrity_clip.yaml \
     --lora-path output/celebrity_clip/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/celebrity_eval.csv \
@@ -58,7 +55,7 @@ python generate_sd.py --task celebrity \
 Or generate from config concepts (no CSV needed):
 
 ```bash
-python generate_sd.py --task celebrity \
+python generate.py --task celebrity \
     --config configs/celebrity/train_celebrity_clip.yaml \
     --lora-path output/celebrity_clip/LoRA_fusion_model/hyper_lora.pth \
     --output-dir output/images
@@ -69,7 +66,7 @@ python generate_sd.py --task celebrity \
 Generate images for nudity/NSFW unlearning evaluation:
 
 ```bash
-python generate_sd.py --task nudity \
+python generate.py --task nudity \
     --config configs/nudity/nudity_sd.yaml \
     --lora-path output/nudity_sd/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -79,7 +76,7 @@ python generate_sd.py --task nudity \
 With nudity filtering (keeps only prompts with `nudity_percentage > 0`, sorted by nudity descending):
 
 ```bash
-python generate_sd.py --task nudity \
+python generate.py --task nudity \
     --config configs/nudity/nudity_sd.yaml \
     --lora-path output/nudity_sd/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -92,14 +89,14 @@ python generate_sd.py --task nudity \
 Generate images for object unlearning evaluation:
 
 ```bash
-python generate_sd.py --task cifar10 \
+python generate.py --task cifar10 \
     --config configs/cifar_10/train_airplane.yaml \
     --lora-path output/cifar10_airplane/LoRA_fusion_model/hyper_lora.pth \
     --output-dir output/images \
     --samples-per-prompt 50
 ```
 
-### Generation Options
+### Generation Options (SD backend)
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -120,7 +117,7 @@ python generate_sd.py --task cifar10 \
 ### Multi-GPU Generation
 
 ```bash
-torchrun --nproc_per_node=4 generate_sd.py --task nudity \
+torchrun --nproc_per_node=4 generate.py --task nudity \
     --config configs/nudity/nudity_sd.yaml \
     --lora-path output/nudity_sd/LoRA_fusion_model/hyper_lora.pth \
     --prompts-csv data/I2P_prompts_4703.csv \
@@ -129,10 +126,9 @@ torchrun --nproc_per_node=4 generate_sd.py --task nudity \
 
 ### Flux Generation
 
-For Flux models, use `generate_flux.py`:
-
 ```bash
-python generate_flux.py \
+python generate.py \
+    --config configs/nudity/nudity_flux.yaml \
     --csv_path data/I2P_prompts_4703.csv \
     --lora_path output/nudity_flux/LoRA_model/hyper_lora.pth \
     --output_dir output/flux_images
@@ -162,7 +158,10 @@ python eval/compute_clip_score.py --images output/images --prompts data/prompts.
 Training configs are YAML files with the following structure:
 
 ```yaml
-UnGuide_Example:
+UnHype_Example:
+  # Backend: sd or flux (auto-detected if omitted)
+  backend: sd
+
   # Target concepts to remove
   concepts:
     - "concept1"
@@ -200,13 +199,17 @@ UnGuide_Example:
 ## Project Structure
 
 ```
-UnGuide/
-├── train_sd.py              # Stable Diffusion training
-├── train_flux.py            # Flux training
-├── generate_sd.py           # SD image generation
-├── generate_flux.py         # Flux image generation
+UnHype/
+├── train.py                 # Unified training entry point (auto-detects backend)
+├── generate.py              # Unified generation entry point (auto-detects backend)
 ├── hyper_lora.py            # HyperLoRA implementation
 ├── run_test.sh              # Test script
+├── backends/
+│   ├── sd_train.py          # Stable Diffusion training
+│   ├── flux_train.py        # Flux training
+│   ├── sd_generate.py       # SD image generation
+│   ├── flux_generate.py     # Flux image generation
+│   └── flux_bare_generate.py # Flux bare generation utility
 ├── configs/
 │   ├── celebrity/
 │   │   ├── train_celebrity_clip.yaml

@@ -126,7 +126,9 @@ class DDIMSampler(object):
         dynamic_threshold=None,
         till_T=None,
         verbose_iter=False,
+        mode = "default",
         **kwargs,
+
     ):
         if conditioning is not None:
             if isinstance(conditioning, dict):
@@ -173,6 +175,7 @@ class DDIMSampler(object):
             till_T=till_T,
             verbose_iter=verbose_iter,
             t_start=t_start,
+            mode = mode,
         )
         return samples, intermediates
 
@@ -199,6 +202,7 @@ class DDIMSampler(object):
         t_start=-1,
         till_T=None,
         verbose_iter=True,
+        mode = "default",
     ):
         device = self.model.betas.device
         b = shape[0]
@@ -267,6 +271,7 @@ class DDIMSampler(object):
                 unconditional_guidance_scale=unconditional_guidance_scale,
                 unconditional_conditioning=unconditional_conditioning,
                 dynamic_threshold=dynamic_threshold,
+                mode = mode,
             )
             img, pred_x0 = outs
             if callback:
@@ -297,17 +302,20 @@ class DDIMSampler(object):
         unconditional_guidance_scale=1.0,
         unconditional_conditioning=None,
         dynamic_threshold=None,
+        mode = "default",
     ):
         b, *_, device = *x.shape, x.device
 
-        if unconditional_conditioning is None or unconditional_guidance_scale == 1.0:
+        if mode == "auto":
+            assert unconditional_conditioning is not None, "Brak uncond przy mode=auto"
+            e_t = self.model.apply_model(x, t, cond=c, uncond=unconditional_conditioning, mode=mode)
+        elif unconditional_conditioning is None or unconditional_guidance_scale == 1.0:
             e_t = self.model.apply_model(x, t, c)
         else:
             x_in = torch.cat([x] * 2)
             t_in = torch.cat([t] * 2)
             if isinstance(c, dict):
                 assert isinstance(unconditional_conditioning, dict)
-                #                 print(f'C: {c}')
                 c_in = dict()
                 for k in c:
                     if isinstance(c[k], list):
@@ -319,10 +327,6 @@ class DDIMSampler(object):
                         c_in[k] = torch.cat([unconditional_conditioning[k], c[k]])
             else:
                 c_in = torch.cat([unconditional_conditioning, c])
-            #             print(f'C: {c.shape}')
-            #             print(f'C_uncond: {unconditional_conditioning.shape}')
-            #             print(f'C_in: {c_in}')
-            #             print(f'Input shape before model: {x_in.shape} {t_in.shape}')
             e_t_uncond, e_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
             e_t = e_t_uncond + unconditional_guidance_scale * (e_t - e_t_uncond)
 
@@ -331,7 +335,6 @@ class DDIMSampler(object):
             e_t = score_corrector.modify_score(
                 self.model, e_t, x, t, c, **corrector_kwargs
             )
-        #         print(f'Final shape after model: {x.shape} {e_t.shape}')
         alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
         alphas_prev = (
             self.model.alphas_cumprod_prev

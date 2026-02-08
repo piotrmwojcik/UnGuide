@@ -17,17 +17,11 @@ def sample_model(
     till_T: Optional[int] = None,
     verbose: bool = True,
 ):
-    """Sample from the model using DDIM"""
-
-    # Prepare unconditional conditioning for classifier-free guidance
     uc = None
     if scale != 1.0:
         uc = model.get_learned_conditioning(n_samples * [""])
 
-    # Define latent shape
     shape = [4, h // 8, w // 8]
-
-    # Sample using DDIM
     samples_ddim, _ = sampler.sample(
         S=ddim_steps,
         conditioning=conditioning,

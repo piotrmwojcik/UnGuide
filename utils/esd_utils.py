@@ -50,29 +50,7 @@ def retrieve_timesteps(
     sigmas: Optional[List[float]] = None,
     **kwargs,
 ):
-    r"""
-    Calls the scheduler's `set_timesteps` method and retrieves timesteps from the scheduler after the call. Handles
-    custom timesteps. Any kwargs will be supplied to `scheduler.set_timesteps`.
-
-    Args:
-        scheduler (`SchedulerMixin`):
-            The scheduler to get timesteps from.
-        num_inference_steps (`int`):
-            The number of diffusion steps used when generating samples with a pre-trained model. If used, `timesteps`
-            must be `None`.
-        device (`str` or `torch.device`, *optional*):
-            The device to which the timesteps should be moved to. If `None`, the timesteps are not moved.
-        timesteps (`List[int]`, *optional*):
-            Custom timesteps used to override the timestep spacing strategy of the scheduler. If `timesteps` is passed,
-            `num_inference_steps` and `sigmas` must be `None`.
-        sigmas (`List[float]`, *optional*):
-            Custom sigmas used to override the timestep spacing strategy of the scheduler. If `sigmas` is passed,
-            `num_inference_steps` and `timesteps` must be `None`.
-
-    Returns:
-        `Tuple[torch.Tensor, int]`: A tuple where the first element is the timestep schedule from the scheduler and the
-        second element is the number of inference steps.
-    """
+    # Adapted from diffusers
     if timesteps is not None and sigmas is not None:
         raise ValueError("Only one of `timesteps` or `sigmas` can be passed. Please choose one to set custom values")
     if timesteps is not None:
@@ -119,20 +97,13 @@ def calculate_shift(
 @torch.no_grad()
 def latent_sample(transformer, scheduler, batch_size, num_channels_latents, height, width, prompt_embeds,
                   pooled_prompt_embeds, text_ids, guidance, num_inference_steps, stop_at_step=None, latents=None):
-    """
-        Sample the model
-        ESD quick_sample_till_t
-    """
-
-    height = int(height) // 8  # self.vae_scale_factor
-    width = int(width) // 8  # self.vae_scale_factor
+    height = int(height) // 8
+    width = int(width) // 8
     shape = (batch_size, num_channels_latents, height, width)
 
-    # (A) generate random tensor
     if latents is None:
         latents = randn_tensor(shape, generator=None, dtype=torch.bfloat16)
     latents = flux_pack_latents(latents, batch_size, num_channels_latents, height, width)
-    # print(latents.shape)
     latent_image_ids = _prepare_latent_image_ids(batch_size, height // 2, width // 2, transformer.device,
                                                  torch.bfloat16)
 
@@ -156,7 +127,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     text_ids = text_ids.to(dtype=torch.bfloat16)
 
     timesteps = None
-    # If you were passing an integer timesteps count, keep it:
     timesteps_tensor, num_inference_steps = retrieve_timesteps(
         scheduler,
         num_inference_steps,
@@ -172,19 +142,13 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
     text_ids = text_ids.bfloat16()
 
     timestep = None
-    # Denoising loop
     for i, t in enumerate(timesteps_tensor):
         if stop_at_step is not None and i >= stop_at_step:
-            # Return current latent and the timestep that matches its noise level
-            # We return 4 values to match the unpacking in train_flux_simple_slow.py
             timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
             return latents, latent_image_ids, timestep
 
-        # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         timestep = t.expand(latents.shape[0]).to(torch.bfloat16)
 
-        # print(latents.shape, timestep)
-        # self.transformer.config.guidance_embeds False => guidance = None
         noise_pred = transformer(
             hidden_states=latents,
             timestep=timestep / 1000,
@@ -206,9 +170,6 @@ def latent_sample(transformer, scheduler, batch_size, num_channels_latents, heig
 
 def predict_noise(transformer, latent_code, prompt_embeds, pooled_prompt_embeds, text_ids, latent_image_ids, guidance,
                   timesteps, CPU_only=False):
-    """
-        ESD (apply_model)
-    """
 
     if CPU_only:
         device = torch.device("cuda:0")

@@ -126,13 +126,6 @@ class HyperLora(nn.Module):
         self.train_steps = train_steps
         self.use_orig_concat = use_orig_concat
         self.dtype = dtype
-        self._dbg_tag = f"{self.__class__.__name__}@{id(self):x}"
-        self._dbg_calls = 0  # to avoid spamming
-        ## it should (?) be shared
-        # self.layers = nn.Sequential(
-        #    nn.Linear(clip_size, 100),
-        #    nn.ReLU(),
-        # )
         std_dev = 1 / (rank ** 0.5)
         self.register_buffer(
             "xL_const_flat", torch.randn(1, in_dim * rank, dtype=self.dtype) * std_dev
@@ -186,7 +179,6 @@ class HyperLora(nn.Module):
 
         emb = torch.cat([emb, t_feats], dim=-1)
 
-        assert self.use_scaling
         if self.use_scaling:
             alpha = self.forward_alpha(t)
             x_L = alpha * self.forward_linear_L(emb, t)
@@ -281,7 +273,7 @@ class HyperLoRALinear(nn.Module):
                     x_R = x_R.expand(batch_size, -1, -1)
 
                 orig_out = self.original(x)
-                x_fp = x.float()  # <-- THIS is the key fix
+                x_fp = x.float()
                 xL_fp = x_L.float()
                 xR_fp = x_R.float()
 

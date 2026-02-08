@@ -1,5 +1,6 @@
-UnGuide_Dog:
+UnHype_Dog:
   # >>> Primary Settings >>>
+  backend: sd
 
   # Target concepts for removal
   concepts:
@@ -23,8 +24,6 @@ UnGuide_Dog:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  drop_lr_on_plateau: false
-  learning_rate: 1.0e-03  # 1e-4 as specified
   learning_rate_remove: 5.0e-04
   learning_rate_retain: 5.0e-04 # 1e-4 as specified
   max_train_steps: 1000  # Number of actual training iterations

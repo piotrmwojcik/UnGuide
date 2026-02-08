@@ -1,6 +1,6 @@
-UnGuide_Celebrity_NVEmbed:
+UnHype_Celebrity_NVEmbed:
   # Celebrity unlearning config using NV-Embed-v2 embeddings (4096-dim)
-  # For use with train_sd.py
+  backend: sd
 
   # Target celebrities for removal (100 from MACE benchmark)
   concepts:
@@ -217,11 +217,8 @@ UnGuide_Celebrity_NVEmbed:
   celebrity_mode: true
 
   # Training hyperparameters
-  drop_lr_on_plateau: false
   learning_rate_remove: 5.0e-04
   learning_rate_retain: 5.0e-04
-  plateau_patience_remove: 100
-  plateau_patience_retain: 100
   max_train_steps: 6000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1

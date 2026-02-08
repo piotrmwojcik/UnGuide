@@ -159,8 +159,6 @@ class CrossAttention(nn.Module):
         self.to_k = nn.Linear(context_dim, inner_dim, bias=False)
         self.to_v = nn.Linear(context_dim, inner_dim, bias=False)
 
-        #         self.attn_soft = nn.Softmax(dim=-1)
-        #         self.attn_soft = nn.Identity()
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, query_dim), nn.Dropout(dropout)
         )
@@ -183,10 +181,7 @@ class CrossAttention(nn.Module):
             mask = repeat(mask, "b j -> (b h) () j", h=h)
             sim.masked_fill_(~mask, max_neg_value)
 
-        # attention, what we cannot get enough of
-        #         attn = self.attn_soft(sim)
         attn = sim.softmax(dim=-1)
-        #         attn = self.attn_soft(attn)
         out = einsum("b i j, b j d -> b i d", attn, v)
         out = rearrange(out, "(b h) n d -> b n (h d)", h=h)
         return self.to_out(out)

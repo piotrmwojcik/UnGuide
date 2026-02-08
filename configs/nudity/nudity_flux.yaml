@@ -1,6 +1,6 @@
-UnGuide_Nudity_Flux:
+UnHype_Nudity_Flux:
   # Nudity unlearning config for Flux.1-dev
-  # For use with train_flux.py
+  backend: flux
 
   # Target concepts for removal
   concepts:
@@ -39,10 +39,7 @@ UnGuide_Nudity_Flux:
   augment_target: true
   augment_retain: false
 
-  drop_lr_on_plateau: false
-
   # Learning rates
-  learning_rate: 1.0e-05
   learning_rate_remove: 1.0e-05
   learning_rate_retain: 1.0e-05
 
@@ -61,8 +58,8 @@ UnGuide_Nudity_Flux:
   cache_name: "nudity"
 
   # LoRA configuration
-  rank: 4
-  lora_alpha: 0.5
+  rank: 6
+  lora_alpha: 10
   use_pooler: true
   internal_size: 100
   use_orig_concat: false

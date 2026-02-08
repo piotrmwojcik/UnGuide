@@ -1,5 +1,6 @@
-UnGuide_Ship:
+UnHype_Ship:
   # >>> Primary Settings >>>
+  backend: sd
 
   # Target concepts for removal
   concepts:
@@ -23,7 +24,8 @@ UnGuide_Ship:
   augment_retain: false  # Augment retain prompts from CSV
   
   # Training hyperparameters
-  learning_rate: 5.0e-03  # 1e-4 as specified
+  learning_rate_remove: 1.0e-03
+  learning_rate_retain: 1.0e-03
   max_train_steps: 1000  # Number of actual training iterations
   hyper_train_steps: 300  # Timestep range for hypernetwork context (independent of max_train_steps)
   gradient_accumulation_steps: 1

@@ -31,9 +31,7 @@ def convert_module_to_f32(x):
 
 ## go
 class AttentionPool2d(nn.Module):
-    """
-    Adapted from CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py
-    """
+    """Attention pooling layer."""
 
     def __init__(
         self,
@@ -291,8 +289,6 @@ class ResBlock(TimestepBlock):
 class AttentionBlock(nn.Module):
     """
     An attention block that allows spatial positions to attend to each other.
-    Originally ported from here, but adapted to the N-d case.
-    https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0706c543/diffusion_tf/models/unet.py#L66.
     """
 
     def __init__(
@@ -524,7 +520,6 @@ class UNetModel(nn.Module):
                     "as a list/tuple (per-level) with the same length as channel_mult"
                 )
             self.num_res_blocks = num_res_blocks
-        # self.num_res_blocks = num_res_blocks
         if disable_self_attentions is not None:
             # should be a list of booleans, indicating whether to disable self-attention in TransformerBlocks or not
             assert len(disable_self_attentions) == len(channel_mult)
@@ -597,7 +592,6 @@ class UNetModel(nn.Module):
                         num_heads = ch // num_head_channels
                         dim_head = num_head_channels
                     if legacy:
-                        # num_heads = 1
                         dim_head = (
                             ch // num_heads
                             if use_spatial_transformer
@@ -665,10 +659,7 @@ class UNetModel(nn.Module):
             num_heads = ch // num_head_channels
             dim_head = num_head_channels
         if legacy:
-            # num_heads = 1
             dim_head = ch // num_heads if use_spatial_transformer else num_head_channels
-            print(dim_head)
-            print("legacy")
         self.dim_heads.append(dim_head)
         self.middle_block = TimestepEmbedSequential(
             ResBlock(
@@ -728,7 +719,6 @@ class UNetModel(nn.Module):
                         num_heads = ch // num_head_channels
                         dim_head = num_head_channels
                     if legacy:
-                        # num_heads = 1
                         dim_head = (
                             ch // num_heads
                             if use_spatial_transformer
@@ -791,7 +781,6 @@ class UNetModel(nn.Module):
             self.id_predictor = nn.Sequential(
                 normalization(ch),
                 conv_nd(dims, model_channels, n_embed, 1),
-                # nn.LogSoftmax(dim=1)  # change to cross_entropy and produce non-normalized logits
             )
 
     def convert_to_fp16(self):
