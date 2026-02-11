@@ -58,10 +58,10 @@ UnHype_Nudity_Flux:
   cache_name: "nudity"
 
   # LoRA configuration
-  rank: 6
-  lora_alpha: 10
-  use_pooler: true
-  internal_size: 100
+  rank: 4
+  lora_alpha: 0.5
+  use_pooler: true    # Use CLIP pooler output (768-dim)
+  internal_size: 100  # 200 is okay, 100 is lighter on VRAM
   use_orig_concat: false
 
   # Loss weights
