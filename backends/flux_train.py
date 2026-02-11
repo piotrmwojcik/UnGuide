@@ -1078,7 +1078,7 @@ def main():
 
                 dtype = next(hyper.parameters()).dtype
 
-                t_ = (torch.arange(B, device=accelerator.device, dtype=dtype) % B) + 1
+                t_ = (torch.arange(B, device=accelerator.device, dtype=dtype) % hyper_train_steps) + 1
                 hyper.compute_and_cache_loras(
                     batch_prompts.to(dtype=dtype),
                     t_,

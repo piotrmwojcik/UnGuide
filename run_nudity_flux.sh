@@ -36,7 +36,6 @@ done
 ########################################
 
 echo "Using GPU: $GPU_ID"
-echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 ########################################
 # -------- PATHS ----------------------
