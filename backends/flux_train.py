@@ -502,7 +502,10 @@ def main():
     lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
     internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
+
+    min_retain_sample = config.get('min_retain_sample', 10)
     resolution = config.get('resolution', 512)
+    diagnostic_freq = config.get('diagnostic_freq', 500)
     use_pooler = config.get('use_pooler', True)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
@@ -856,8 +859,8 @@ def main():
 
         num_channels = vae.config.latent_channels
 
-        image_h = 512
-        image_w = 512
+        image_h = resolution
+        image_w = resolution
 
         latent_h = image_h // vae_scale_factor
         latent_w = image_w // vae_scale_factor
@@ -987,7 +990,7 @@ def main():
 
                 # Denoise from noise to get latent at t_ddpm
                 z, latent_image_ids, timestep = latent_sample(
-                    model, noise_scheduler, 1, model_input.shape[1], 512, 512,
+                    model, noise_scheduler, 1, model_input.shape[1], resolution, resolution,
                     emb_p.to(accelerator.device), pooled_emb_p.to(accelerator.device),
                     text_ids_p.to(accelerator.device), start_guidance,
                     int(ddim_steps), stop_at_step=int(t_ddpm.item()),
@@ -1052,7 +1055,7 @@ def main():
 
             if len(retain_embeddings) > 0:
                 # Sample multiple retain concepts
-                num_retain_samples = min(10, len(retain_embeddings))
+                num_retain_samples = min(min_retain_sample, len(retain_embeddings))
                 sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
 
                 # Batch process retain concepts
@@ -1078,7 +1081,7 @@ def main():
 
                 dtype = next(hyper.parameters()).dtype
 
-                t_ = (torch.arange(B, device=accelerator.device, dtype=dtype) % hyper_train_steps) + 1
+                t_ = torch.full((B,), rtimestep, device=accelerator.device, dtype=dtype)
                 hyper.compute_and_cache_loras(
                     batch_prompts.to(dtype=dtype),
                     t_,
@@ -1129,7 +1132,7 @@ def main():
             })
 
         # Generate sample images periodically
-        if is_main and use_wandb and (iteration + 1) % 800 == 0:
+        if is_main and use_wandb and (iteration + 1) % diagnostic_freq == 0:
             # Generate images for diagnostic prompts from config
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
 
@@ -1165,9 +1168,9 @@ def main():
                         noise_scheduler=noise_scheduler,
                         text_encoders=text_encoders,
                         tokenizers=tokenizers,
-                        height=512,
-                        width=512,
-                        num_inference_steps=28,
+                        height=resolution,
+                        width=resolution,
+                        num_inference_steps=ddim_steps,
                         weight_dtype=weight_dtype,
                         seed=seed,
                         cached_embeddings=cached_text_emb,
