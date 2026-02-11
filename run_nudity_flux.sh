@@ -35,7 +35,6 @@ done
 # -------- GPU SELECTION --------------
 ########################################
 
-export CUDA_VISIBLE_DEVICES=$GPU_ID
 echo "Using GPU: $GPU_ID"
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
@@ -68,7 +67,7 @@ echo "========================================"
 
 if [[ "$MODE" == "full" || "$MODE" == "train" ]]; then
     echo "Starting training..."
-    python train.py --config "$CONFIG" $WANDB_FLAG
+    CUDA_VISIBLE_DEVICES=$GPU_ID accelerate launch --num_processes 1 --num_machines 1 train.py --config "$CONFIG" $WANDB_FLAG
 fi
 
 ########################################
