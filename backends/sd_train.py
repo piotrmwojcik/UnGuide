@@ -129,6 +129,7 @@ def main():
     internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
     resolution = config.get('resolution', 512)
+    diagnostic_freq = config.get('diagnostic_freq', 500)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
     
@@ -563,8 +564,11 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                    hyper.compute_and_cache_loras(batch_prompts, t_)
+                    t_ = torch.full((B,), rtimestep, device=accelerator.device, dtype=dtype)
+                    hyper.compute_and_cache_loras(
+                        batch_prompts.to(dtype=dtype),
+                        t_,
+                    )
                     tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                     delta = tensors_flat_t1 - tensors_flat_t0
@@ -602,7 +606,7 @@ def main():
         if is_main:
             pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.3e}", "remove": f"{float(loss_remove_reduced.item()):.3e}"})
         
-        if is_main and use_wandb and (iteration + 1) % 100 == 0:
+        if is_main and use_wandb and (iteration + 1) % diagnostic_freq == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 # Get diagnostic embedding from cache
                 diag_emb = hyper_cache.get(diag_prompt, accelerator.device)
