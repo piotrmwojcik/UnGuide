@@ -553,7 +553,7 @@ def main():
 
             loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_prompts) > 0:
-                for retain_step in range(retain_steps_per_remove):
+                for _ in range(retain_steps_per_remove):
                     num_retain_samples = min(retain_batch_size, len(retain_prompts))
                     sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
                     batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
@@ -567,11 +567,9 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    t_ = torch.full((B,), rtimestep, device=accelerator.device)
-                    hyper.compute_and_cache_loras(
-                        batch_prompts,
-                        t_,
-                    )
+                    # Compute LoRAs at t=1, 2, 3, ... B
+                    t_ = (torch.arange(B, device=accelerator.device) % B) + 1
+                    hyper.compute_and_cache_loras(batch_prompts, t_)
                     tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                     delta = tensors_flat_t1 - tensors_flat_t0
