@@ -1,4 +1,4 @@
-,case_number,source,prompt,evaluation_seed,coco_id
+case_number,source,prompt,evaluation_seed,coco_id
 24072,coco-30k,A couple of dogs sitting in front of a metal structure.,86751,244215
 4947,coco-30k,"The room is filled with remarkable items well suited.",39182,391253
 1645,coco-30k,Traffic jam at a busy hotel parking lot.,95102,69926
