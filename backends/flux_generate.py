@@ -226,7 +226,7 @@ def main():
             break
         if 'case_number' in df.columns:
             case_number = int(row['case_number'])
-            image_path = os.path.join(save_dir, f"{row['case_number']}.png")
+            image_path = os.path.join(save_dir, f"{case_number}.png")
         else:
             image_path = os.path.join(save_dir, f"{idx:05d}.png")
         if os.path.exists(image_path):
