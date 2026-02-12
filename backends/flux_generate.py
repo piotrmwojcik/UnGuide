@@ -228,7 +228,7 @@ def main():
             case_number = int(row['case_number'])
             image_path = os.path.join(save_dir, f"{case_number}.png")
         else:
-            image_path = os.path.join(save_dir, f"{idx:05d}.png")
+            image_path = os.path.join(save_dir, f"{int(idx):05d}.png")
         if os.path.exists(image_path):
             continue
         prompt = coerce_prompt(row.get("prompt", ""))
