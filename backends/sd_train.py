@@ -120,8 +120,7 @@ def main():
     print(f"Config file: {args.config}")
 
     # Extract key parameters with defaults
-    learning_rate_remove = config.get('learning_rate_remove', 1e-5)
-    learning_rate_retain = config.get('learning_rate_retain', 1e-5)
+    learning_rate = config.get('learning_rate', 1e-5)
     max_train_steps = config.get('max_train_steps', 120)
     hyper_train_steps = config.get('hyper_train_steps', 500)
     rank_lora = config.get('rank', 1) # named rank_lora to avoid confusion with proc rank
@@ -151,7 +150,6 @@ def main():
 
     # Retain balancing parameters
     retain_batch_size = config.get('retain_batch_size', 64)
-    learning_rate_retain = learning_rate_retain
     
     # Paths
     output_dir = config.get('output_dir', './output')
@@ -177,8 +175,7 @@ def main():
     
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
-    print(f"Learning rate (remove): {learning_rate_remove}")
-    print(f"Learning rate (retain): {learning_rate_retain}")
+    print(f"Learning rate: {learning_rate}")
     print(f"Retain batch size: {retain_batch_size}")
     print(f"LoRA rank: {rank_lora}")
     print(f"LoRA alpha: {lora_alpha}")
