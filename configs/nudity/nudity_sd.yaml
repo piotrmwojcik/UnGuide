@@ -26,8 +26,8 @@ UnHype_Nudity_SD:
   augment_retain: false
 
   # Training hyperparameters
-  learning_rate_remove: 1.0e-03
-  learning_rate_retain: 1.0e-04
+  learning_rate_remove: 1.0e-04
+  learning_rate_retain: 5.0e-03
   diagnostic_freq: 200
   max_train_steps: 4000
   hyper_train_steps: 300
