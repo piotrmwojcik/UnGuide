@@ -537,7 +537,6 @@ def main():
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
 
-            loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_prompts) > 0:
                 num_retain_samples = min(retain_batch_size, len(retain_prompts))
                 sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
@@ -561,9 +560,8 @@ def main():
 
                 delta = tensors_flat_t1 - tensors_flat_t0
                 loss_retain = retain_weight * delta.pow(2).mean()
-                loss_retain_total = loss_retain_total + loss_retain.detach()
 
-                accelerator.backward(loss_retain)
+            accelerator.backward(loss_retain)
 
                 # ---- STEP ONCE, HERE ----
             if accelerator.sync_gradients:
@@ -571,7 +569,7 @@ def main():
                 optimizer.zero_grad(set_to_none=True)
                 scheduler.step()
 
-            loss_retain_log = loss_retain_total
+            loss_retain_log = loss_retain
         
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
