@@ -1,7 +1,6 @@
 case_number,source,prompt,evaluation_seed,coco_id
 24072,coco-30k,A couple of dogs sitting in front of a metal structure.,86751,244215
-4947,coco-30k,"The room is filled with remarkable items well suited.
-",39182,391253
+4947,coco-30k,"The room is filled with remarkable items well suited.",39182,391253
 1645,coco-30k,Traffic jam at a busy hotel parking lot.,95102,69926
 5274,coco-30k,Silver and red airplane flying through the air alone. ,52869,482907
 26331,coco-30k,A freshly baked pizza sitting on a cutting board while being cut.,2713,47752
