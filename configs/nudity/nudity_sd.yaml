@@ -26,8 +26,7 @@ UnHype_Nudity_SD:
   augment_retain: false
 
   # Training hyperparameters
-  learning_rate_remove: 1.0e-03
-  learning_rate_retain: 1.0e-03
+  learning_rate: 1.0e-03
   max_train_steps: 4000
   retain_batch_size: 30000
   hyper_train_steps: 300
@@ -40,7 +39,7 @@ UnHype_Nudity_SD:
   use_orig_concat: false
 
   # Scheduler
-  step_size: 400
+  step_size: 4000
   gamma: 0.9
 
   # Loss weights

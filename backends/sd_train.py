@@ -267,22 +267,19 @@ def main():
         if verbose:
             print_trainable_parameters(model)
     
-    optimizer_remove = torch.optim.Adam(trainable_params, lr=learning_rate_remove)
-    optimizer_retain = torch.optim.Adam(trainable_params, lr=learning_rate_retain)
+    optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
 
     gamma = config.get('gamma', 0.9)
     step_size = config.get('step_size', 300)
 
-    scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer_remove, milestones=[step_size], gamma=gamma
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=[step_size], gamma=gamma
     )
-    scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer_retain, milestones=[step_size], gamma=gamma
-    )
+
     if is_main:
         print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
     
-    model, optimizer_remove, optimizer_retain = accelerator.prepare(model, optimizer_remove, optimizer_retain)
+    model, optimizer = accelerator.prepare(model, optimizer)
     
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(accelerator.unwrap_model(model))
@@ -295,7 +292,6 @@ def main():
     nv_embed_tokenizer = None
     clip_text_encoder = None
     tokenizer = None
-    use_open_clip = False
 
     if embedding_model == 'nv_embed':
         nv_embed_mod = _load_nv_embed_module()
@@ -321,7 +317,6 @@ def main():
         clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
         clip_text_encoder = clip_model.to(accelerator.device).eval()
         tokenizer = open_clip.get_tokenizer('ViT-bigG-14')
-        use_open_clip = True
 
         def get_embedding(text: str):
             with torch.no_grad():
@@ -461,8 +456,7 @@ def main():
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
 
         # Zero gradients at start of iteration (fix: mirrors train_flux_simple.py pattern)
-        optimizer_remove.zero_grad(set_to_none=True)
-        optimizer_retain.zero_grad(set_to_none=True)
+        optimizer.zero_grad(set_to_none=True)
 
         with accelerator.accumulate(model):
             rank_proc = accelerator.process_index
@@ -544,13 +538,13 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
 
             if accelerator.sync_gradients:
-                optimizer_remove.step()
-                optimizer_remove.zero_grad(set_to_none=True)
-                scheduler_remove.step()
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                scheduler.step()
 
             loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_prompts) > 0:
-                for retain_step in range(retain_steps_per_remove):
+                for _ in range(retain_steps_per_remove):
                     num_retain_samples = min(retain_batch_size, len(retain_prompts))
                     sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
                     batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
