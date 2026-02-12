@@ -150,8 +150,7 @@ def main():
     use_pooler = config.get('use_pooler', True)
 
     # Retain balancing parameters
-    retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
-    retain_batch_size = config.get('retain_batch_size', min(64, retain_steps_per_remove))
+    retain_batch_size = config.get('retain_batch_size', 64)
     learning_rate_retain = learning_rate_retain
     
     # Paths
@@ -180,7 +179,6 @@ def main():
     print(f"Hypernetwork steps: {hyper_train_steps}")
     print(f"Learning rate (remove): {learning_rate_remove}")
     print(f"Learning rate (retain): {learning_rate_retain}")
-    print(f"Retain steps per remove: {retain_steps_per_remove}")
     print(f"Retain batch size: {retain_batch_size}")
     print(f"LoRA rank: {rank_lora}")
     print(f"LoRA alpha: {lora_alpha}")
@@ -589,7 +587,6 @@ def main():
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
                 "learning_rate": current_lr,
-                "retain_steps_per_remove": retain_steps_per_remove,
             }, step=iteration)
         
         if is_main:
@@ -664,8 +661,7 @@ def main():
             "config_name": config_name,
             "concepts": concepts,
             "rank": rank_lora,
-            "learning_rate_remove": learning_rate_remove,
-            "learning_rate_retain": learning_rate_retain,
+            "learning_rate": learning_rate,
             "max_train_steps": max_train_steps,
             "celebrity_mode": celebrity_mode,
             "final_loss": losses[-1],
