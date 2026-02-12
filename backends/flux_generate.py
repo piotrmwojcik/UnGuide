@@ -225,6 +225,7 @@ def main():
         if args.n_images is not None and images_generated >= args.n_images:
             break
         if 'case_number' in df.columns:
+            case_number = int(row['case_number'])
             image_path = os.path.join(save_dir, f"{row['case_number']}.png")
         else:
             image_path = os.path.join(save_dir, f"{idx:05d}.png")
@@ -260,7 +261,6 @@ def main():
 
         context_emb = context_emb.to(device=hyper_device)
         timestep = torch.tensor([args.hyper_train_steps], device=hyper_device)
-
 
         model_wrapper.hyper.set_context(context_emb.to(device=hyper_device),
                                        timestep)
