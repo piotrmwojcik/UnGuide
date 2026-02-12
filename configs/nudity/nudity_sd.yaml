@@ -28,7 +28,7 @@ UnHype_Nudity_SD:
   # Training hyperparameters
   learning_rate: 1.0e-03
   max_train_steps: 4000
-  retain_batch_size: 30000
+  retain_batch_size: 5000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
 

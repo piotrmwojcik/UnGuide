@@ -272,7 +272,7 @@ def main():
     )
 
     if is_main:
-        print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
+        print(f"Using MultiStepLR scheduler (step_size={step_size}, gamma={gamma})")
     
     model, optimizer = accelerator.prepare(model, optimizer)
     
