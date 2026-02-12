@@ -579,7 +579,7 @@ def main():
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if is_main and use_wandb:
-            current_lr = optimizer_remove.param_groups[0]['lr']
+            current_lr = optimizer.param_groups[0]['lr']
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
