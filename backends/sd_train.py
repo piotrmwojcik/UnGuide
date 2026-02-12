@@ -544,42 +544,39 @@ def main():
 
             loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_prompts) > 0:
-                for _ in range(retain_steps_per_remove):
-                    num_retain_samples = min(retain_batch_size, len(retain_prompts))
-                    sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
-                    batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
+                num_retain_samples = min(retain_batch_size, len(retain_prompts))
+                sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
+                batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
 
-                    hyper = base.hyper
-                    batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
-                    B = batch_prompts.shape[0]
-                    perm = torch.randperm(B, device=batch_prompts.device)
-                    batch_prompts = batch_prompts[perm]
+                hyper = base.hyper
+                batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
+                B = batch_prompts.shape[0]
+                perm = torch.randperm(B, device=batch_prompts.device)
+                batch_prompts = batch_prompts[perm]
 
-                    hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
-                    tensors_flat_t0 = hyper.flatten_cached_from_cache()
+                hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
+                tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    t_ = torch.full((B,), rtimestep, device=accelerator.device)
-                    hyper.compute_and_cache_loras(
-                        batch_prompts,
-                        t_,
-                    )
-                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
+                t_ = torch.full((B,), rtimestep, device=accelerator.device)
+                hyper.compute_and_cache_loras(
+                    batch_prompts,
+                    t_,
+                )
+                tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
-                    delta = tensors_flat_t1 - tensors_flat_t0
-                    loss_retain = retain_weight * delta.pow(2).mean()
-                    loss_retain_total = loss_retain_total + loss_retain.detach()
+                delta = tensors_flat_t1 - tensors_flat_t0
+                loss_retain = retain_weight * delta.pow(2).mean()
+                loss_retain_total = loss_retain_total + loss_retain.detach()
 
-                    accelerator.backward(loss_retain)
+                accelerator.backward(loss_retain)
 
-                    if accelerator.sync_gradients:
-                        optimizer_retain.step()
-                        optimizer_retain.zero_grad(set_to_none=True)
+                # ---- STEP ONCE, HERE ----
+            if accelerator.sync_gradients:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                scheduler.step()
 
-                if accelerator.sync_gradients:
-                    loss_retain_total /= retain_steps_per_remove
-                    scheduler_retain.step()
-
-            loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
+            loss_retain_log = loss_retain_total
         
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
@@ -587,13 +584,11 @@ def main():
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if is_main and use_wandb:
-            current_lr_remove = optimizer_remove.param_groups[0]['lr']
-            current_lr_retain = optimizer_retain.param_groups[0]['lr']
+            current_lr = optimizer_remove.param_groups[0]['lr']
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
-                "learning_rate_remove": current_lr_remove,
-                "learning_rate_retain": current_lr_retain,
+                "learning_rate": current_lr,
                 "retain_steps_per_remove": retain_steps_per_remove,
             }, step=iteration)
         
@@ -685,6 +680,7 @@ def main():
 
     if is_main and use_wandb:
         wandb.finish()
+
 
 if __name__ == "__main__":
     main()
