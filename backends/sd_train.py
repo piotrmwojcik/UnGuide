@@ -567,9 +567,11 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    # Compute LoRAs at t=1, 2, 3, ... B
-                    t_ = (torch.arange(B, device=accelerator.device) % B) + 1
-                    hyper.compute_and_cache_loras(batch_prompts, t_)
+                    t_ = torch.full((B,), rtimestep, device=accelerator.device)
+                    hyper.compute_and_cache_loras(
+                        batch_prompts,
+                        t_,
+                    )
                     tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                     delta = tensors_flat_t1 - tensors_flat_t0
