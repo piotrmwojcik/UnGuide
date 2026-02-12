@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os as _os
+
 sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
 import argparse
@@ -29,7 +30,6 @@ from core.prompts import prompt_augmentation, load_config
 from core.caching import HyperCache
 from core.cfg_models import CombinedCFGModel
 from core.embeddings import setup_embedding_model, _load_nv_embed_module
-
 
 
 def parse_args():
@@ -74,15 +74,15 @@ def create_quick_sampler(model, sampler, image_size: int, ddim_steps: int, ddim_
 
 
 def generate_images(
-    sampler,
-    model,
-    prompt: str,
-    device: torch.device,
-    steps: int = 50,
-    eta: float = 0.0,
-    batch_size: int = 1,
-    start_code: torch.Tensor = None,
-    guidance_scale: float = 7.5,
+        sampler,
+        model,
+        prompt: str,
+        device: torch.device,
+        steps: int = 50,
+        eta: float = 0.0,
+        batch_size: int = 1,
+        start_code: torch.Tensor = None,
+        guidance_scale: float = 7.5,
 ):
     if start_code is None:
         start_code = torch.randn(batch_size, 4, 64, 64, device=device)
@@ -111,7 +111,7 @@ def generate_images(
 
 def main():
     args = parse_args()
-    
+
     # Load configuration
     config, config_name = load_config(args.config)
     if args.use_wandb:
@@ -120,10 +120,11 @@ def main():
     print(f"Config file: {args.config}")
 
     # Extract key parameters with defaults
-    learning_rate = config.get('learning_rate', 1e-5)
+    learning_rate_remove = config.get('learning_rate_remove', 1e-5)
+    learning_rate_retain = config.get('learning_rate_retain', 1e-5)
     max_train_steps = config.get('max_train_steps', 120)
     hyper_train_steps = config.get('hyper_train_steps', 500)
-    rank_lora = config.get('rank', 1) # named rank_lora to avoid confusion with proc rank
+    rank_lora = config.get('rank', 1)  # named rank_lora to avoid confusion with proc rank
     lora_alpha = config.get('lora_alpha', 8)
     internal_size = config.get('internal_size', 100)
     seed = config.get('seed', 2024)
@@ -131,12 +132,12 @@ def main():
     diagnostic_freq = config.get('diagnostic_freq', 500)
     use_orig_concat = config.get('use_orig_concat', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
-    
+
     # Multi-concept configuration
     concepts = config.get('concepts', [])
     mapping_concept = config.get('mapping_concept', [])
     retain_csv_path = config.get('retain_csv_path', None)
-    
+
     # Augmentation flags
     augment_target = config.get('augment_target', True)
     augment_retain = config.get('augment_retain', False)
@@ -149,14 +150,16 @@ def main():
     use_pooler = config.get('use_pooler', True)
 
     # Retain balancing parameters
-    retain_batch_size = config.get('retain_batch_size', 64)
-    
+    retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
+    retain_batch_size = config.get('retain_batch_size', min(10, retain_steps_per_remove))
+    learning_rate_retain = learning_rate_retain
+
     # Paths
     output_dir = config.get('output_dir', './output')
     final_save_path = config.get('final_save_path', './saved_model/LoRA_fusion_model')
     pretrained_model_path = config.get('pretrained_model_name_or_path', './models/sd-v1-4.ckpt')
     model_config_path = config.get('model_config', './configs/stable-diffusion/v1-inference.yaml')
-    
+
     # Training settings
     ddim_steps = 50
     ddim_eta = 0.0
@@ -164,7 +167,7 @@ def main():
     guidance_scale = config.get('guidance_scale', 7.5)
     start_guidance = config.get('guidance_scale', 9.0)
     internal_lr = config.get('internal_lr', 1e-4)
-    
+
     diagnostic_prompts = config.get('diagnostic_prompts', [])
     if not diagnostic_prompts:
         diagnostic_prompts = [
@@ -172,24 +175,26 @@ def main():
             "a photo of a cat",
             "a photo of a car"
         ]
-    
+
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
-    print(f"Learning rate: {learning_rate}")
+    print(f"Learning rate (remove): {learning_rate_remove}")
+    print(f"Learning rate (retain): {learning_rate_retain}")
+    print(f"Retain steps per remove: {retain_steps_per_remove}")
     print(f"Retain batch size: {retain_batch_size}")
     print(f"LoRA rank: {rank_lora}")
     print(f"LoRA alpha: {lora_alpha}")
     print(f"Target concepts: {len(concepts)}")
     print("=" * 48)
-    
+
     if seed is not None:
         hf_set_seed(seed)
-    
+
     accelerator_project_config = ProjectConfiguration(
         project_dir=output_dir,
         logging_dir=config.get('logging_dir', 'logs'),
     )
-    
+
     # Handle report_to - None or 'none' means no logging
     report_to = config.get('report_to', None)
     if report_to in (None, 'none', 'None', ''):
@@ -203,9 +208,9 @@ def main():
         log_with=log_with,
         project_config=accelerator_project_config,
     )
-    
+
     is_main = accelerator.is_main_process
-    
+
     use_wandb = config.get('report_to') == 'wandb'
     if is_main and use_wandb:
         wandb.init(
@@ -213,16 +218,16 @@ def main():
             name=f"{config_name}_training",
             config=config
         )
-    
+
     # Load model (only one)
     model = load_model_from_config(
         model_config_path, pretrained_model_path, accelerator.device
     )
-    
+
     # Freeze backbone
     for p in model.model.diffusion_model.parameters():
         p.requires_grad = False
-    
+
     # Setup HyperLoRA
     model.hyper = HypernetworkManager()
 
@@ -236,7 +241,7 @@ def main():
         clip_size = 768 if use_pooler else 512
 
     target_modules = ["attn2.to_k", "attn2.to_v"]
-    
+
     hyper_lora_factory = partial(
         HyperLoRALinear,
         clip_size=clip_size,
@@ -246,40 +251,43 @@ def main():
         use_orig_concat=use_orig_concat,
         internal_size=internal_size,
     )
-    
+
     hyper_lora_layers = inject_hyper_lora(
         model.model.diffusion_model, target_modules, hyper_lora_factory
     )
-    
+
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(model)
-    
+
     # Setup optimizer
     trainable_params = list(filter(lambda p: p.requires_grad, model.model.diffusion_model.parameters()))
-    
+
     if is_main:
         print(f"Total trainable parameter tensors: {len(trainable_params)}")
         if verbose:
             print_trainable_parameters(model)
-    
-    optimizer = torch.optim.Adam(trainable_params, lr=learning_rate)
+
+    optimizer_remove = torch.optim.Adam(trainable_params, lr=learning_rate_remove)
+    optimizer_retain = torch.optim.Adam(trainable_params, lr=learning_rate_retain)
 
     gamma = config.get('gamma', 0.9)
     step_size = config.get('step_size', 300)
 
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=[step_size], gamma=gamma
+    scheduler_remove = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer_remove, milestones=[step_size], gamma=gamma
     )
-
+    scheduler_retain = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer_retain, milestones=[step_size], gamma=gamma
+    )
     if is_main:
-        print(f"Using MultiStepLR scheduler (step_size={step_size}, gamma={gamma})")
-    
-    model, optimizer = accelerator.prepare(model, optimizer)
-    
+        print(f"Using MultiStepLR schedulers (step_size={step_size}, gamma={gamma})")
+
+    model, optimizer_remove, optimizer_retain = accelerator.prepare(model, optimizer_remove, optimizer_retain)
+
     for layer_name, layer in hyper_lora_layers:
         layer.set_parent_model(accelerator.unwrap_model(model))
         accelerator.unwrap_model(model).hyper.add_hyperlora(layer_name, layer.hyper_lora)
-    
+
     sampler = DDIMSampler(accelerator.unwrap_model(model))
 
     # Setup embedding model based on config
@@ -287,6 +295,7 @@ def main():
     nv_embed_tokenizer = None
     clip_text_encoder = None
     tokenizer = None
+    use_open_clip = False
 
     if embedding_model == 'nv_embed':
         nv_embed_mod = _load_nv_embed_module()
@@ -312,6 +321,7 @@ def main():
         clip_model, _, _ = open_clip.create_model_and_transforms('ViT-bigG-14', pretrained='laion2b_s39b_b160k')
         clip_text_encoder = clip_model.to(accelerator.device).eval()
         tokenizer = open_clip.get_tokenizer('ViT-bigG-14')
+        use_open_clip = True
 
         def get_embedding(text: str):
             with torch.no_grad():
@@ -428,22 +438,22 @@ def main():
             hyper_cache = HyperCache.load(cache_path)
 
     print(f"[HyperCache] {len(hyper_cache)} prompts cached ({embed_model_name})")
-    
+
     criterion = torch.nn.MSELoss()
     losses = []
-    
+
     quick_sampler = create_quick_sampler(
         accelerator.unwrap_model(model), sampler, resolution, ddim_steps, ddim_eta
     )
-    
+
     pbar = tqdm(range(max_train_steps), disable=not accelerator.is_local_main_process)
-    
+
     remove_weight = config.get('remove_weight', 1.0)
     retain_weight = config.get('retain_weight', 0.001)
-    
+
     for iteration in pbar:
         base = accelerator.unwrap_model(model)
-        
+
         t_enc = torch.randint(ddim_steps, (1,), device=accelerator.device)
         og_num = round((int(t_enc) / ddim_steps) * 100)
         og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
@@ -451,7 +461,8 @@ def main():
         start_code = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
 
         # Zero gradients at start of iteration (fix: mirrors train_flux_simple.py pattern)
-        optimizer.zero_grad(set_to_none=True)
+        optimizer_remove.zero_grad(set_to_none=True)
+        optimizer_retain.zero_grad(set_to_none=True)
 
         with accelerator.accumulate(model):
             rank_proc = accelerator.process_index
@@ -469,7 +480,8 @@ def main():
             if augment_target:
                 augmented_prompts = prompt_augmentation(target_text, augment=True, celebrity=celebrity_mode)
                 valid_aug_indices = list(range(rank_proc, len(augmented_prompts), world_size))
-                aug_idx = random.choice(valid_aug_indices) if len(valid_aug_indices) > 0 else rank_proc % len(augmented_prompts)
+                aug_idx = random.choice(valid_aug_indices) if len(valid_aug_indices) > 0 else rank_proc % len(
+                    augmented_prompts)
                 target_text_augmented = augmented_prompts[aug_idx]
                 augmented_mapping = prompt_augmentation(mapping_text, augment=True, celebrity=celebrity_mode)
                 mapping_text_augmented = augmented_mapping[aug_idx % len(augmented_mapping)]
@@ -488,26 +500,28 @@ def main():
                 emb_p = base.get_learned_conditioning([target_text_augmented])
                 emb_n = base.get_learned_conditioning([target_text_augmented])
                 emb_m = base.get_learned_conditioning([mapping_text_augmented])
-            
+
             valid_timesteps = torch.arange(rank_proc, hyper_train_steps, world_size, device=accelerator.device)
-            rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(), (1,))]) if valid_timesteps.numel() > 0 else int(torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
-            
+            rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(),
+                                                          (1,))]) if valid_timesteps.numel() > 0 else int(
+                torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+
             base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            
+
             with torch.no_grad():
                 # Use base model without LoRA for reference outputs
                 with base.hyper.no_lora():
                     z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
                     e_m = base.apply_model(z, t_enc_ddpm, emb_m)
                     e_p = base.apply_model(z, t_enc_ddpm, emb_p)
-            
+
             base.hyper.set_context(target_emb, current_timestep)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
             base.hyper.retain_grad_for_cached_lora()
             e_n = base.apply_model(z, t_enc_ddpm, emb_n)
-            
+
             target = e_m - (negative_guidance * (e_p - e_m))
             loss_aux = criterion(e_n, target)
             accelerator.backward(loss_aux)
@@ -521,11 +535,11 @@ def main():
             base.hyper.set_context(target_emb, current_timestep)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep)
             tensors_flat_t = base.hyper.flatten_cached_from_cache()
-            
+
             base.hyper.set_context(target_emb, current_timestep + 1)
             base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
             tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
-            
+
             delta_live = tensors_flat_t1 - tensors_flat_t
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove)
@@ -533,60 +547,69 @@ def main():
             loss_remove_log = loss_remove.clone().detach()
 
             if accelerator.sync_gradients:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-                scheduler.step()
+                optimizer_remove.step()
+                optimizer_remove.zero_grad(set_to_none=True)
+                scheduler_remove.step()
 
+            loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_prompts) > 0:
-                num_retain_samples = min(retain_batch_size, len(retain_prompts))
-                sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
-                batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
+                for retain_step in range(retain_steps_per_remove):
+                    num_retain_samples = min(retain_batch_size, len(retain_prompts))
+                    sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
+                    batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
 
-                hyper = base.hyper
-                batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
-                B = batch_prompts.shape[0]
-                perm = torch.randperm(B, device=batch_prompts.device)
-                batch_prompts = batch_prompts[perm]
+                    hyper = base.hyper
+                    batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
+                    B = batch_prompts.shape[0]
+                    perm = torch.randperm(B, device=batch_prompts.device)
+                    batch_prompts = batch_prompts[perm]
 
-                hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
-                tensors_flat_t0 = hyper.flatten_cached_from_cache()
+                    hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
+                    tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                t_ = torch.full((B,), rtimestep, device=accelerator.device)
-                hyper.compute_and_cache_loras(
-                    batch_prompts,
-                    t_,
-                )
-                tensors_flat_t1 = hyper.flatten_cached_from_cache()
+                    t_ = torch.full((B,), rtimestep, device=accelerator.device)
+                    hyper.compute_and_cache_loras(
+                        batch_prompts,
+                        t_,
+                    )
+                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
-                delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * delta.pow(2).mean()
+                    delta = tensors_flat_t1 - tensors_flat_t0
+                    loss_retain = retain_weight * delta.pow(2).mean()
+                    loss_retain_total = loss_retain_total + loss_retain.detach()
 
-            accelerator.backward(loss_retain)
+                    accelerator.backward(loss_retain)
 
-                # ---- STEP ONCE, HERE ----
-            if accelerator.sync_gradients:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-                scheduler.step()
+                    if accelerator.sync_gradients:
+                        optimizer_retain.step()
+                        optimizer_retain.zero_grad(set_to_none=True)
 
-            loss_retain_log = loss_retain
-        
+                if accelerator.sync_gradients:
+                    loss_retain_total /= retain_steps_per_remove
+                    scheduler_retain.step()
+
+            loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
+
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
             loss_remove_reduced = accelerator.gather(loss_remove_log).mean()
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if is_main and use_wandb:
-            current_lr = optimizer.param_groups[0]['lr']
+            current_lr_remove = optimizer_remove.param_groups[0]['lr']
+            current_lr_retain = optimizer_retain.param_groups[0]['lr']
             wandb.log({
                 "loss_retain": float(loss_retain_reduced.item()),
                 "loss_remove": float(loss_remove_reduced.item()),
-                "learning_rate": current_lr,
+                "learning_rate_remove": current_lr_remove,
+                "learning_rate_retain": current_lr_retain,
+                "retain_steps_per_remove": retain_steps_per_remove,
             }, step=iteration)
-        
+
         if is_main:
-            pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.3e}", "remove": f"{float(loss_remove_reduced.item()):.3e}"})
-        
+            pbar.set_postfix({"retain": f"{float(loss_retain_reduced.item()):.3e}",
+                              "remove": f"{float(loss_remove_reduced.item()):.3e}"})
+
         if is_main and use_wandb and (iteration + 1) % diagnostic_freq == 0:
             for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
                 # Get diagnostic embedding from cache
@@ -626,7 +649,9 @@ def main():
                     if len(row_tensors) > 0:
                         row = torch.cat(row_tensors, dim=2)
                         safe_key = diag_prompt.replace(" ", "_").replace(",", "")[:50]
-                        wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(row), caption=f"{diag_prompt} | hyper steps: {diag_time_steps}")}, step=iteration)
+                        wandb.log({f"diagnostic_{diag_idx}_{safe_key}": wandb.Image(to_pil_image(row),
+                                                                                    caption=f"{diag_prompt} | hyper steps: {diag_time_steps}")},
+                                  step=iteration)
 
             os.makedirs(output_dir, exist_ok=True)
             os.makedirs(final_save_path, exist_ok=True)
@@ -648,15 +673,17 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(final_save_path, exist_ok=True)
         model_unwrapped = accelerator.unwrap_model(model)
-        lora_state_dict = {n: p.detach().cpu().clone() for n, p in model_unwrapped.model.diffusion_model.named_parameters() if p.requires_grad}
+        lora_state_dict = {n: p.detach().cpu().clone() for n, p in
+                           model_unwrapped.model.diffusion_model.named_parameters() if p.requires_grad}
         lora_path = os.path.join(final_save_path, f"hyper_lora_final.pth")
         accelerator.save(lora_state_dict, lora_path)
-        
+
         config_save = {
             "config_name": config_name,
             "concepts": concepts,
             "rank": rank_lora,
-            "learning_rate": learning_rate,
+            "learning_rate_remove": learning_rate_remove,
+            "learning_rate_retain": learning_rate_retain,
             "max_train_steps": max_train_steps,
             "celebrity_mode": celebrity_mode,
             "final_loss": losses[-1],
