@@ -2,7 +2,7 @@ import argparse
 from cleanfid import fid
 
 def main(args):
-    score = fid.compute_fid(args.dir1, args.dir2)
+    score = fid.compute_fid(args.dir1, args.dir2, mode="clean")
     print(f'FID score: {score}')
 
 if __name__ == '__main__':
