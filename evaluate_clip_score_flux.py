@@ -7,6 +7,9 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 import torch
 
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True  # allows reading partially-written images (still may fail)
+
 
 def mean_clip_score(image_dir, prompts_path, max_images=10000):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,31 +54,23 @@ def mean_clip_score(image_dir, prompts_path, max_images=10000):
             break
 
         case_id = str(int(os.path.splitext(imagename)[0]))
-
         if case_id not in case_to_prompt:
             continue
 
+        try:
+            image = Image.open(os.path.join(image_dir, imagename)).convert("RGB")
+        except (OSError, ValueError) as e:
+            print(f"Skip corrupted image: {imagename} ({e})")
+            continue
+
         text = case_to_prompt[case_id]
-
-        image = Image.open(os.path.join(image_dir, imagename)).convert("RGB")
-
-        inputs = processor(
-            text=text,
-            images=image,
-            return_tensors="pt",
-            padding=True,
-        )
-
+        inputs = processor(text=text, images=image, return_tensors="pt", padding=True)
         outputs = model(**{k: v.to(device) for k, v in inputs.items()})
-
-        clip_score = outputs.logits_per_image[0][0].detach().cpu()
-        similarities.append(clip_score)
-
+        similarities.append(outputs.logits_per_image[0][0].detach().cpu())
         processed += 1
 
     if processed != max_images:
-        raise ValueError(f"Expected {max_images} images, but processed {processed}")
-
+        raise ValueError(f"Expected {max_images} valid images, but processed {processed}")
     similarities = np.array(similarities)
 
     mean_similarity = np.mean(similarities)
