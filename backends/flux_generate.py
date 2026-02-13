@@ -221,19 +221,21 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
 
     images_generated = 0
-    for idx, row in tqdm(df.iterrows(), total=len(df)):
+    for i, row in tqdm(enumerate(df.to_dict("records")), total=len(df)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
-        if 'case_number' in df.columns:
-            case_number = int(row['case_number'])
+
+        if "case_number" in row and row["case_number"] not in (None, ""):
+            case_number = int(row["case_number"])
             image_path = os.path.join(save_dir, f"{case_number}.png")
         else:
-            image_path = os.path.join(save_dir, f"{int(idx):05d}.png")
+            image_path = os.path.join(save_dir, f"{i:05d}.png")
+
         if os.path.exists(image_path):
             continue
         prompt = coerce_prompt(row.get("prompt", ""))
         if not isinstance(prompt, str) or not prompt.strip():
-            print(f"Skip [{idx}] empty prompt")
+            print(f"Skip [{i}] empty prompt")
             continue
 
         weight_dtype = torch.bfloat16
