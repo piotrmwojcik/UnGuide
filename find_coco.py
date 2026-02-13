@@ -30,6 +30,7 @@ def main(csv_path: str, val_dir: str, out_dir: str, limit: int = 10000):
             dst = os.path.join(out_dir, fname)
 
             if not os.path.exists(src):
+                print('!!! missing ', coco_id_str)
                 missing += 1
                 continue
 
