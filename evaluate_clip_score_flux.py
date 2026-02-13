@@ -22,11 +22,15 @@ def mean_clip_score(image_dir, prompts_path, max_images=10000):
     df = pd.read_csv(prompts_path)
     df.columns = df.columns.str.strip()
 
-    # Build mapping: case_number -> prompt
-    case_to_prompt = {
-        str(int(row["case_number"])): row["prompt"]
-        for _, row in df.iterrows()
-    }
+    case_to_prompt = {}
+
+    for _, row in df.iterrows():
+        try:
+            case_number = int(row["case_number"])
+        except (ValueError, TypeError):
+            continue  # skip header or malformed rows
+
+        case_to_prompt[str(case_number)] = row["prompt"]
 
     # Collect and sort images by numeric case id
     image_filenames = [
