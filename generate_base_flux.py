@@ -83,13 +83,13 @@ if __name__ == "__main__":
     for image_id, row in tqdm(df.iterrows(), total=len(df)):
         if args.n_images is not None and images_generated >= args.n_images:
             break
-        image_path = os.path.join(save_dir, f"{image_id:05d}.png")
+        image_path = os.path.join(save_dir, f"{int(image_id):05d}.png")
         if os.path.exists(image_path):
             continue
 
         prompt = coerce_prompt(row.get("prompt", ""))
         if not isinstance(prompt, str) or not prompt.strip():
-            print(f"Skip [{image_id}] empty prompt")
+            print(f"Skip [{int(image_id)}] empty prompt")
             continue
 
         seed = int(row.get("evaluation_seed", 0))
