@@ -1064,7 +1064,7 @@ def main():
                         .to(device=accelerator.device, dtype=torch.bfloat16)
                 )
                 hyper = base.hyper
-                B = batch_prompts.shape[0]
+                B = batch_retain_embs.shape[0]
                 perm = torch.randperm(B, device=batch_retain_embs.device)
                 batch_prompts = batch_retain_embs[perm]
 
@@ -1077,8 +1077,6 @@ def main():
                 )
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
-
-                dtype = next(hyper.parameters()).dtype
 
                 t_ = torch.full((B,), rtimestep, device=accelerator.device, dtype=dtype)
                 hyper.compute_and_cache_loras(
