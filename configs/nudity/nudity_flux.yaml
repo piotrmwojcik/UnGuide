@@ -44,7 +44,7 @@ UnHype_Nudity_Flux:
   learning_rate_retain: 5.0e-04
 
   # Scheduler
-  step_size: [800, 1600]
+  step_size: [2000, 5000]
   gamma: 0.5
 
   # Training hyperparameters
