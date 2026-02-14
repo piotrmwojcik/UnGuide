@@ -73,6 +73,7 @@ UnHype_Nudity_Flux:
   # Training weights
   remove_weight: 10.0
   retain_weight: 2.0
+  min_retain_sample: 500
 
   # Paths
   output_dir: output/nudity_flux
