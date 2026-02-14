@@ -1064,10 +1064,9 @@ def main():
                         .to(device=accelerator.device, dtype=torch.bfloat16)
                 )
                 hyper = base.hyper
-                batch_prompts = batch_retain_embs.repeat(hyper_train_steps // num_retain_samples, 1)
                 B = batch_prompts.shape[0]
-                perm = torch.randperm(B, device=batch_prompts.device)
-                batch_prompts = batch_prompts[perm]
+                perm = torch.randperm(B, device=batch_retain_embs.device)
+                batch_prompts = batch_retain_embs[perm]
 
                 # Compute LoRAs at t=0
                 dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
