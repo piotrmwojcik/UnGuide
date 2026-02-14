@@ -108,4 +108,4 @@ if __name__ == "__main__":
         image.save(image_path)
         images_generated += 1
         end = time.time()
-        print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Saved to {image_path}")
+        print(f"Prompt [{prompt}] processed in {end - start:.2f} seconds. Seed: {seed}. Saved to {image_path}")
