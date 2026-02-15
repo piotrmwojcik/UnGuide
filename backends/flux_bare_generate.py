@@ -239,7 +239,7 @@ def generate_one_image_from_prompt(
 
     model_input = (model_input - vae.config.shift_factor) * vae.config.scaling_factor
 
-    start_guidance = 3
+    start_guidance = 3.5
     start_guidance = torch.tensor([start_guidance], device=transformer.device)
     start_guidance = start_guidance.expand(model_input.shape[0])
 

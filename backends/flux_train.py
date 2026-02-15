@@ -1078,11 +1078,16 @@ def main():
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                t_ = torch.full((B,), rtimestep, device=accelerator.device, dtype=dtype)
-                hyper.compute_and_cache_loras(
-                    batch_prompts.to(dtype=dtype),
-                    t_,
-                )
+                mu = float(rtimestep)
+                sigma = 0.05 * hyper_train_steps  # 5% of total range (good default)
+
+                t_min = 0
+                t_max = hyper_train_steps - 1
+
+                t_ = torch.randn(B, device=accelerator.device, dtype=torch.float32) * sigma + mu
+                t_ = t_.round().clamp(t_min, t_max).to(torch.long)
+
+                hyper.compute_and_cache_loras(batch_prompts, t_)
                 tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                 # Retain loss: minimize LoRA weight change across timesteps
