@@ -494,13 +494,13 @@ def main():
     print(f"Config file: {args.config}")
 
     # Extract key parameters with defaults
-    learning_rate_remove = config.get('learning_rate_remove', 1e-5)
-    learning_rate_retain = config.get('learning_rate_retain', 1e-5)
-    max_train_steps = config.get('max_train_steps', 120)
-    hyper_train_steps = config.get('hyper_train_steps', 500)  # Steps for hypernetwork context
-    rank = config.get('rank', 1)
-    lora_alpha = config.get('lora_alpha', 8)  # LoRA alpha parameter
-    internal_size = config.get('internal_size', 100)
+    learning_rate_remove = config['learning_rate_remove']
+    learning_rate_retain = config['learning_rate_retain']
+    max_train_steps = config['max_train_steps']
+    hyper_train_steps = config.get('hyper_train_steps', 300)
+    rank = config['rank']
+    lora_alpha = config['lora_alpha']
+    internal_size = config['internal_size']
     seed = config.get('seed', 2024)
 
     min_retain_sample = config.get('min_retain_sample', 10)
@@ -527,8 +527,8 @@ def main():
 
     # Training settings
     ddim_steps = 28
-    negative_guidance = config.get('negative_guidance', 2.0)
-    internal_lr = config.get('internal_lr', 1e-4)  # Simulated lr for hypernetwork gradient matching
+    negative_guidance = config['negative_guidance']
+    internal_lr = config['internal_lr']
 
     # Diagnostic prompts for image generation during training
     diagnostic_prompts = config.get('diagnostic_prompts', [])
@@ -539,6 +539,17 @@ def main():
             "a photo of a cat",
             "a photo of a car"
         ]
+
+    # Config to embed in LoRA checkpoints (generation-relevant params only)
+    checkpoint_config = {
+        'rank': rank,
+        'lora_alpha': lora_alpha,
+        'internal_size': internal_size,
+        'hyper_train_steps': hyper_train_steps,
+        'use_orig_concat': use_orig_concat,
+        'use_pooler': use_pooler,
+        'backend': 'flux',
+    }
 
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
@@ -842,8 +853,8 @@ def main():
     pbar = tqdm(range(max_train_steps), disable=not accelerator.is_local_main_process)
 
     # Training weights for combining removal and retain losses
-    remove_weight = config.get('remove_weight', 1.0)  # Weight for removal loss
-    retain_weight = config.get('retain_weight', 0.001)  # Weight for retain loss
+    remove_weight = config['remove_weight']
+    retain_weight = config['retain_weight']
 
     print(f"Loss weights: remove={remove_weight:.3f}, retain={retain_weight:.3f}")
 
@@ -1214,11 +1225,11 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
             os.makedirs(final_save_path, exist_ok=True)
 
-            # Save LoRA weights
+            # Save LoRA weights with embedded config
             model_unwrapped = accelerator.unwrap_model(model)
             lora_state_dict = {k: v.cpu() for k, v in model_unwrapped.state_dict().items() if ".hyper_lora." in k}
             lora_path = os.path.join(final_save_path, f"hyper_lora_em_{iteration}.pth")
-            accelerator.save(lora_state_dict, lora_path)
+            accelerator.save({'state_dict': lora_state_dict, 'config': checkpoint_config}, lora_path)
             print(f"Model saved to: {lora_path}")
 
         # Save config

@@ -23,6 +23,14 @@ from core.cfg_models import CombinedCFGModel
 from core.embeddings import setup_embedding_model
 
 
+def load_checkpoint(path, device='cpu'):
+    """Load checkpoint, handling both new (embedded config) and legacy formats."""
+    raw = torch.load(path, map_location=device)
+    if isinstance(raw, dict) and 'state_dict' in raw:
+        return raw['state_dict'], raw.get('config', {})
+    return raw, {}  # legacy format
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Unified image generation with HyperLoRA'
@@ -30,8 +38,8 @@ def parse_args():
     parser.add_argument('--task', type=str, required=True,
                         choices=['celebrity', 'nudity', 'cifar10'],
                         help='Task type: celebrity, nudity, or cifar10')
-    parser.add_argument('--config', type=str, required=True,
-                        help='Path to training config YAML (contains embedding model, LoRA params)')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to training config YAML (optional if checkpoint has embedded config)')
     parser.add_argument('--lora-path', type=str, required=True,
                         help='Path to trained HyperLoRA weights (.pth file or directory)')
     parser.add_argument('--output-dir', type=str, required=True,
@@ -66,14 +74,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_lora_weights(model, lora_path: str, device: torch.device):
-    print(f"Loading LoRA weights from: {lora_path}")
-
-    if not os.path.exists(lora_path):
-        raise FileNotFoundError(f"LoRA checkpoint not found: {lora_path}")
-
-    lora_state_dict = torch.load(lora_path, map_location=device)
-    print(f"Found {len(lora_state_dict)} parameters in checkpoint")
+def load_lora_weights(model, lora_state_dict: dict, device: torch.device):
+    """Load pre-extracted LoRA state_dict into model."""
+    print(f"Loading {len(lora_state_dict)} LoRA parameters")
 
     diffusion_model = model.model.diffusion_model
     sd = diffusion_model.state_dict()
@@ -212,9 +215,6 @@ def main():
 
     args = parse_args()
 
-    config, config_name = load_config(args.config)
-    print(f"Loaded config '{config_name}' from {args.config}")
-
     if args.device.startswith('cuda') and torch.cuda.is_available():
         device = torch.device(f"cuda:{LOCAL_RANK}")
     else:
@@ -223,16 +223,50 @@ def main():
 
     set_seed(args.seed)
 
+    # Load checkpoint early to extract embedded config
+    lora_file = args.lora_path
+    if os.path.isdir(args.lora_path):
+        candidates = [f for f in os.listdir(args.lora_path) if f.startswith('hyper_lora') and f.endswith('.pth')]
+        if candidates:
+            candidates.sort()
+            lora_file = os.path.join(args.lora_path, candidates[-1])
+        else:
+            lora_file = os.path.join(args.lora_path, "hyper_lora.pth")
+
+    print(f"Loading checkpoint: {lora_file}")
+    lora_state_dict, ckpt_config = load_checkpoint(lora_file, device)
+    if ckpt_config:
+        print(f"Found embedded config in checkpoint: {list(ckpt_config.keys())}")
+
+    # Load YAML config if provided (overrides embedded config)
+    if args.config:
+        config, config_name = load_config(args.config)
+        print(f"Loaded config '{config_name}' from {args.config}")
+    else:
+        if not ckpt_config:
+            raise ValueError("No --config provided and checkpoint has no embedded config")
+        config = {}
+        config_name = "embedded"
+        print("Using embedded config from checkpoint")
+
+    # Merge: YAML config takes precedence over embedded checkpoint config
+    embedding_model = config.get('embedding_model', ckpt_config.get('embedding_model', 'clip'))
+    use_pooler = config.get('use_pooler', ckpt_config.get('use_pooler', True))
+    rank = config.get('rank', ckpt_config.get('rank'))
+    lora_alpha = config.get('lora_alpha', ckpt_config.get('lora_alpha'))
+    hidden_size = config.get('internal_size', ckpt_config.get('internal_size'))
+    hyper_train_steps = config.get('hyper_train_steps', ckpt_config.get('hyper_train_steps', 300))
+    use_orig_concat = config.get('use_orig_concat', ckpt_config.get('use_orig_concat', False))
+
+    if rank is None:
+        raise ValueError("rank not found in config or checkpoint")
+    if lora_alpha is None:
+        raise ValueError("lora_alpha not found in config or checkpoint")
+    if hidden_size is None:
+        raise ValueError("internal_size not found in config or checkpoint")
+
     model_config = args.model_config or config.get('model_config', './configs/stable-diffusion/v1-inference.yaml')
     ckpt_path = args.ckpt or config.get('pretrained_model_name_or_path', 'models/sd-v1-4.ckpt')
-
-    embedding_model = config.get('embedding_model', 'clip')
-    use_pooler = config.get('use_pooler', True)
-    rank = config.get('rank', 1)
-    lora_alpha = config.get('lora_alpha', 1.0)
-    hidden_size = config.get('hidden_size', 512)
-    hyper_train_steps = config.get('hyper_train_steps', 300)
-    use_orig_concat = config.get('use_orig_concat', False)
 
     print(f"\nHyperLoRA config:")
     print(f"  embedding_model: {embedding_model}")
@@ -264,15 +298,6 @@ def main():
     print(f"\nLoading Stable Diffusion from {ckpt_path}...")
     model = load_model_from_config(model_config, ckpt_path, device)
 
-    lora_file = args.lora_path
-    if os.path.isdir(args.lora_path):
-        candidates = [f for f in os.listdir(args.lora_path) if f.startswith('hyper_lora') and f.endswith('.pth')]
-        if candidates:
-            candidates.sort()
-            lora_file = os.path.join(args.lora_path, candidates[-1])
-        else:
-            lora_file = os.path.join(args.lora_path, "hyper_lora.pth")
-
     print(f"\nSetting up HyperLoRA (rank={rank}, clip_size={clip_size})...")
     hyper_lora_factory = partial(
         HyperLoRALinear,
@@ -294,7 +319,7 @@ def main():
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    load_lora_weights(model, lora_file, device)
+    load_lora_weights(model, lora_state_dict, device)
 
     combined_model = CombinedCFGModel(model).eval()
     sampler = DDIMSampler(model=combined_model)

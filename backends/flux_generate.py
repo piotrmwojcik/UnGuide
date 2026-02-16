@@ -54,21 +54,25 @@ def temporary_global_seed(seed: int):
         if cuda_states is not None:
             torch.cuda.set_rng_state_all(cuda_states)
 
-def load_lora_weights(model_wrapper, lora_path, device):
+def load_checkpoint(path, device='cpu'):
+    """Load checkpoint, handling both new (embedded config) and legacy formats."""
+    raw = torch.load(path, map_location=device)
+    if isinstance(raw, dict) and 'state_dict' in raw:
+        return raw['state_dict'], raw.get('config', {})
+    if isinstance(raw, dict) and 'module' in raw:
+        return raw['module'], {}
+    if not isinstance(raw, dict):
+        raise ValueError(f"Loaded LoRA checkpoint is not a dict: {type(raw)}")
+    return raw, {}  # legacy format
+
+
+def load_lora_weights(model_wrapper, lora_state_dict, device):
+    """Load pre-extracted LoRA state_dict into model."""
     transformer = model_wrapper.transformer
 
     tensor_map = {n: p for n, p in transformer.named_parameters()}
     buffer_map = {n: b for n, b in transformer.named_buffers()}
     tensor_map.update(buffer_map)
-
-    lora_state_dict = torch.load(lora_path, map_location="cpu")
-    if isinstance(lora_state_dict, dict):
-        if 'state_dict' in lora_state_dict:
-            lora_state_dict = lora_state_dict['state_dict']
-        elif 'module' in lora_state_dict:
-            lora_state_dict = lora_state_dict['module']
-    if not isinstance(lora_state_dict, dict):
-        raise ValueError(f"Loaded LoRA checkpoint is not a dict: {type(lora_state_dict)}")
 
     common = [k for k in lora_state_dict.keys() if k in tensor_map]
     print(f"Loading {len(common)}/{len(lora_state_dict)} keys from checkpoint")
@@ -107,33 +111,61 @@ def main():
                        help="Use CLIP pooler output")
     parser.add_argument("--use_orig_concat", type=bool, default=None,
                        help="Use original concat in HyperLoRA (must match training config)")
+    parser.add_argument("--internal_size", type=int, default=None,
+                       help="HyperLoRA hidden size (must match training config)")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--seed", type=int, default=2024)
     args = parser.parse_args()
 
+    # Load checkpoint early to extract embedded config
+    ckpt_config = {}
+    lora_state_dict = None
+    if args.lora_path and os.path.exists(args.lora_path):
+        print(f"Loading checkpoint: {args.lora_path}")
+        lora_state_dict, ckpt_config = load_checkpoint(args.lora_path)
+        if ckpt_config:
+            print(f"Found embedded config in checkpoint: {list(ckpt_config.keys())}")
+
     if args.config:
         config, _ = load_config(args.config)
         config_defaults = {
-            'rank': config.get('rank', 9),
-            'lora_alpha': config.get('lora_alpha', 9.0),
+            'rank': config['rank'],
+            'lora_alpha': config['lora_alpha'],
             'hyper_train_steps': config.get('hyper_train_steps', 300),
             'use_pooler': config.get('use_pooler', True),
             'use_orig_concat': config.get('use_orig_concat', False),
+            'internal_size': config.get('internal_size', 100),
         }
         for key, default in config_defaults.items():
             if getattr(args, key) is None:
                 setattr(args, key, default)
 
+    # Embedded checkpoint config as final fallback (after CLI args and YAML config)
+    if ckpt_config:
+        ckpt_defaults = {
+            'rank': ckpt_config.get('rank'),
+            'lora_alpha': ckpt_config.get('lora_alpha'),
+            'hyper_train_steps': ckpt_config.get('hyper_train_steps'),
+            'use_pooler': ckpt_config.get('use_pooler'),
+            'use_orig_concat': ckpt_config.get('use_orig_concat'),
+            'internal_size': ckpt_config.get('internal_size'),
+        }
+        for key, default in ckpt_defaults.items():
+            if getattr(args, key) is None and default is not None:
+                setattr(args, key, default)
+
     if args.rank is None:
-        args.rank = 9
+        raise ValueError("--rank is required (via config, checkpoint, or CLI)")
     if args.lora_alpha is None:
-        args.lora_alpha = 9.0
+        raise ValueError("--lora_alpha is required (via config, checkpoint, or CLI)")
     if args.hyper_train_steps is None:
         args.hyper_train_steps = 300
     if args.use_pooler is None:
         args.use_pooler = True
     if args.use_orig_concat is None:
         args.use_orig_concat = False
+    if args.internal_size is None:
+        args.internal_size = 100
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
@@ -176,7 +208,8 @@ def main():
             rank=args.rank,
             alpha=args.lora_alpha,
             train_steps=args.hyper_train_steps,
-            use_orig_concat=args.use_orig_concat
+            use_orig_concat=args.use_orig_concat,
+            internal_size=args.internal_size,
         )
     hyper_lora_layers = inject_hyper_lora(
         model_wrapper, target_modules, hyper_lora_factory
@@ -188,12 +221,14 @@ def main():
 
     print(f"Injected HyperLoRA into {len(hyper_lora_layers)} layers")
 
-    if not os.path.exists(args.lora_path):
-        raise FileNotFoundError(
-            f"LoRA weights not found at: {args.lora_path}\n"
-            f"Make sure training completed successfully and saved to this path."
-        )
-    load_lora_weights(pipe, args.lora_path, device)
+    if lora_state_dict is None:
+        if not args.lora_path or not os.path.exists(args.lora_path):
+            raise FileNotFoundError(
+                f"LoRA weights not found at: {args.lora_path}\n"
+                f"Make sure training completed successfully and saved to this path."
+            )
+        lora_state_dict, _ = load_checkpoint(args.lora_path)
+    load_lora_weights(pipe, lora_state_dict, device)
 
     final_save_path = "./test_ckp"
     os.makedirs(final_save_path, exist_ok=True)

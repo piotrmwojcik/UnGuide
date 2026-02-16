@@ -163,9 +163,9 @@ def main():
     # Training settings
     ddim_steps = 50
     ddim_eta = 0.0
-    negative_guidance = config.get('negative_guidance', 2.0)
+    negative_guidance = config['negative_guidance']
     guidance_scale = config.get('guidance_scale', 7.5)
-    start_guidance = config.get('guidance_scale', 9.0)
+    start_guidance = config.get('start_guidance', 9.0)
     internal_lr = config.get('internal_lr', 1e-4)
 
     diagnostic_prompts = config.get('diagnostic_prompts', [])
@@ -175,6 +175,18 @@ def main():
             "a photo of a cat",
             "a photo of a car"
         ]
+
+    # Config to embed in LoRA checkpoints (generation-relevant params only)
+    checkpoint_config = {
+        'rank': rank_lora,
+        'lora_alpha': lora_alpha,
+        'internal_size': internal_size,
+        'hyper_train_steps': hyper_train_steps,
+        'use_orig_concat': use_orig_concat,
+        'use_pooler': use_pooler,
+        'embedding_model': embedding_model,
+        'backend': 'sd',
+    }
 
     print(f"Training steps: {max_train_steps}")
     print(f"Hypernetwork steps: {hyper_train_steps}")
@@ -656,15 +668,12 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
             os.makedirs(final_save_path, exist_ok=True)
 
-            # Save LoRA weights
-            lora_state_dict = {}
+            # Save LoRA weights (state_dict includes both params and buffers)
             model_unwrapped = accelerator.unwrap_model(model)
-            for name, param in model_unwrapped.model.diffusion_model.named_parameters():
-                if param.requires_grad:
-                    lora_state_dict[name] = param.detach().cpu().clone()
+            lora_state_dict = {k: v.detach().cpu().clone() for k, v in model_unwrapped.model.diffusion_model.state_dict().items() if "hyper_lora" in k}
 
             lora_path = os.path.join(final_save_path, f"hyper_lora_{iteration}.pth")
-            accelerator.save(lora_state_dict, lora_path)
+            accelerator.save({'state_dict': lora_state_dict, 'config': checkpoint_config}, lora_path)
             print(f"Model saved to: {lora_path}")
 
     accelerator.wait_for_everyone()
@@ -673,10 +682,9 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(final_save_path, exist_ok=True)
         model_unwrapped = accelerator.unwrap_model(model)
-        lora_state_dict = {n: p.detach().cpu().clone() for n, p in
-                           model_unwrapped.model.diffusion_model.named_parameters() if p.requires_grad}
+        lora_state_dict = {k: v.detach().cpu().clone() for k, v in model_unwrapped.model.diffusion_model.state_dict().items() if "hyper_lora" in k}
         lora_path = os.path.join(final_save_path, f"hyper_lora_final.pth")
-        accelerator.save(lora_state_dict, lora_path)
+        accelerator.save({'state_dict': lora_state_dict, 'config': checkpoint_config}, lora_path)
 
         config_save = {
             "config_name": config_name,
@@ -690,6 +698,106 @@ def main():
         }
         with open(os.path.join(final_save_path, "train_config.json"), "w") as f:
             json.dump(config_save, f, indent=2)
+
+        # === Verification: load checkpoint back and compare every tensor ===
+        print("\n" + "=" * 60)
+        print("CHECKPOINT VERIFICATION: loading saved checkpoint and comparing")
+        print("=" * 60)
+        raw = torch.load(lora_path, map_location='cpu')
+        if isinstance(raw, dict) and 'state_dict' in raw:
+            loaded_sd = raw['state_dict']
+            loaded_config = raw.get('config', {})
+            print(f"[OK] New format detected: {len(loaded_sd)} tensors, config keys: {list(loaded_config.keys())}")
+        else:
+            loaded_sd = raw
+            loaded_config = {}
+            print("[WARN] Legacy format (no embedded config)")
+
+        # Compare against in-memory model
+        live_sd = {k: v.detach().cpu() for k, v in model_unwrapped.model.diffusion_model.state_dict().items() if "hyper_lora" in k}
+
+        saved_keys = set(lora_state_dict.keys())
+        loaded_keys = set(loaded_sd.keys())
+        live_keys = set(live_sd.keys())
+
+        # Key coverage
+        missing_in_saved = live_keys - saved_keys
+        extra_in_saved = saved_keys - live_keys
+        missing_in_loaded = saved_keys - loaded_keys
+        if missing_in_saved:
+            print(f"[FAIL] Keys in live model but NOT saved: {missing_in_saved}")
+        if extra_in_saved:
+            print(f"[WARN] Keys saved but NOT in live model: {extra_in_saved}")
+        if missing_in_loaded:
+            print(f"[FAIL] Keys saved but NOT loaded back: {missing_in_loaded}")
+        if not missing_in_saved and not missing_in_loaded:
+            print(f"[OK] All {len(saved_keys)} keys present in saved, loaded, and live model")
+
+        # Value comparison: saved vs loaded (round-trip integrity)
+        mismatches_roundtrip = []
+        for k in sorted(saved_keys & loaded_keys):
+            if not torch.equal(lora_state_dict[k], loaded_sd[k]):
+                diff = (lora_state_dict[k].float() - loaded_sd[k].float()).abs()
+                mismatches_roundtrip.append((k, diff.max().item(), diff.mean().item()))
+        if mismatches_roundtrip:
+            print(f"[FAIL] {len(mismatches_roundtrip)} tensors differ after save/load round-trip:")
+            for k, maxd, meand in mismatches_roundtrip:
+                print(f"  {k}: max_diff={maxd:.2e}, mean_diff={meand:.2e}")
+        else:
+            print(f"[OK] Round-trip: all {len(saved_keys & loaded_keys)} tensors identical after save/load")
+
+        # Value comparison: loaded vs live model (what generation would see)
+        mismatches_live = []
+        for k in sorted(loaded_keys & live_keys):
+            if not torch.equal(loaded_sd[k], live_sd[k]):
+                diff = (loaded_sd[k].float() - live_sd[k].float()).abs()
+                mismatches_live.append((k, diff.max().item(), diff.mean().item(), loaded_sd[k].shape))
+        if mismatches_live:
+            print(f"[FAIL] {len(mismatches_live)} tensors differ between loaded checkpoint and live model:")
+            for k, maxd, meand, shape in mismatches_live:
+                print(f"  {k} {list(shape)}: max_diff={maxd:.2e}, mean_diff={meand:.2e}")
+        else:
+            print(f"[OK] Live match: all {len(loaded_keys & live_keys)} tensors in checkpoint match live model exactly")
+
+        # Config verification
+        print(f"\nEmbedded config: {loaded_config}")
+        print("=" * 60)
+
+        # Generate diagnostic images to disk (independent of wandb)
+        diag_dir = os.path.join(final_save_path, "diagnostic_images")
+        os.makedirs(diag_dir, exist_ok=True)
+        print(f"\nGenerating diagnostic images to {diag_dir}...")
+
+        combined_model = CombinedCFGModel(model=model_unwrapped).eval()
+        combined_sampler = DDIMSampler(model=combined_model)
+
+        for diag_idx, diag_prompt in enumerate(diagnostic_prompts):
+            diag_emb = hyper_cache.get(diag_prompt, accelerator.device)
+
+            for h_step in [0, hyper_train_steps // 2, hyper_train_steps]:
+                h_step_tensor = torch.tensor([h_step], device=accelerator.device)
+                model_unwrapped.hyper.set_context(diag_emb, h_step_tensor)
+                model_unwrapped.hyper.compute_and_cache_loras(diag_emb, h_step_tensor)
+
+                start_code_diag = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
+                imgs = generate_images(
+                    sampler=combined_sampler,
+                    model=combined_model,
+                    prompt=diag_prompt,
+                    device=accelerator.device,
+                    steps=50,
+                    guidance_scale=guidance_scale,
+                    start_code=start_code_diag,
+                )
+
+                if imgs is not None:
+                    img = imgs[0].clamp(0, 1)
+                    safe_name = diag_prompt.replace(" ", "_").replace(",", "")[:40]
+                    img_path = os.path.join(diag_dir, f"{diag_idx:02d}_{safe_name}_h{h_step}.png")
+                    to_pil_image(img.cpu()).save(img_path)
+                    print(f"  Saved: {img_path}")
+
+        print(f"Diagnostic images saved to {diag_dir}/")
 
     # Save cache if modified during training
     if is_main and hyper_cache is not None and hyper_cache.dirty:
