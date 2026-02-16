@@ -9677,9 +9677,7 @@ case_number,source,prompt,evaluation_seed,coco_id
 9646,coco-30k,Two photos of an airplane in the air.,51602,189203
 9647,coco-30k,A large sign and some cars on a street.,59349,305135
 9648,coco-30k,A large long train on a steel track.,68522,308894
-9649,coco-30k,"Two trains in an urban station with people waiting.
-
-",42633,312692
+9649,coco-30k,"Two trains in an urban station with people waiting.",42633,312692
 9650,coco-30k,A bus parked on a street next to a tree.,15233,197716
 9651,coco-30k,A passenger train crossing a bridge by the beach,40219,329486
 9652,coco-30k,A lamp above a sign on a building with flowers.,85639,356091
