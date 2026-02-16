@@ -1,0 +1,1260 @@
+case_number,source,prompt,evaluation_seed,coco_id
+3750,coco-30k,"This is the view of a kitchen stove, kitchen sink, counter, and cabinets. ",82362,444390
+3751,coco-30k,A red train with its doors closed near the platform. ,11596,49646
+3752,coco-30k,"A bowl of food with meat in a sauce, broccoli and cucumbers. ",26549,160421
+3753,coco-30k,A toilet next to a chain shower stall in a bathroom.,85012,505169
+3754,coco-30k,People walking and bicycling in a city street.,82464,356394
+3755,coco-30k,A couple of zebra walking next to a giraffe on a lush green field.,13639,364589
+3756,coco-30k,A conference room is packed with people sitting at their laptops.,73559,220607
+3757,coco-30k,A person is riding a small motorcycle in a parking lot.,38847,290170
+3758,coco-30k,A close up view of an orange and other fruit. ,35748,494550
+3759,coco-30k,A laptop computer sitting on top of a wooden desk.,26192,271795
+3760,coco-30k,A man with a TV in the middle of no where.,55499,502318
+3761,coco-30k,Two motorcycles parked beside one another in a garage.,74896,362240
+3762,coco-30k,Three giraffes are eating and grooming each other.,98765,18864
+3763,coco-30k,"A kitchen with a counter, window, stove and cutlery. ",87053,290768
+3764,coco-30k,Two computers sitting on top of a wooden desk.,60803,215002
+3765,coco-30k,A luxurious bathtub in front of a window with a red carpet and marble walls,8980,58329
+3766,coco-30k,A very cute cat sitting on a toilet.,16464,168543
+3767,coco-30k,"The side of an airplane that is parked, and an Air China sign on the side of the plane.",34326,77123
+3768,coco-30k,Some people are sitting on a car that's been wrapped in plastic,77505,193875
+3769,coco-30k,A very dirty looking rest room with two toilets.,18585,444672
+3770,coco-30k,a airplane on a runway with the door open,28235,227940
+3771,coco-30k,A busy city street with several double decker buses in traffic ,95203,452700
+3772,coco-30k,A bicycle and a motorcycle are parked next to each other at a park.,54688,536833
+3773,coco-30k,this bathroom is big and has a jacuzzi tub made of wood,65597,262030
+3774,coco-30k,A black plush toy sitting on the lid of a toilet.,70181,376442
+3775,coco-30k,motorcycle bikes all parked next to each other lined up down the road . ,49606,436174
+3776,coco-30k,"A kitchen with a refrigerator, sink, drawers and cabinets. ",29825,415841
+3777,coco-30k,Clocks on a light pole on a city street.,82543,110501
+3778,coco-30k,A Yamaha motorcycle parked outside of a building.,84605,293245
+3779,coco-30k,a policeman on a motorcycling driving on the road smiling,95811,138503
+3780,coco-30k,"This is a small bathroom with a toilet, a shower, and a dirty floor. ",96712,436111
+3781,coco-30k,"A bathroom contains a shower, a sink, and a mirror.",64928,323959
+3782,coco-30k,A man rides a black motorcycle around a curve.,49612,94319
+3783,coco-30k,"a large blue bowl of almonds, bananas and walnuts",66914,175440
+3784,coco-30k,a big jumbo jet sits parked next to another plane ,79240,556597
+3785,coco-30k,a bell in a tower with a clock underneath,43673,510299
+3786,coco-30k,A woman hugs a gray cat to her chest.,13935,475725
+3787,coco-30k,a toilet sits next to a bath tub as a bunch of tiles sit piled up ,55340,405296
+3788,coco-30k,A large air plane smoking and parked in the snow . ,36964,204650
+3789,coco-30k,"An old, dirty, grubby tub, sink and toiled is in a dirty, old room.",836,255928
+3790,coco-30k,A mens bathroom with two uneral's and a tv . ,43628,213375
+3791,coco-30k,a close up of a motorcycle parked near a building,98007,321557
+3792,coco-30k,A man in a wheel chair is walking his dog. ,61892,386165
+3793,coco-30k,A young man is sitting on his blue motorcycle. ,38201,128978
+3794,coco-30k,A rainbow colored kite next to an airplane in the sky.,26243,418606
+3795,coco-30k,A women who is holding a whisk in the kitchen.,97156,481386
+3796,coco-30k,A person is standing over a dirty toilet in a bathroom stall. ,45400,154718
+3797,coco-30k,Three men are sitting outside on a bench.,23155,554582
+3798,coco-30k,"A bathroom with a sink, toilet, and window.",67062,136920
+3799,coco-30k,A young woman is lying on a bathroom floor with her legs on the bathtub. ,6011,359136
+3800,coco-30k,A bird sitting on the back of a giraffe next to a tree.,16004,393145
+3801,coco-30k,A car is parked on a street at night.,44439,511583
+3802,coco-30k,A metal pole that is inside of a shower.,88449,500533
+3803,coco-30k,Someone is taking a basic shot of the bathroom. ,89465,176275
+3804,coco-30k,a white toilet sits next to a dresser ,22153,152759
+3805,coco-30k,A refrigerator that has a microwave above it in the kitchen.,13247,409855
+3806,coco-30k,A fan that has the light on over a table.,85580,146078
+3807,coco-30k,a man sits in a trunk while petting a dog ,15327,20671
+3808,coco-30k,A airplane that is flying over a mountain.,4795,408817
+3809,coco-30k,A sink and counter in a small kitchen.,8594,356400
+3810,coco-30k,Several planes lined up on the tarmac at the airport.,99488,527783
+3811,coco-30k,A white refrigerator and a counter in a room.,19184,540502
+3812,coco-30k,Two rows of cars parked next to a boat.,25327,111086
+3813,coco-30k,a tiled floor with a trash can and a urinal sitting inside of it ,27297,44604
+3814,coco-30k,"Bathroom area with towel rack, sink and a mirror.",11689,34137
+3815,coco-30k,A white stove top oven sitting next to a refrigerator.,82366,204044
+3816,coco-30k,A group of motorcycles parked next to each other.,67446,572095
+3817,coco-30k,A girl is dancing in the bathroom to music on her lap top. ,61623,107963
+3818,coco-30k,A woman sitting on a motorcycle while talking to a child with a man laying in a hammock behind them.,62283,231379
+3819,coco-30k,Vintage bathroom with sink and toilet with toiletries,55956,255665
+3820,coco-30k,Man on bike on street corner with buildings and stoplight,16283,482742
+3821,coco-30k,a person standing on a side walk underneath a traffic light,76785,446799
+3822,coco-30k,A woman that is sitting on a motorcycle in the grass.,77851,18426
+3823,coco-30k,People standing on beach with kites and bicycles with cloudy sky,83794,416098
+3824,coco-30k,a close up of a toilet and a bath tub with toys,99646,144798
+3825,coco-30k,A airplane mirror where clouds can be seen.,71792,361497
+3826,coco-30k,"Bathroom with sink, shower, towels, curtain, and more with window",84358,306733
+3827,coco-30k,A bell pepper sitting on top of a blue cutting board.,34329,196699
+3828,coco-30k,A beautiful painting of a white plane with a blue tail.,68024,271266
+3829,coco-30k,White airplane with a band's name on the side. ,64900,438185
+3830,coco-30k,A man that is sitting on a motorcycle under a carport.,79647,106810
+3831,coco-30k,A little boy that is standing in the dirt next to a basket.,2368,22816
+3832,coco-30k,A basic kitchen with wooden cabinets and a bowl of fruit. ,7585,467314
+3833,coco-30k,A glass of drink and a plate of food on a table.,26883,381031
+3834,coco-30k,A airplane that is sitting on a runway terminal.,71014,329573
+3835,coco-30k,a teacup on a saucer with a little biscuit next to it ,19408,384788
+3836,coco-30k,A man riding a bike down a street next to a giant panting.,9990,504452
+3837,coco-30k,A group of school supplies and various electronics including a laptop computer all laid out in a display.,84145,136458
+3838,coco-30k,A child holding a flowered umbrella and petting a yak.,16132,184613
+3839,coco-30k,a grey colored jet plane flying over a snowy mountain range.,27126,424776
+3840,coco-30k,a parking area for motorcycles and bicycles along a street,74309,122302
+3841,coco-30k,A woman is enjoying a sip of wine while cooking dinner.,41706,14629
+3842,coco-30k,A desk that has a laptop computer on it.,59438,359128
+3843,coco-30k,A bus passes several people riding their bicycles.,55922,326168
+3844,coco-30k,a white and red plane parked on a tarmac,71127,384350
+3845,coco-30k,a pointed clock tower of an investment building,57687,445537
+3846,coco-30k,A small bathroom has a sink and a storage rack over the toilet.,17264,569917
+3847,coco-30k,A room that has two televisions in it.,6913,166521
+3848,coco-30k,A very clean and tidy bathroom sits empty. ,6809,170365
+3849,coco-30k,A bath tub sitting next to a white sink.,13320,366867
+3850,coco-30k,People riding down the street on their bikes. ,42139,57323
+3851,coco-30k,A dog wearing sunglasses sitting inside a car. ,9137,569729
+3852,coco-30k,A man on a bench staring down at something in his hands.,36143,558635
+3853,coco-30k,A teddy bear is seen looking out the window.,75355,274657
+3854,coco-30k,A kitchen full of stainless steel cookware. ,23259,18918
+3855,coco-30k,A couple of women standing next to a couple of soldiers.,27112,566824
+3856,coco-30k,Two tail ends of American Airlines airplanes at an airport. ,8169,439657
+3857,coco-30k,A blue airplane flies in a clear blue sky.,13773,280360
+3858,coco-30k,"a plate with bacon, eggs and hamburger topped with bananas",54735,468925
+3859,coco-30k,A classic clock sits on a wooden table. ,38296,318910
+3860,coco-30k,A parking meter lies askew on a street.,17782,258674
+3861,coco-30k, a sink and a bathtub and shower with a mirror above the sink,16908,464176
+3862,coco-30k,An airplane flies high above in the sky with telephone lines in the picture as well. ,24232,101787
+3863,coco-30k,A bathroom with a small toilet and a brown lid and a larger white toilet. ,70946,480553
+3864,coco-30k,A rusty side car of a train that has been vandalized with artwork.,87059,318524
+3865,coco-30k,A series of pictures using found objects to spell out the word love.,20491,456223
+3866,coco-30k,A youth wearing a yellow hat is rowing a boat down the stream.,2208,450711
+3867,coco-30k,A couple of men standing around and riding bikes.,84582,320246
+3868,coco-30k,a lady sitting on a concrete picnic table,45397,451345
+3869,coco-30k,Several men sitting in front of a large wall. ,26946,174145
+3870,coco-30k,A blue pot of tomato sauce with a wooden ladle.,27657,356347
+3871,coco-30k,A white toilet sitting under a window near a sink.,18239,223122
+3872,coco-30k,A wooden ball on top of a wooden stick.,71948,386164
+3873,coco-30k,A wooden bench sitting in front of a white building.,74950,90501
+3874,coco-30k,A motorcycle parked on top of a tiled floor.,14299,444926
+3875,coco-30k,A roof with a white air conditioner on top of it.,73872,484695
+3876,coco-30k,A red four door car pulling into a parking space with a meter.,54216,142129
+3877,coco-30k,Two girls in a library seated at a table cutting large brown paper.,6508,211690
+3878,coco-30k,A teddy bear sitting on top of an arch.,89198,167095
+3879,coco-30k,A train traveling down train tracks near a city.,54626,23879
+3880,coco-30k,A blue truck with a large poster on it's side.,45125,274528
+3881,coco-30k,One of the oldest buildings in this town.,22365,515565
+3882,coco-30k,A TV with a man and a woman on it's display.,88079,187249
+3883,coco-30k,A row of parked motorcycles sitting along side of a street.,92178,185373
+3884,coco-30k,A couple of motorcycles parked next to each other.,60680,136572
+3885,coco-30k,A room filled with furniture and curtains on top of carpet.,23149,10115
+3886,coco-30k,A white toilet filled with urine next to a white wall.,11429,265628
+3887,coco-30k,A giraffe standing inside of a cage near a building.,98130,310611
+3888,coco-30k,A glass bowl filled with different kinds of fruits.,75992,484651
+3889,coco-30k,A man riding on the back of a horse near a plane.,2267,44823
+3890,coco-30k,A highway filled with lots of traffic next to buildings.,67708,242673
+3891,coco-30k,A bathroom with his and her sinks and mirrors.,19664,204804
+3892,coco-30k,A cat sitting on top of a white toilet in a bathroom.,86448,216664
+3893,coco-30k,Two people are riding motor scooters in a parking lot.,16364,454642
+3894,coco-30k,A small kitchen featuring an under the counter washing machine.,52868,215691
+3895,coco-30k,a man wearing a helmet sits on a motorcycle,28964,457254
+3896,coco-30k, Quaint kitchen with a wooden dining table ,45152,203661
+3897,coco-30k,A bathroom with a tub and toilet. ,58548,394009
+3898,coco-30k,A small cat sits perched on the back of a toilet.,25700,568690
+3899,coco-30k,A bike sitting next to a cup filled with coffee.,78994,158708
+3900,coco-30k,A wet road with lots of cars driving over it.,1404,257407
+3901,coco-30k,A big commercial plane flying in cloudy skies.,93670,524186
+3902,coco-30k,A white toilet sitting next to a white bath tub.,42762,327323
+3903,coco-30k,A kitchen with a clean sink and counter.,37409,517018
+3904,coco-30k,A man and a woman standing in front of a mirror.,57506,164602
+3905,coco-30k,A view from the window of a plane in the sky.,20089,499402
+3906,coco-30k,A woman under an umbrella on a rainy day ,13898,294403
+3907,coco-30k,A cat drinking from a white bowl of water.,26711,91334
+3908,coco-30k,"A bathroom showing sink, toilet, and shower ",72214,299077
+3909,coco-30k,A small bathroom is decorated in pretty colors.,89041,325078
+3910,coco-30k,Cars parked and driving in front of a school.,20292,98493
+3911,coco-30k,"A kitchen with an oven, stove , sink, microwave and refrigerator.",78470,50753
+3912,coco-30k,The image of a man holding a camera is in this motorcycle side mirror. ,39409,284698
+3913,coco-30k,"A bathroom showing sink, toilet and shower ",20385,475566
+3914,coco-30k,Modern espresso machine on counter in residential kitchen.,55282,421875
+3915,coco-30k,A very nice looking scooter and some bikes parked by the road.,59148,370596
+3916,coco-30k,Large adult cat lying in white sink in residential bathroom.,7670,486501
+3917,coco-30k,Commode near white shower curtain in residential bathroom setting.,10020,264554
+3918,coco-30k,Two skiiers kneeling in the snow by an orange flag.,96210,427118
+3919,coco-30k,A bicycle leaning up against a tree in a park.,86350,519838
+3920,coco-30k,Two women sitting outside hanging out and smoking cigarettes.,60774,479126
+3921,coco-30k,A pair of racing motorcycles coming to a start line.,88384,450674
+3922,coco-30k,"Sparse narrow kitchen, used, but neat, all in white.",29685,526364
+3923,coco-30k,A black and a white woman standing under an umbrella,52251,482590
+3924,coco-30k,A toilet and two rolls of toilet paper in a small room with ledge and window.,94373,12323
+3925,coco-30k,Several cars driving towards a public market. ,53655,495993
+3926,coco-30k,A bicycle that is resting upon the wall of a building.,15727,242287
+3927,coco-30k,A young man is skateboarding on a low wall.,49906,325343
+3928,coco-30k,A plethora of toilet bowls and urinals all in a row.,94393,336937
+3929,coco-30k,A woman in white jacket on skateboard in a building.,14225,571012
+3930,coco-30k,A large cathedral with a clock towards the top of it.,22079,564123
+3931,coco-30k,a glass building with a plane coming out of it ,65473,541223
+3932,coco-30k,A room with an older model television in it.,52553,52132
+3933,coco-30k,A remote controller hitting a signal on a television.,83124,58254
+3934,coco-30k,A distant view from high up in the sky in a window.,52899,528069
+3935,coco-30k,A very cute cat laying by a big bike.,4515,458119
+3936,coco-30k,Two toilets are in a restroom with a vanity with dual sinks.,45049,108548
+3937,coco-30k,a close up of a pot with a cell phone ,68528,29430
+3938,coco-30k,A very dingy and grime bathroom that's in someone's house. ,27781,352422
+3939,coco-30k,"This kitchen features dark colored cabinets, nice counter tops, and pendant lights.",90782,107516
+3940,coco-30k,Rows of gray and black keyboards make up several different pictures.,72536,40109
+3941,coco-30k,an old car in front of an old air plane,54180,493286
+3942,coco-30k,Men on bikes riding alongside a car on the street,8738,169996
+3943,coco-30k,A row of red and white umbrellas stand above tables in an outdoor eating area.,98656,389255
+3944,coco-30k,A man standing in a kitchen next to a woman.,87584,207969
+3945,coco-30k,A sidewalk filled with lots of pedestrian traffic near a traffic light.,31547,223874
+3946,coco-30k,A street scene in the evening with a lone car and traffic light showing red.,91286,213475
+3947,coco-30k,a close up of a toilet in a bath room,39156,294763
+3948,coco-30k,A group of men standing near parked motorcycles,18936,353148
+3949,coco-30k,A military jet with a bomb on the runway.,17989,140501
+3950,coco-30k,People fly kites and try other activities in a park.,23206,220511
+3951,coco-30k,A parking sign hanging from the side of a building.,13294,459342
+3952,coco-30k,A woman standing next to a red scooter near a shelf.,46150,283216
+3953,coco-30k,A commercial airplane at the gate being serviced,17498,357899
+3954,coco-30k,A man taking a selfie in a mirror,16788,441196
+3955,coco-30k,A large jetliner sitting on top of an airport tarmac.,92016,78580
+3956,coco-30k,A man preparing food in a restaurant kitchen. ,40812,125707
+3957,coco-30k,a person riding on a horse drawn carriage,30859,20779
+3958,coco-30k,A siamese cat laying on top of a white sink.,69471,76588
+3959,coco-30k,A large jetliner with a man sitting inside of a compartment.,72695,514321
+3960,coco-30k,A statue of the virgin Mary holding an orb of light.,29946,484760
+3961,coco-30k,A small and near bathroom that's inside someone's house.,60501,34760
+3962,coco-30k,A very tall building with a large tower and a clock on it's side.,38443,429174
+3963,coco-30k,A motorcycle parked in a parking next next to a car.,78681,371005
+3964,coco-30k,A white toilet sitting in a bathroom next to a wall.,33914,163258
+3965,coco-30k,A man wearing goggles and a helmet driving on a motorcycle.,24580,544272
+3966,coco-30k,Many people are driving motorcycles through an intersection.,59617,226417
+3967,coco-30k,A full view of a teddy bear sitting on the small chair. ,46513,296859
+3968,coco-30k,A black and white cat laying on top of a desk.,59290,92173
+3969,coco-30k,A white toilet sitting next to a walk in shower.,30465,239959
+3970,coco-30k,A statue sitting on top of an old stone hill.,60514,84567
+3971,coco-30k,Some cars are traveling on the streets on a cloudy day. ,309,12238
+3972,coco-30k,Two guys are riding a motorcycle down the street.,5336,249301
+3973,coco-30k,A bath tub sitting next to a white toilet.,91482,381792
+3974,coco-30k,A black and white of a small bathroom.,77272,436848
+3975,coco-30k,A wooden table topped with a  banana and a muffin.,5929,272694
+3976,coco-30k,a room with a computer monitor and a black cat on a chair,85997,315790
+3977,coco-30k,A very tall building has a clock on the front of it.,3735,305472
+3978,coco-30k,A couple of kitten drinking water from a bowl.,80065,574241
+3979,coco-30k,A young man holding a skateboard while wearing head phones.,72989,434689
+3980,coco-30k,"A white sink with a duck, booth paste and necklace on top of it.",52704,575978
+3981,coco-30k,A woman standing in front of a table with lots of salad.,64983,163518
+3982,coco-30k,"A plate with chicken,carrots and mashed potatoes with silverware.",50251,98054
+3983,coco-30k,A man riding on the back of a motorcycle with a boy on it's side car.,62488,282145
+3984,coco-30k,a urinal with tiled wall and two pictures of clowns smiling,26820,343506
+3985,coco-30k,a green motorcycle parked and resting next to another vehicle inside a parking lot,18483,225731
+3986,coco-30k,"A kitchen with a stove, sink, table, chairs and couches.",50866,472046
+3987,coco-30k,"A white motorcycle is next to a store front that says ""Macau welcomes you"".",54519,107105
+3988,coco-30k,An orange cat laying on the seat of a motorcycle,44353,546264
+3989,coco-30k,a room showing a toilet and a bathtub,35148,435005
+3990,coco-30k,people with their head covered on a motorbike,29362,377809
+3991,coco-30k,a orange colored cat peering down on some unknown object,71966,342817
+3992,coco-30k,A stove top oven sitting next to a tiled wall.,1447,97240
+3993,coco-30k,A group of motor scooters parked in front of a building.,27442,386514
+3994,coco-30k,A man looking down with a backpack on in a house.,33585,463836
+3995,coco-30k,"On a small stage, a stylish motorcycle sits on display.",5641,24396
+3996,coco-30k,A pile of toilet paper sitting on top of a toilet.,47180,214042
+3997,coco-30k,A man in a red shirt standing next to an airplane.,77946,109231
+3998,coco-30k,THERE IS A TOILET THAT IS DECORATED ,84800,65270
+3999,coco-30k,A giraffe standing near trees most with green leaves and one dead. ,9174,531044
+4000,coco-30k,Two men riding motorcycles down a curvy road.,46549,204906
+4001,coco-30k,A man flying through the air while riding a bike.,51844,190756
+4002,coco-30k,A green bench sitting on the side of a sidewalk.,39534,237984
+4003,coco-30k,A very large get liner flying in the sky.,65535,386585
+4004,coco-30k,A bathroom with four urinals and a drain on the floor. ,84889,564657
+4005,coco-30k,A man walking down a street holding an umbrella.,81440,184703
+4006,coco-30k,A white toilet sitting on top of a bathroom floor.,64337,45016
+4007,coco-30k,A lot of motorcycles parked next to each other.,4635,207179
+4008,coco-30k,A kitchen with wooden walls and cabinets with lighting.,31007,161506
+4009,coco-30k,A person adjusting a  metal object hanging from a ceiling.,25956,465129
+4010,coco-30k,A woman taking a selfie while brushing her teeth with a tooth brush.,39795,548223
+4011,coco-30k,A white refrigerator freezer sitting inside of a kitchen.,32792,490711
+4012,coco-30k,THERE IS AN ADULT CAT THAT IS LYING DOWN IN THE SINK ,38732,219492
+4013,coco-30k,A woman bending over and looking inside of a mini fridge.,52688,423123
+4014,coco-30k,there are many bike riders racing in a street race,53249,343561
+4015,coco-30k,a bus traveling down the street next to  tree lined sidewalk,13688,259049
+4016,coco-30k,A kitchen with a center white island topped with a bowl of greens.,41898,565776
+4017,coco-30k,A book about understanding and maintaining a ten-speed bicycle.,25906,251140
+4018,coco-30k,THERE ARE MOTOR BIKES THAT ARE PARKED ON THE STREET,4287,235595
+4019,coco-30k,There are several people riding mopeds and motorcycles traveling down the street.,82093,375823
+4020,coco-30k,A lady on a very pretty decorated bike with a cute dog.,83105,392659
+4021,coco-30k,THERE ARE TWO COWS THAT ARE WALKING IN THE GRASS,92731,173401
+4022,coco-30k,Many people are sitting on two benches next to a light pole.,852,301135
+4023,coco-30k,A passenger bus is riding down a highway. ,91027,363927
+4024,coco-30k,two people riding bicycles next to each other in a parking lot ,37455,557923
+4025,coco-30k,A motorcycle parked next to each other near people..,44140,539075
+4026,coco-30k,A city street with stores across the street and a bicycle parked on the side of the street with a dog sitting in the front basket.,81249,400728
+4027,coco-30k,A light blue bicycle chained to a pole on the sidewalk in front of a red building.,88748,426166
+4028,coco-30k,a double sink with a bowl of food on the sink counter top,55235,512476
+4029,coco-30k,"A bathroom with white painted walls and white fixtures, including a toilet with the seat raised up.",224,144809
+4030,coco-30k,A parade on a street with several officers on motorcycles riding while confetti falls from the sky on them.,16380,41128
+4031,coco-30k,a group of motorcycles next to each other in front of an advertisement,72360,355040
+4032,coco-30k,a kitchen with a nasty dirty kitchen with a light beam through the window,4026,61316
+4033,coco-30k,A small plan is parked half on a cement area and half in a field while the ground is wet.,48738,128644
+4034,coco-30k,This bathroom has a toilet that sits back in a small niche and a shower with sliding glass doors.,85592,445812
+4035,coco-30k,A place mat is displaying an ornate glass along with a bottle of liquor.,63152,17409
+4036,coco-30k,A bright white enamel bathroom with a checked floor.,32097,512495
+4037,coco-30k,A bathroom that has a broken wall in the shower.,47145,403385
+4038,coco-30k,A full view of a dirty bathroom with no toilet available. ,93765,2495
+4039,coco-30k,A black stove top oven sitting in a kitchen.,72656,241645
+4040,coco-30k,a couple of cats sit in front of a tub full of water ,45289,194594
+4041,coco-30k,A man wearing a green shirt on top of a tennis court.,42528,315705
+4042,coco-30k,A display in a doughnut shop filled with doughnuts.,81018,318523
+4043,coco-30k,A white stove top oven sitting inside of a kitchen.,61918,212646
+4044,coco-30k,a bathroom with a tub and a shower curtain ,11308,292005
+4045,coco-30k,a person taking a photo in a bath room mirror,94951,314177
+4046,coco-30k,A white kitten standing in front of a water bowl.,15406,248381
+4047,coco-30k,a small dog and a big dog both on leashes,31303,518262
+4048,coco-30k,A laptop that is sitting on a table.,96205,37367
+4049,coco-30k,A man riding a bike past a white delivery truck.,26543,353748
+4050,coco-30k,a person in a kitchen with a stove some pots and pans,42443,455597
+4051,coco-30k,A white bus parked in front of a  building.,89313,287186
+4052,coco-30k,A motorcycle with a trailer parked in a spot,71059,11887
+4053,coco-30k,An elephant walking across a lush grass covered field.,67744,143221
+4054,coco-30k,a kitchen with an electonic device above the sink ,57284,288161
+4055,coco-30k,A clean kitchen with a wall that has a blackboard,31290,316342
+4056,coco-30k,A small blue plane sitting on top of a field.,16112,561100
+4057,coco-30k,A small jet plane getting ready to be fueled at the airport.,65824,495311
+4058,coco-30k,A group of jets flying overhead in tight formation.,90199,91236
+4059,coco-30k,a man on a motorcycle driving down a track ,11012,76257
+4060,coco-30k,Three horse drawn carriages in front of a huge house with a clock on it. ,25533,17741
+4061,coco-30k,A man flying a fan plane neck to flock of ducks.,81854,328661
+4062,coco-30k,a toilet on the ground outdoors in front of a house,12422,32907
+4063,coco-30k,A fleet of red and blue planes with a Canadien logo.,45585,553072
+4064,coco-30k,a desk with a monitor and keyboard and mouse,34696,91617
+4065,coco-30k,A car parked on a lush green field.,35953,21452
+4066,coco-30k,A room with lots of seats next to an entrance.,80896,232931
+4067,coco-30k,a bathroom counter with two sinks on it ,80913,449945
+4068,coco-30k,A bathroom with a marble counter top under a  mirror.,85045,272673
+4069,coco-30k,A motorcycle parked next to a  car in a  parking lot.,92013,37181
+4070,coco-30k,A red bathroom mirror sitting next to a white toilet.,10253,287829
+4071,coco-30k,A cat that is by a bicycle wheel.,39128,94536
+4072,coco-30k,A room filled with a row of brown toilets,43656,372894
+4073,coco-30k,people walking around a tamale truck and a building ,30446,259640
+4074,coco-30k,A large jetliner flying under a cloud filled sky.,60441,283495
+4075,coco-30k,a man sitting on a red and black motorcycle,91171,147386
+4076,coco-30k,A blurry picture of someone on a bike.,50325,432421
+4077,coco-30k,A person with a moped is waiting for the rain to stop.,8292,258021
+4078,coco-30k,Three people are sitting on a bench in front of a train.,94611,101913
+4079,coco-30k,A herd of sheep grazing in a pasture.,90072,485390
+4080,coco-30k,a gathering outside on the lawn of city hall,75092,507037
+4081,coco-30k,"A sink, soap, toilet and a mirror ",2261,192554
+4082,coco-30k,A boy sitting on top of a truck with a bunch of goats. ,65104,341017
+4083,coco-30k,A white toilet sitting next to a sink near a red wall.,92793,364783
+4084,coco-30k,A person's feet are shown in front of a small tv.,8682,513073
+4085,coco-30k,A side view mirror hanging off the side of a door.,40278,512796
+4086,coco-30k,A laptop computer is propped up on a cluttered desk.,51510,449708
+4087,coco-30k,A man in a red shirt touches a faucet in a rustic building.,74855,544522
+4088,coco-30k,Three people standing around a brown horse with a white stripe on his face. ,14675,562232
+4089,coco-30k,a bedroom with a cluttered desk and a messy bed ,11663,189997
+4090,coco-30k,The wing of a plane located in the sky above a sea and city.,47676,287559
+4091,coco-30k,a kitchen with white counter tops and cabinets.,44525,389624
+4092,coco-30k,A wall mounted oven inside of a kitchen with a large entrance.,17846,538231
+4093,coco-30k,A wooden park bench siting next to a  park.,63645,75095
+4094,coco-30k,a toilet seat in a bathroom with the lid down.,52370,425035
+4095,coco-30k,a man taking a nap on the bench in the middle of a park,20806,414578
+4096,coco-30k,A woman putting items into a brown paper bag.,29928,512166
+4097,coco-30k,A room with two desk covered in computer equipment.,38680,6608
+4098,coco-30k,A group of people standing around a kitchen preparing food.,58865,441522
+4099,coco-30k,A cluttered bathroom with a toilet and sink.,49645,171413
+4100,coco-30k,A couple of people standing next to a food cart filled with smoke.,39447,203345
+4101,coco-30k,A white toilet sitting next to a white sink.,85874,577564
+4102,coco-30k,A bowl of oranges sitting on top of a wooden table.,94859,233311
+4103,coco-30k,A street filled with lots of traffic next to white homes.,15026,354724
+4104,coco-30k,a room showing a toilet and a sink,52599,206958
+4105,coco-30k,A counter filled with lots of clutter in a  kitchen.,50752,262093
+4106,coco-30k,a living room with a tv on top of a stand with a guitars sitting next to ,88326,544365
+4107,coco-30k,A kitchen table is lined with cooking materials. ,74427,87567
+4108,coco-30k,Many plates and dishes line a kitchen cabinet. ,58864,390671
+4109,coco-30k,A large jet sitting on top of an airport tarmac.,97912,38929
+4110,coco-30k,Several adults engaged in arts and crafts with children.,96538,67765
+4111,coco-30k,A bike with tanks on it sitting next to cars.,68601,86135
+4112,coco-30k,A very large bridge spanning over the width of a river.,57263,411184
+4113,coco-30k,Puppy chewing on toilet paper in the bathroom. ,81484,61471
+4114,coco-30k,A group of three bath tubs sitting next to each other.,25361,12551
+4115,coco-30k,A train sitting next to a platform in a tunnel.,82452,92115
+4116,coco-30k,A man riding a motorcycle down a street next to a train car.,41611,450182
+4117,coco-30k,A sink with a tooth brush and some other items.,2746,482432
+4118,coco-30k,A large jetliner flying through a blue sky with two engines.,74955,298440
+4119,coco-30k,A hall way with family photos on the wall leading to a kitchen and dining area with wood floors.,23749,193021
+4120,coco-30k,A large amount of motorcycles are parked by a sidewalk.,30868,345507
+4121,coco-30k,"A bathroom containing a toilet, sink and bathtub with shower, with no accessories.",79241,308466
+4122,coco-30k,A motor cycle rider riding on a street with bikes parked on either sides,11624,518850
+4123,coco-30k,"A plain, white bathroom with a sink and a tub.",85521,289992
+4124,coco-30k,A small plane that can land and take off from water.,83901,162257
+4125,coco-30k,A toilet with the seat open sitting in a bathroom. ,34621,388528
+4126,coco-30k,A motorcycle parked on the side of the road. ,17601,514913
+4127,coco-30k,A man taking his picture in the reflection of a microwave.,21804,85390
+4128,coco-30k,mopeds parked in a parking garage with a green floor.,17706,59532
+4129,coco-30k,A motorcycle sits in a graveled area with a steep hill in the background.,90535,71239
+4130,coco-30k,A busy street with lots of car traffic.,30472,97857
+4131,coco-30k,A large group of people crammed into and on top of a truck.,48931,493610
+4132,coco-30k,Decorated elephant statue near many bicycles in racks.,92003,241466
+4133,coco-30k,A kitchen with many pots and pans hanging on the wall ,38010,28506
+4134,coco-30k,"A kitchen is displayed, showing wooden cabinets and a blue tiled counter top.",46521,394659
+4135,coco-30k,A bicycle chained to a pole in the city ,85924,478858
+4136,coco-30k,"An old toilet in a bathroom with extended plumbing 
+",55512,272416
+4137,coco-30k,A person bending over by the side of a parked car.,77877,428754
+4138,coco-30k,"A bathroom with a toilet, window and tape on the floor.",50694,336113
+4139,coco-30k,A man on a bike looking at a line of semi-trucks in the street. ,31217,32760
+4140,coco-30k,The small kitchen has a black counter and wooden cabinets.,20574,369594
+4141,coco-30k,"This white bowl has rice, broccoli, and fish in it.",11740,530741
+4142,coco-30k,This bathroom features a marble top vanity with double sinks.,98200,275279
+4143,coco-30k,This toilet has a lot of wadded up tissue paper in it.,4382,354098
+4144,coco-30k,A person with a backpack riding a snowboard down a mountain side.,43763,578813
+4145,coco-30k,The small bathroom has an old bathtub in it.,18714,315948
+4146,coco-30k,A shop that has many bikes of all kinds. ,96341,435745
+4147,coco-30k,the bike is coming down the street with his lights on,62841,28675
+4148,coco-30k,the Bike is parked next to a fence,48495,189772
+4149,coco-30k,a girl is riding her bike down the street,84488,495183
+4150,coco-30k,the man is sitting with a salad in front of him and smiling. ,53567,190115
+4151,coco-30k,the wall is green and there is a pot on the stove,51093,95569
+4152,coco-30k,a plane is parked on a asphalt ready to fly,93334,567053
+4153,coco-30k,a room filled desks and computers a man and woman sitting listening and anther man with a camera,65870,189376
+4154,coco-30k,A woman is unloading a bag in a large kitchen.,70249,246106
+4155,coco-30k,The cat is sitting beneath a motor bike.,72305,340004
+4156,coco-30k,The bench on the side of the street is empty. ,74251,163585
+4157,coco-30k,A large bathroom has white walls and cabinets and blue wall tiles and countertops.,78881,175310
+4158,coco-30k,A bedroom with built in television and open fireplace,89268,41872
+4159,coco-30k,A woman in pajamas using her laptop on the stove top in the kitchen,85043,209468
+4160,coco-30k,A bus stop and bench  on a street corner.,3946,192529
+4161,coco-30k,A blue cake with yellow stars around it.,11011,257053
+4162,coco-30k,A woman taking a sip of a beer by people with laptops.,62157,475043
+4163,coco-30k,a chicken meal with carrots broccoli and rice,87343,3845
+4164,coco-30k,Man taking a photograph of a black and silver motorcycle. ,97437,159233
+4165,coco-30k,a man riding a red bicycle watching a bird in the water,97844,19608
+4166,coco-30k,The big dog is laid out in the hallway,63112,178939
+4167,coco-30k,a big empty kitchen with only a refrigerator stove and a sink,11194,531499
+4168,coco-30k,a dog rests in a basket on a bike ,94585,278550
+4169,coco-30k,A dog is chasing after three running sheep.,70048,432038
+4170,coco-30k,The shelves above the cabinet have porcelain dishes on them.,73839,78313
+4171,coco-30k,An airplane in the water a short distance from a rocky shore.,96815,231582
+4172,coco-30k,A couple of animals that are near the rocks.,39329,245750
+4173,coco-30k,a dog walking beside a man carrying a surf board,40432,272153
+4174,coco-30k,A motorcycle sits parked across from a herd of livestock.,5672,354533
+4175,coco-30k,"A toilet, sink, mirror, and tub in a bathroom.",4921,337969
+4176,coco-30k,A wagon with a pink umbrella sitting in front of a store.,40796,301724
+4177,coco-30k,A motorcycle is parked amongst the cars at a store.,80363,406647
+4178,coco-30k,A crowd of people standing outside of a hotel on snow covered ground.,60154,373988
+4179,coco-30k,A large mirror above a sink in a bathroom.,90585,134715
+4180,coco-30k,There's a kitchen with toaster sitting on the counter between the oven and stove,67119,427239
+4181,coco-30k,An old man smiling while sitting on a bench.,34805,352761
+4182,coco-30k,a room showing a toilet and a sink,7340,281019
+4183,coco-30k,a car moving on the street an ad bike parked outside,35729,89999
+4184,coco-30k,"The bathroom has a sink, toilet, and glass shower.",86094,70434
+4185,coco-30k,a man walking with an umbrella in the sunshine,25588,310071
+4186,coco-30k,Street sign painted on a road that looks like a bicycle. ,4118,295809
+4187,coco-30k,A clean sink is in the middle of the counter.  ,79689,370697
+4188,coco-30k,A view of a kitchen from behind a dining table.,27655,350623
+4189,coco-30k,A broken bathroom with a white sink and toilet.,77486,47632
+4190,coco-30k,An old man sitting down playing an accordion next to parked bikes. ,90551,565374
+4191,coco-30k,A walk in a shower sitting next to a sink under a mirror.,97510,61782
+4192,coco-30k,A black cat is sitting on the bench and turning back its head. ,83469,569249
+4193,coco-30k,Two big giraffes walking in a grassy area with a baby giraffe. ,37270,110683
+4194,coco-30k,A row of wall mounted urinals under aquariums.,58999,418226
+4195,coco-30k,a very tall building with a city clock on it,1565,133195
+4196,coco-30k,a toilet sitting in a tile covered floor in a single room,95056,411943
+4197,coco-30k,"A yellow bench by a mosaic brick road with an adult standing and bending over a bicycle, with cars, a tree and a building in background.",64792,386279
+4198,coco-30k,A white sink under a mirror in a bathroom next to a light switch.,8864,541493
+4199,coco-30k,A passenger jet in flight in a clear blue sky. ,84994,294247
+4200,coco-30k,A man holding a microphone while sitting down.,84365,196742
+4201,coco-30k,A plate topped with a cut in half sandwich and a bowl of soup,98413,460507
+4202,coco-30k,A man standing on top of an orange boat on a river.,86856,400803
+4203,coco-30k,A cat standing on the edge of a sink drink water.,27050,47121
+4204,coco-30k,A man riding on the back of a green motorcycle.,62477,43613
+4205,coco-30k,A bathroom with a white toilet sitting under a window.,89647,92051
+4206,coco-30k,A bike parked on top of a cement floor.,54773,162763
+4207,coco-30k,a man in the kitchen trying to draw water with a  pipe,74429,64474
+4208,coco-30k, many tables arranged outside at the shop,16610,288769
+4209,coco-30k,A middle aged man takes a selfie in a mirror.,40647,237118
+4210,coco-30k,A giraffe standing on top of a dirt field near trees.,68964,421822
+4211,coco-30k,Giraffes and zebras graze in a field with trees. ,20646,518605
+4212,coco-30k,A couple of women standing in the back of a car with an open trunk.,41710,317410
+4213,coco-30k,A person hiking up the side of a snow covered hillside.,40263,251901
+4214,coco-30k,A white toilet sitting under a bathroom sink.,43094,386786
+4215,coco-30k,"A bathroom depicting a vanity, window and a toilet.",60894,304389
+4216,coco-30k,Two plane flying over a sea and island,86404,147418
+4217,coco-30k,A dog  seated on a car parked near the road,82598,458424
+4218,coco-30k,A number of benches at the beach and a boat in the sea,31080,375440
+4219,coco-30k,A large plane with people alighting at the airport,57450,409119
+4220,coco-30k,A man scowling while looking in a refrigerator ,7304,181446
+4221,coco-30k,A toilet and bathtub in a dark room with abnormal plumbing.,81537,23666
+4222,coco-30k,Three British Airways jets lined up at a terminal.,22386,224802
+4223,coco-30k,a large elephant that is standing up eating,66332,129587
+4224,coco-30k,A man throwing a frisbee in a park ,48605,203669
+4225,coco-30k,A van has an open back door on the sidewalk.,16729,254540
+4226,coco-30k,A painting of a zebra on a concrete wall.,91018,65604
+4227,coco-30k,"A toilet that is covered in some filth, and some filth on the ground.",34658,575817
+4228,coco-30k,A blue motorcycle parked on the side of a road.,12773,85913
+4229,coco-30k,A group of skateboarders on top of a ramp.,18528,216863
+4230,coco-30k,A bathroom door is opened by a toilet.,13071,392928
+4231,coco-30k,A glass of Orange juice next to a juicer,96185,511111
+4232,coco-30k,a woman poses in front of a giant pizza,7162,458992
+4233,coco-30k,A woman with a bat hitting televisions that say Comcast Doesnt Care.,66215,183620
+4234,coco-30k,a small motor bike outside of the garage,34804,7386
+4235,coco-30k,a woman is standing in a room taking a picture of herslf,89631,141197
+4236,coco-30k,a large silver plane is put on display at a museum,17496,218853
+4237,coco-30k,A very nice looking rest room with a nice tub.,13559,109826
+4238,coco-30k,A man in a black shirt holding a dog with its hand in the air.,69334,346965
+4239,coco-30k,a man on a skate board jumps over a motor bike,73033,268539
+4240,coco-30k,A group of zebras next to each other with two giraffes in the distance.,745,239194
+4241,coco-30k,A motorcycle with long rails hanging from it.,88910,257270
+4242,coco-30k,A couple of older folks standing in a kitchen.,64047,353510
+4243,coco-30k,A cheese pizza sitting on top of white paper and a large plate. ,835,532129
+4244,coco-30k,A metal sink with a cupboard of knives sitting on it. ,87881,19484
+4245,coco-30k,A plane is flying through a clear sky,32141,116255
+4246,coco-30k,"A photograph is against a wall near a door, a plant, and a clock.",97599,148614
+4247,coco-30k,A big bathroom with a couch a bathtub in the middle of the room. ,51390,363830
+4248,coco-30k,A very clean kitchen has stainless steel appliances.,42107,91615
+4249,coco-30k,There is a small lamb poses on the bike.,94439,555687
+4250,coco-30k,An old lady smiling in a pink kitchen.,69865,90255
+4251,coco-30k,A man wearing a suit and tie and carrying something walkling down the street.,57935,418535
+4252,coco-30k,A room with a desktop computer and a picture of a mummy. ,9178,457078
+4253,coco-30k,An airplane flying through the air on a clear day.,82651,295765
+4254,coco-30k,A computer desk with a desktop and laptop computer. ,51910,399164
+4255,coco-30k,a large plane is coming in to land near a big balloon man,99810,78537
+4256,coco-30k,A bathroom is shown with white decor and brown cabinets.,16082,380854
+4257,coco-30k,A toilet and container in a small room.,62234,365866
+4258,coco-30k,A airplane moving on the run way of a air port. ,7589,36196
+4259,coco-30k,A newly married couple eating cake with each other.,11351,370207
+4260,coco-30k,A man is looking at his laptop screen reading live posts.,26389,118544
+4261,coco-30k,A long marble sink in a public restroom,983,137763
+4262,coco-30k,The man is walking down the street with no shirt on.,24190,408449
+4263,coco-30k,A brick and stone gothic-style tower with church steeple rises behind a modern glass building.,13546,312951
+4264,coco-30k,You can see a blue towel hanging in the mirror.,42154,573924
+4265,coco-30k,A group of people riding on bikes down a street.,13648,321886
+4266,coco-30k,A bathroom stall that is made of wood.,55014,483348
+4267,coco-30k,Lots of sheep graze on a grass field.,14956,2164
+4268,coco-30k,"A bathroom that has a sink, toilet and mirror.",69779,254750
+4269,coco-30k,A bunch of toilets sit on display with green tags.,73810,331753
+4270,coco-30k,A bench that is sitting on a cobblestone sidewalk.,67978,366831
+4271,coco-30k,A bathroom sink sitting under a large mirror.,83089,107340
+4272,coco-30k,a street sign with a stop sign below it ,40121,510230
+4273,coco-30k,A room with an empty and open refrigerator and a shelf of bottles.,9724,506310
+4274,coco-30k,A toilet and bidet have toilet paper stacked between them.,79874,385962
+4275,coco-30k,A white bath tub sitting next to a sink in a bathroom.,13057,240175
+4276,coco-30k,A toilet sitting next to a white sink under a mirror.,78167,182450
+4277,coco-30k,A woman standing in front of a bathroom mirror.,32027,303413
+4278,coco-30k,A city street with a traffic light and street signs in front of a stone building.,97767,315491
+4279,coco-30k,A woman is seen in the mirror drying her hair.,30371,117759
+4280,coco-30k,about twenty people riding bicycles through a town area,58206,349689
+4281,coco-30k,A jetliner sitting on top of an airport tarmac.,26940,416271
+4282,coco-30k,A bicycle sitting beside a black door and steps.,92335,20307
+4283,coco-30k,A white toilet and a sink in a room.,64105,326781
+4284,coco-30k,a woman walking down the road while holding onto some bags and  an umbrella ,77068,258382
+4285,coco-30k,a dog laying down licking food off of a plate,34258,267300
+4286,coco-30k,The bathroom is in the middle of a renovation project.,9129,161720
+4287,coco-30k,A bathroom with a white toilet next to a walk in shower.,46940,55727
+4288,coco-30k,A large black dog sitting in a room.,21788,37017
+4289,coco-30k,A kitchen with a stove top oven and blue walls.,38006,541345
+4290,coco-30k, a bench sitting in the grass facing the water and boats ,49219,522713
+4291,coco-30k,A motorcycle parked next to a few bicycles.,44855,223930
+4292,coco-30k,A cat lying down in a sink in a bathroom.,41431,327769
+4293,coco-30k,A man riding on the back of a blue motorcycle.,5249,218476
+4294,coco-30k,A man on a skateboard riding by food vendors.,43037,492362
+4295,coco-30k,A large black dog laying on a kitchen floor.,8698,514915
+4296,coco-30k,"woman in long, light red dress with orange umbrella.",59403,459680
+4297,coco-30k,A van driving down a street past tall buildings.,10121,253036
+4298,coco-30k,A man sitting at a table using a laptop computer.,66036,434511
+4299,coco-30k,A woman taking a selfie in front of a large mirror.,26228,235964
+4300,coco-30k,A couple of bikers riding on top of motorcycles down a street.,59994,115370
+4301,coco-30k,A large jetliner with a painting on the side of it's cabin.,96351,465735
+4302,coco-30k,A white toilet in a bathroom next to a door.,52742,384901
+4303,coco-30k,A computer monitor sitting above a computer keyboard.,33303,226171
+4304,coco-30k,A large jetliner sitting on top of an airport runway.,99023,348881
+4305,coco-30k,A british airways passenger jet in the sky.,34677,436280
+4306,coco-30k,A picture of a room with a TV and a bathroom.,74612,72018
+4307,coco-30k,A picture of a busy road at night ,44853,281317
+4308,coco-30k,Man in period costume rides vintage motorcycle with German flag on back,29462,413822
+4309,coco-30k,A bus turning a corner at an intersection.,30264,175570
+4310,coco-30k,The view from the commercial airplane includes the wing and mountains and water. ,56068,101223
+4311,coco-30k,There are people standing at the top of this building.,21024,175331
+4312,coco-30k,A giraffe leans over a fence to eat from a happy woman's hand.,90190,48791
+4313,coco-30k,The person is riding her bicycle down the road.,54883,255158
+4314,coco-30k,A airplane flying high in the sky next to a set of white smoke lines. ,65497,146659
+4315,coco-30k,A single banana is on a white table.,96536,193015
+4316,coco-30k,A bus stuck in traffic on a busy highway.,82498,17207
+4317,coco-30k,A woman is walking her dog across the street.,32000,319055
+4318,coco-30k,a bathroom with a sink and a toilet in it,77498,404785
+4319,coco-30k,Two toilets that are sitting on a tile floor.,3283,137578
+4320,coco-30k,Two benches on a sidewalk in front of a urban street and some houses.,67566,119404
+4321,coco-30k,Old cars and horse drawn carriage on a tropical city street.,66376,289949
+4322,coco-30k,A bird that is sitting on a plate on a table.,2481,197915
+4323,coco-30k,a man sitting on a bench looking a bit like forrest gump ,10679,575088
+4324,coco-30k,A picture of a large kitchen with white cabinets and appliances.,62659,530836
+4325,coco-30k,a woman in kitchen cooking chips in fry,57679,267683
+4326,coco-30k,a view of mountains from the window of a jet airplane,85610,208208
+4327,coco-30k,A sign posted on the side of a highway.,13430,179187
+4328,coco-30k,the hands of a man crawling out of a toilet,97404,355575
+4329,coco-30k,A cat peering into a wooden bowl which is sitting on a table.,48558,2295
+4330,coco-30k,A man walking down a road with a horse and carriage coming at him.,57765,298762
+4331,coco-30k,"A toilet, mirror and sink in a toilet",53350,267670
+4332,coco-30k,A person is taking a picture of a hotel bathroom.,59126,9772
+4333,coco-30k,A big plane flying low  on a cloudy sky,46382,543528
+4334,coco-30k,The officer is riding a horse threw the streets. ,51289,157155
+4335,coco-30k,A library or store is full of books.,77542,22420
+4336,coco-30k,A triple screen computer set up on a desk next to a bed,84708,522782
+4337,coco-30k,A foggy view of an airplane sitting in a yard.,29852,162998
+4338,coco-30k,a barthroom with green walls and a  purple rug ,21104,423165
+4339,coco-30k,A room that has a bed and a bathtub.,73764,145746
+4340,coco-30k,Someone is holding the door open to a large industrial freezer.,72197,61602
+4341,coco-30k,"A small bathroom has a toilet, sink, mirror, and a small trash can.",11835,29449
+4342,coco-30k,The cat is looking out of the car window. ,89429,359638
+4343,coco-30k,"An unusual Japanese bathroom with a toilet, urinal, and sink.",58671,520489
+4344,coco-30k,A man holding an umbrella while walking down a street.,44238,356920
+4345,coco-30k,a building with some trees surrounding it ,64120,473153
+4346,coco-30k,Two airplanes flying through a blue sky with smoke pouring out of their rear ends.,37548,246425
+4347,coco-30k,A cat laying on a rug next to a sliding glass door.,51807,302110
+4348,coco-30k,Two toilets sit near each other in the same room.,72042,517600
+4349,coco-30k,This is a picture of a kitchen in a poverty area of a town.,4566,98018
+4350,coco-30k,A white toilet covered in feminine toilet coverings.,97039,440878
+4351,coco-30k,A group of wooden benches sitting on top of a wooden deck.,40227,234938
+4352,coco-30k,A large jetliner sitting on top of an airport tarmac.,8971,534669
+4353,coco-30k,A man is plowing the field in preparation.,86587,151081
+4354,coco-30k,A large store filled with lots of groceries and produce.,82744,579277
+4355,coco-30k,A small bathroom with only a toliet and sink.,59561,530054
+4356,coco-30k,A toilet room in the process of being renovated ,13895,126941
+4357,coco-30k,A wooden shelf filled with lots of glass pots and plates.,63380,322429
+4358,coco-30k,A gray cat laying on top of a wooden book shelf.,91788,546378
+4359,coco-30k,A bike parked in the  middle of a sidewalk next to a street.,10951,275441
+4360,coco-30k,A group of men riding on the back of motorcycles.,8556,246963
+4361,coco-30k,a man walks a dog by some park benches ,54752,4678
+4362,coco-30k,A picture of large glass door trimmed in white and a large beige structure beside it.,14381,168225
+4363,coco-30k,A kite flying above in a crystal clear blue sky.,73299,308974
+4364,coco-30k,A commercial plane being serviced by two people.,76432,497568
+4365,coco-30k,A subway train with a row of orange and white seats.,3011,245450
+4366,coco-30k,A group of air planes sitting on a runway.,38830,150717
+4367,coco-30k,A very plain and dull bathroom that's in someone's house. ,49723,482297
+4368,coco-30k,A silver spoon sitting on top of an unknown surface.,92688,437599
+4369,coco-30k,A turboprop airplane that is in the hangar for repair. ,62782,442480
+4370,coco-30k,A man on a motorcycle that is on a road that has grass fields on both sides and a stop sign.,98793,22671
+4371,coco-30k,"A building wall and pair of doors that are open, along with vases of flowers on the outside of the building.",97868,502136
+4372,coco-30k,a man on a bike that is walking dogs,27750,216861
+4373,coco-30k,"a washroom with a toilet basin, sink, sanitizers and bath tub",94873,326564
+4374,coco-30k,a bathroom with a toilet sitting next to a sink ,22726,341011
+4375,coco-30k,"A dog sleeping between a book bag and a shredder, underneath a computer desk ",24556,555298
+4376,coco-30k,a plane flys through the grey sky ,20826,90387
+4377,coco-30k,A man drives fast in a motorcycle with kids in the sidecar,63599,113559
+4378,coco-30k,A motorcycle parked on the side of a street.,29376,308276
+4379,coco-30k,A very tall church tower with a clock on the side of it.,78999,499423
+4380,coco-30k,A group of people who are standing outside by a plane and a car.,9215,109900
+4381,coco-30k,A passenger jet that is flying in the sky.,86529,512421
+4382,coco-30k,A group of people getting off an air plane.,33831,48844
+4383,coco-30k,A white toilet sitting next to a trash can in a restroom.,23511,38070
+4384,coco-30k,A restaurant kitchen with two giant menus sitting above the cooking area.,72305,471043
+4385,coco-30k,A motorcycle parked in a courtyard in front of a small restaurant. ,43902,36761
+4386,coco-30k,A white Volkswagon bug with a skateboard on the luggage rack.,75308,517973
+4387,coco-30k,A row of parked motorcycles sitting next to a white double decker bus.,54441,360899
+4388,coco-30k,A couple of kittens standing around metal bowls on a tray.,23453,307989
+4389,coco-30k,A bus driving down a street in front of a cross walk.,41657,465418
+4390,coco-30k,A person resting their head on a pillow next to an airplane window.,1891,202102
+4391,coco-30k,A man sitting on a toilet whle talking on a phone.,98854,474119
+4392,coco-30k,A man riding on the back of a motorcycle down a road.,39939,214369
+4393,coco-30k,A toilet sitting in a room surrounded by personal items.,68964,42276
+4394,coco-30k,A motorcycle parked behind a truck on a green field.,58932,32284
+4395,coco-30k,A center island in a kitchen covered in a fan.,97096,443259
+4396,coco-30k,A white sink in a bathroom under a mirror.,67882,356299
+4397,coco-30k,A large jetliner sitting on top of an airport runway.,80416,404479
+4398,coco-30k,A formation of airplanes flying through a cloudy blue sky.,25841,292171
+4399,coco-30k,A hot dog sitting on top of a white paper in a  bun.,17650,504297
+4400,coco-30k,A person holding a surfboard while standing in the ocean.,69417,499198
+4401,coco-30k,A blue motor scooter parked in a parking lot.,30299,406253
+4402,coco-30k,A group of friends standing next to each other at night.,32906,210522
+4403,coco-30k,A kitchen with a wooden table next to a metallic refrigerator freezer.,45879,80652
+4404,coco-30k,A man laying on the ground in front of a motorcycle.,42328,537206
+4405,coco-30k,A living room filled with brown furniture and a flat screen TV..,20236,104801
+4406,coco-30k,A jetliner taking off from an airport runway.,57996,196185
+4407,coco-30k,A group of jets sitting on top of an airport runway.,13022,159740
+4408,coco-30k,A white toilet sitting next to a white sink.,83960,5328
+4409,coco-30k,a man standing by his bike with his hands on the seat,56108,76942
+4410,coco-30k,A couple of zebra standing next to a giraffe.,86797,383282
+4411,coco-30k,A city street filled with traffic and parking lights.,86036,580041
+4412,coco-30k,A white bath tub sitting under a window next to a toilet.,19185,237723
+4413,coco-30k,A cat sitting on a floor in front of a flat screen TV.,32173,490105
+4414,coco-30k,A cat standing next to a white toilet near a bath tub.,83995,176778
+4415,coco-30k,two cats sitting side by side eating out of a dish,84691,301014
+4416,coco-30k,A woman in her underwear riding on top of a paddle boat.,90419,195750
+4417,coco-30k,"A room with a toilet, a door and shoes in it. ",35483,98895
+4418,coco-30k,A spiral of bananas sitting inside of a large bowl.,21450,165818
+4419,coco-30k,Police motorcycles parked while police is gather together. ,31404,356263
+4420,coco-30k,a man using a cross walk to cross a street,46517,575904
+4421,coco-30k,A city with people on a fountain and in a grass field.,21824,151141
+4422,coco-30k,a small toilet in a bathroom with tile walls,31519,359140
+4423,coco-30k,A bathroom with a white toilet next to a shower.,48052,128392
+4424,coco-30k,An airplane on a runway getting some work done.,33925,399416
+4425,coco-30k,A small white bird standing on top of a pond of water.,39314,96514
+4426,coco-30k,A man riding a motorcycle next to a red stop sign.,68117,561433
+4427,coco-30k,A colorful clock tower sitting int he middle of a parking lot.,12011,324492
+4428,coco-30k,A white toilet sitting next to a bathroom sink.,55798,390583
+4429,coco-30k,A man who looks like two face with a creepy smirk on his face.,52945,564404
+4430,coco-30k,A lot of wooden shelves filled with lots of clutter.,75730,69750
+4431,coco-30k,A purple motorcycle parked in front of a red brick building.,60564,549399
+4432,coco-30k,Ostriches and giraffes out in the grass ,98954,505733
+4433,coco-30k,A partially eaten slice of cake with a spoon on a plate.,91838,381382
+4434,coco-30k,A large living room has many items thrown around it.,1224,389168
+4435,coco-30k,Several cars parked along the side of a street next to a street sign.,31107,227511
+4436,coco-30k,A man riding a motorcycle with a helmet on. ,37413,365444
+4437,coco-30k,A man standing on a purple bed playing an electric guitar,40184,297353
+4438,coco-30k,A man sitting on a motor bike smiling with a friend close to him,12316,475389
+4439,coco-30k,A cat sitting on the back of a Paso 750.,19535,272241
+4440,coco-30k,AN OLD SCHOOL BIKE SITTING IN FRONT OF A CAFE ,63590,347982
+4441,coco-30k,A pan full of food on top of a stove.,44014,490286
+4442,coco-30k,A picture of someone's desk that has a lot of stuff on it.,20706,267175
+4443,coco-30k,A woman holding a piece of chocolate cake at a table.,80300,527060
+4444,coco-30k,A toilet and urinal side by side in a bathroom.,91320,189424
+4445,coco-30k,Four people wait to cross the street at an intersection.,81350,183709
+4446,coco-30k,A runway has many old-fashioned planes and helicopters. ,84075,569016
+4447,coco-30k,A white bath tub sitting next to a bathroom sink.,19354,166532
+4448,coco-30k,A merry go round with lots of colorful giraffe and other animals.,22194,82138
+4449,coco-30k,A giraffe is looking at the camera with a smirk on it's face.,79218,572784
+4450,coco-30k,A woman talking on a cell phone while holding luggage.,30122,222118
+4451,coco-30k,a plane flying high above the earth ,60147,327857
+4452,coco-30k,a bunch of kids walking through some grass,34929,276018
+4453,coco-30k,A bathroom vanity sink with a large mirror and hairdryer on the wall.,55506,178028
+4454,coco-30k,a large air plane is parked out on a grass field,55715,437370
+4455,coco-30k,"A bathroom with blue walls, black and white checkered floor, toilet, urinal and bathtub.",46277,268831
+4456,coco-30k,Adult woman taking self portrait using camera looking at mirror.,11916,325907
+4457,coco-30k,A woman sitting on top of a bench while reading a book.,18734,150508
+4458,coco-30k,A wooden table surrounded by two chairs near a kitchen counter.,74569,282711
+4459,coco-30k,The tables at the restaurant are very crowded with people. ,92691,127050
+4460,coco-30k,The mens bathroom has a urinal and a stall. ,79977,347150
+4461,coco-30k,A red bicycle with a basket on front next to a train.,36123,161141
+4462,coco-30k,A plane on a runway in an airport,56733,364145
+4463,coco-30k,Cupcakes with white frosting and different colored star frosting decoration on each.,7863,251344
+4464,coco-30k,"There is a tub, a sink, and a shower inside a bathroom.",40782,580027
+4465,coco-30k,There is a motorcycle parked against a wall.,63120,150487
+4466,coco-30k,"A pile of oranges, apples and pears next to each other.",64954,213935
+4467,coco-30k,A man and a woman on a motorcycle in helmets.,82886,490582
+4468,coco-30k,Giraffes in their wood and grass zoo enclosure,47026,22969
+4469,coco-30k,A man on a motorbike with a side car.,67926,350874
+4470,coco-30k,The back side of an airplane sitting on a runway. ,27102,445643
+4471,coco-30k,A table and some chairs in a room.,19059,335539
+4472,coco-30k,"A tiled bathroom containing a vanity sink, toilet and bathtub.",55526,110559
+4473,coco-30k,A giraffe looking over the corral fence in his zoo habitat. ,88299,354202
+4474,coco-30k,A red motorcycle is on the sidewalk in front of a business with ads on the windows.,4964,510340
+4475,coco-30k,A person on a motor bike on a road.,29553,205300
+4476,coco-30k,The kitchen has some of the best antique fixtures.,47923,338146
+4477,coco-30k,"A store room holds sinks, bathtubs and toilets",57568,485628
+4478,coco-30k,Cat on floor by toilet looking up to cat laying in sink,7958,489344
+4479,coco-30k,A man is sitting on his motorcycle and ready to go. ,60140,361964
+4480,coco-30k,A man preparing food in a restaurant kitchen.,4583,294350
+4481,coco-30k,A wooden desk with a laptop computer and a desktop computer that are both open.,72198,322577
+4482,coco-30k,A chair and table with two monitor screens,81693,321885
+4483,coco-30k,A woman in a room with a cat.,37217,574769
+4484,coco-30k,A couple of boats and car on a street.,25665,147576
+4485,coco-30k,there is an air plane that is in the sky ,41546,536444
+4486,coco-30k,A car stopped by three cows crossing a road.,20552,99908
+4487,coco-30k,A motor bike on a road with people seated on the roadside,87289,33815
+4488,coco-30k,A kitchen with granite counter tops and a large oven.,89548,93604
+4489,coco-30k,there's and airplane in the sky flying over some trees,52936,487222
+4490,coco-30k,A motorcycle sits on a sidewalk near a building,15106,327314
+4491,coco-30k,People are at a stop light on a snowy street.,40446,490638
+4492,coco-30k,A white toilet and towel in a room.,15286,69494
+4493,coco-30k,A military air craft flies in the sky with landing gear down. ,45724,56736
+4494,coco-30k,a big kitchen with an island and track lighting ,89414,234470
+4495,coco-30k,a red motor bike is parked in the gravel ,32541,487059
+4496,coco-30k,A chair and a couch in a room.,50999,534733
+4497,coco-30k,The motorcycles are parked on the side of the building.,96768,488385
+4498,coco-30k,Cute multi colored kitten sitting in woman's lap,87925,215353
+4499,coco-30k,A person standing next to a couple of motor bikes.,87310,326368
+4500,coco-30k,A person on a motor bike travels around a sharp corner.,29117,7816
+4501,coco-30k,A person with a cell phone and a umbrella.,28854,192154
+4502,coco-30k,Two pieces of fruit sitting on a plate beside a stack of books.,29507,286524
+4503,coco-30k,Two unattended motorcycles parked somewhere near a red car.,27180,30942
+4504,coco-30k,A table and some chairs in a room.,99664,512576
+4505,coco-30k,A woman with a tie and a bag on the street.,11383,187791
+4506,coco-30k,A airplane that is sitting on a runway.,31161,20784
+4507,coco-30k,A kitchen with a center island next to a refrigerator freezer.,14251,217989
+4508,coco-30k,A parked motor bike on the side of a the street.,83585,432309
+4509,coco-30k,A guy on a motorcycle on a road.,88374,265069
+4510,coco-30k,A plane flies high in the middle of a dark sky.,5527,272736
+4511,coco-30k,A large group of motorcycles that are parked in a lot.,46188,65001
+4512,coco-30k,A laptop and some computers on a desk.,14392,270096
+4513,coco-30k,a bath room with two toilets and a sink,2748,332532
+4514,coco-30k,A small white boat in the open water.,42338,403255
+4515,coco-30k,Cat in a closet with baggage and misc.,86635,182903
+4516,coco-30k,A laptop in a bright yellow coffee house.,73610,229659
+4517,coco-30k,A jetliner wing flying over the top of a parking.,65874,52412
+4518,coco-30k,A white sink in a corner underneath a small mirror and light.,42362,192047
+4519,coco-30k,a car is stopped in the street for people to cross,77456,128939
+4520,coco-30k,A group of people sitting on motor bikes on a street.,96301,196046
+4521,coco-30k,a kitchen with a sink a shelf and a chair,5389,48910
+4522,coco-30k,A group of people with a cell phone the side of a building.,60902,7256
+4523,coco-30k,Two sun shaped mirrors are above bowl shaped sinks.,98039,57671
+4524,coco-30k,She just finished chopping vegetables with the knife.,2332,535506
+4525,coco-30k,a bath room with a toilet a stool and handle bars,32017,58816
+4526,coco-30k,A motor bike parked behind a van in the grass.,64905,436559
+4527,coco-30k,A person sitting on a wooden bench outside.,98961,147958
+4528,coco-30k,A yellow ten speed bike parked on a bridge.,2056,323564
+4529,coco-30k,a person on a motor bike driving in race ,50145,435519
+4530,coco-30k,Cars parked at side of road in front of a building at dusk or night.,36792,45434
+4531,coco-30k,A man handing another man something inside of a room.,89341,292156
+4532,coco-30k,A cop riding on the back of a motorcycle next to another cop car.,66464,246435
+4533,coco-30k,A painting of a table with fruit on top of it.,50561,184791
+4534,coco-30k,A large airplane flying through a blue sky.,13801,412019
+4535,coco-30k,A man sitting at a table in front of a plate of food.,41617,214720
+4536,coco-30k,A white toilet sitting in a bathroom next to a tiled wall.,33462,557258
+4537,coco-30k,An airplane sitting on top of a field next to a crowd of people.,82055,530915
+4538,coco-30k,A painting of green apples next to a bunch of bananas.,34487,267182
+4539,coco-30k,A group of bikers riding motorcycles across a bridge.,87300,143556
+4540,coco-30k,A couple of yellow buses driving down a city street.,43296,413339
+4541,coco-30k,A bath tub sitting next to a sink in a bathroom.,8140,129001
+4542,coco-30k,A blue and yellow bus parked in front of a man with a  bike.,56865,535588
+4543,coco-30k,A glazed donut hanging from a metal rod.,87012,383445
+4544,coco-30k,A white toilet sitting under a window on an airplane.,52373,456732
+4545,coco-30k,A kitchen with wooden floors surrounded by windows.,73110,332480
+4546,coco-30k,A blue bike parked next to a tree in a planter.,51403,297374
+4547,coco-30k,A table topped with oranges and a bowl of salad.,72862,172686
+4548,coco-30k,A man wearing a straw hat and playing the guitar.,8496,528098
+4549,coco-30k,A man riding on the back of an ATV.,84812,577640
+4550,coco-30k,A couple of sheep sitting on top of a lush green grass covered hill.,95120,34662
+4551,coco-30k,A giraffe standing next to a palm tree on a field.,12665,524373
+4552,coco-30k,A woman holding shears in one hand a tile in the other.,9400,369913
+4553,coco-30k,Some people riding some motorcycles through a rock tunnel.,76627,356623
+4554,coco-30k,a modern bathroom with blue walls and a clear shower,51181,538589
+4555,coco-30k,A very nice looking train by a plat form.,56709,427001
+4556,coco-30k,A small white plane sitting on top of an airport runway.,82505,278512
+4557,coco-30k,A white sink sitting next to a toilet near a tub.,13586,550597
+4558,coco-30k,A very cute cat laying in a very small sink.,63958,579008
+4559,coco-30k,Man sitting on toilet top holding hat and cigarette,51467,85247
+4560,coco-30k,A couple of airplanes that are sitting on a runway.,53117,126659
+4561,coco-30k,Motorcycle parked next to SUV in car garage,29544,234239
+4562,coco-30k,A picture of people watching TV in the living room adjusted to imply motion.,82760,501294
+4563,coco-30k,A bike leaning against an unmade and dirty bed.,23664,2139
+4564,coco-30k,one airplane on a landing strip next to a green field,8781,463781
+4565,coco-30k,A couple of people that are holding an umbrellas.,78002,162362
+4566,coco-30k,A kitchen with two shiny counter tops next to a  wall mounted oven..,61498,514018
+4567,coco-30k,Large wall with an antique finish window and an old clock above it.,65589,176034
+4568,coco-30k,A man riding a motorcycle with a brown long horn bull behind him.,80843,67208
+4569,coco-30k,The bathroom in the cabin needs to be remodeled.,21321,552901
+4570,coco-30k,A statue standing over a traffic light next to a giant spider.,15659,184667
+4571,coco-30k,A bowl filled with lots of oranges on a counter.,94306,50896
+4572,coco-30k,A woman walking across a street near motorcycles.,48234,181542
+4573,coco-30k,A city street with traffic at a stoplight ,2733,122314
+4574,coco-30k,A white toilet sitting in a bathroom next to a shower.,74084,102644
+4575,coco-30k,A bowl filled with food and a white spoon.,36355,104865
+4576,coco-30k,A city street line with very tall buildings.,39574,26609
+4577,coco-30k,a large plane is flying through the sky ,53470,539226
+4578,coco-30k,View of dining room of restaurant with cone lights overhead,36789,374448
+4579,coco-30k,A very cute looking black dog laying on the floor.,87147,13882
+4580,coco-30k,a small bathroom with a mirror and sink,53178,225546
+4581,coco-30k,The kitchen area is clean and ready for us to use.,78910,184994
+4582,coco-30k,Two airplanes are parked on a grassy field.,68659,349868
+4583,coco-30k,A group of people that are outside of an airplane.,49612,341299
+4584,coco-30k,a bathroom with a sink and a toilet,83921,142337
+4585,coco-30k,A blue and white VW bus driving down a street.,79528,96351
+4586,coco-30k,A toilet in a bathroom next to a wall.,91631,455343
+4587,coco-30k,A cat laying next to a bike with a large tire.,82329,317715
+4588,coco-30k,A man driving a motorcycle down a street with a  woman on back of it.,1604,260238
+4589,coco-30k,Two people are kissing as they sit on a bench.,35205,443343
+4590,coco-30k,a lady that is cooking some food on the stove,19251,352703
+4591,coco-30k,a little bathroom with just a toilet in it,34271,421882
+4592,coco-30k,A bathroom counter lined with lots of metal sinks.,27900,381393
+4593,coco-30k,Two people ride on a motorcycle on a street. ,48247,309862
+4594,coco-30k,An empty street is lined with large umbrellas. ,49224,42805
+4595,coco-30k,A busy street is full of cars and a bus. ,94383,195510
+4596,coco-30k,A kitchen with a black stove top oven.,36269,543178
+4597,coco-30k,A TV sitting on top of a wooden dresser.,62993,550722
+4598,coco-30k,A large airplane flying over a city above a bird.,24091,281827
+4599,coco-30k,A cat sitting on the hood of a car.,63599,260925
+4600,coco-30k,a small dog is tied up to a bike outside,97235,70815
+4601,coco-30k,Some very cute small dogs laying by each other.,42628,186589
+4602,coco-30k,"A bathroom with a toilet, towel rack and a tub in it. ",60974,296707
+4603,coco-30k,two people standing in a strong snow storm,15241,134981
+4604,coco-30k,A couple of airplanes flying under a cloudy sky.,5733,161044
+4605,coco-30k,A woman standing next to a man in a kitchen.,30057,161567
+4606,coco-30k,Several people with bicycles on a sidewalk outside a restaurant.,9616,139969
+4607,coco-30k,a large orange cat jumping into a bathroom sink,12724,311531
+4608,coco-30k,"A bathroom with a toilet, cabinet, tub, shower curtain and a scale in it. ",4953,340934
+4609,coco-30k,some people are standing together around some food,33046,520124
+4610,coco-30k,A plane sitting on top of a dirt field next to another plane.,19972,569705
+4611,coco-30k,A motorcycle parked on the side of a road.,27901,80304
+4612,coco-30k,A man in a blue shirt talking on a phone.,71881,575921
+4613,coco-30k,A white toilet sitting next to a bathroom sink.,72612,61882
+4614,coco-30k,A white toilet in a bathroom next to a  sink.,2956,462982
+4615,coco-30k,A yellow book bus driving down a street.,57552,243031
+4616,coco-30k,some oranges are stacked up in a bowl,73273,68059
+4617,coco-30k,A man preparing food inside of a kitchen with a  small bird on his shoulder like snow white while wearing a cheap chefs hat.,26900,469793
+4618,coco-30k,Tall building with clock and spire behind white bricked building.,54064,162495
+4619,coco-30k,A woman rides a bicycle on a road next to the median.,86037,321107
+4620,coco-30k,a picture of a science fiction character in a bathroom,96353,563185
+4621,coco-30k,a bunch of sheep are walking on the road,95098,239048
+4622,coco-30k,some cups are sitting on top of a toilet,31016,148591
+4623,coco-30k,An Aer Lingus plane touches down on an airport runway.,67774,11347
+4624,coco-30k,A tall building with a clock on it near a cemetery. ,98275,112517
+4625,coco-30k,a couple of buckets in a white room,37188,6818
+4626,coco-30k,some people are riding motorcycles down the street,2344,148526
+4627,coco-30k,The bench is empty at night in the park,99595,58851
+4628,coco-30k,an old woman is in front of some food on a table,33640,17899
+4629,coco-30k,"A white kitchen with stove, sink, and refrigerator.",49160,292060
+4630,coco-30k,a couple of motorcycles are parked outside of a building,76066,531735
+4631,coco-30k,a parked motor bike with a man standing next to it ,22652,461805
+4632,coco-30k,The fruit is placed in a bowl out in the open to be eaten,43671,482719
+4633,coco-30k,a bunch of motorcycles are parked on the street together,18193,27642
+4634,coco-30k,The person is walking in the alley alone ,62258,62839
+4635,coco-30k,The person is riding a bike on the road,65142,63619
+4636,coco-30k,A picture of an airplane and a large tower at night.,57553,471562
+4637,coco-30k,The people are riding motor cycles down the street.,19621,73182
+4638,coco-30k,The cat is peeking out from inside the purse.,63646,252617
+4639,coco-30k,The people on the motorcycles are racing on the track,44795,450581
+4640,coco-30k,The mirror above a bathroom sink is shattered.,15377,341700
+4641,coco-30k,The kitchen is clean and ready to be used,19082,437947
+4642,coco-30k,The left side of a white dog sitting on a couch.,48087,194420
+4643,coco-30k,There are two riders on motorcycles and mountains in the distance.,7296,271666
+4644,coco-30k,The interior of a modern bathroom including glass shower and sinks,25692,251062
+4645,coco-30k,a downward view of a small toilet in a room,29252,543006
+4646,coco-30k,a couple of planes are out on a runway,46842,350073
+4647,coco-30k,A woman with an umbrella is walking past a bus.,21231,333745
+4648,coco-30k,A ceramic bowl full of a variety of fresh fruit,74079,344758
+4649,coco-30k,Looking out a large glass window to activity on the tarmac at an airport,74778,357819
+4650,coco-30k,a cloudy sky during a day with some overcast,63814,520273
+4651,coco-30k,a public bathroom with a toilet and hand rail,58686,388581
+4652,coco-30k,Many cleaning products are on the kitchen island.,27891,243773
+4653,coco-30k,"The computer desk has a small pad of notes, and an mp3 player on it.",53143,21060
+4654,coco-30k,The walls outside the small bathroom have a blue tint.,74743,480793
+4655,coco-30k,a motorcycle is sitting off the side of the road,52582,390017
+4656,coco-30k,A man on a bicycle riding next to a train,75425,483108
+4657,coco-30k,Well decorated restroom with sink and chair for sitting.,4190,505132
+4658,coco-30k,The kitchen counters are almost down with the remodel. ,79005,460378
+4659,coco-30k,a helicopter is flying upwards in the sky,63380,10440
+4660,coco-30k,a couple of people walking with their surfboards at the beach,81078,50493
+4661,coco-30k,a black orange and white cat and some bricks,22154,413650
+4662,coco-30k,A couple of people with some bikes on a street.,84019,453481
+4663,coco-30k,A white toilet and some tools in a room.,5165,21046
+4664,coco-30k,a toilet a toilet brush tiles and a door handle,88970,299305
+4665,coco-30k,An old car sitting on top of a lush green field.,44620,438560
+4666,coco-30k,Adult giraffe with young standing near wall and tree in enclosed area.,25264,303056
+4667,coco-30k,A man riding a motorcycle across a lush green park.,57351,369997
+4668,coco-30k,A kitchen with a tile floor and a metallic sink.,37698,386929
+4669,coco-30k,A city street filled with lots of traffic at night.,30702,556012
+4670,coco-30k,An airplane sitting on top of an airport runway.,65224,575896
+4671,coco-30k,A very tall building with a clock mounted to it's side.,46248,272080
+4672,coco-30k,A baby in a play chair in a living room.,44156,124803
+4673,coco-30k,two people on a motorcycle a car and some buildings,2723,573214
+4674,coco-30k,some brown cabinets a table light and refrigerator,64492,482562
+4675,coco-30k,an oven and a small table in a home kitchen,81372,94052
+4676,coco-30k,a white sink and cabinet in a home bathroom,69436,28209
+4677,coco-30k,a small cat is sitting on a step by a door,84441,269511
+4678,coco-30k,some monitors and different electronic boards and controllers,43364,570179
+4679,coco-30k,A man riding on the back of a motorcycle down a street.,76100,498758
+4680,coco-30k,An airplane from Jetairfly is soaring above the clouds.,15998,167544
+4681,coco-30k,A boy playing a multicolored piano on the street.,39854,58690
+4682,coco-30k,Several parked bikes sitting in the grass near a tree.,90342,125655
+4683,coco-30k,A computer monitor sitting on top of a wooden table.,89989,68814
+4684,coco-30k,"A white plate topped with meat, rice and veggies.",73151,80367
+4685,coco-30k,A man riding a motorcycle across a sandy beach.,77112,461588
+4686,coco-30k,a white counter a black oven a chair a light and a microwave,72603,539423
+4687,coco-30k,a bunch of toilets that are next to each other,12549,537395
+4688,coco-30k,a couple of men that are on some motor cycles,60579,312803
+4689,coco-30k,A group of people standing outside of a bus.,24454,78627
+4690,coco-30k,A man riding a motorcycle with a woman on back of it.,69611,399545
+4691,coco-30k,An airplane flying through a blue sky with propellers.,20790,422807
+4692,coco-30k,A microwave oven sitting on top of a blue table.,17240,83097
+4693,coco-30k,A bathroom with a lot of items near the sink and counter.,91891,195165
+4694,coco-30k,A person holding a black cat next to their face.,20605,474667
+4695,coco-30k,A white toilet with a  control panel on it's left side.,77823,116424
+4696,coco-30k,A dirty bathroom with paper and dirt covering the floor.,69708,177811
+4697,coco-30k,A large jet sitting on top of an airport tarmac.,84966,253262
+4698,coco-30k,A man taking his picture in a bathroom mirror.,67570,384808
+4699,coco-30k,People walking in a museum with a airplane hanging from the celing.,33668,492132
+4700,coco-30k,Car waits as person on bike crosses the road,79019,154830
+4701,coco-30k,A motorcycle parked on the side of a road near a city.,16399,498709
+4702,coco-30k,A kitchen counter topped with a dish tray filled with dishes.,10255,532610
+4703,coco-30k,A man driving a car across an airport runway.,99409,457054
+4704,coco-30k,A couple of red motorcycles parked next to each other.,8238,118970
+4705,coco-30k,A motorcycle has three people riding on it.,11500,370657
+4706,coco-30k,A white toilet sitting in between tiled walls.,94659,73738
+4707,coco-30k,A crowded subway train with standing room only available.,18707,546126
+4708,coco-30k,A bedroom with a bed next to a closet.,88318,348091
+4709,coco-30k,A couple of people flying kites on top of a beach.,70933,231644
+4710,coco-30k,A man riding on the back of a motorcycle.,63037,12370
+4711,coco-30k,A man riding on the side of a motor bike.,6272,37209
+4712,coco-30k,"A bathroom area with sink, mirror and various toiletries.",50081,149550
+4713,coco-30k,Two women and children are on a motorcycle.,1733,345160
+4714,coco-30k,A motorcycle on a gravel area with people in the background.,7281,491169
+4715,coco-30k,A woman walking a dog down a street.,73335,169800
+4716,coco-30k,A small airplane taking off from an airport runway.,7993,78371
+4717,coco-30k,A big commercial plane flying high in the sky.,79581,285607
+4718,coco-30k,A kitchen with metallic appliances and a trash can.,65279,411941
+4719,coco-30k,There is a table with chairs and a stove in the room. ,22579,448795
+4720,coco-30k,A group of young people riding motorcycles near a river.,21991,203389
+4721,coco-30k,A bathroom with a standing shower next to a sink and mirror.,86449,466583
+4722,coco-30k,Shears and knives are in a cutting block.,4693,411368
+4723,coco-30k,A row of motorcycles sitting on top of a parking lot.,35814,386908
+4724,coco-30k,A white sink sitting under a bathroom mirror.,35993,49190
+4725,coco-30k,A white sink sitting under a bathroom mirror.,45388,184700
+4726,coco-30k,A man is almost touching the ground while riding his motorcycle.,14688,254493
+4727,coco-30k,Bathroom stall with green door in commercial business.,18394,175387
+4728,coco-30k,A white bowl filled with veggies and two lemon wedgies.,3761,47648
+4729,coco-30k,A patch of grass with lots of bikes parked on it.,12422,298540
+4730,coco-30k,A brown dog hanging it's head out of a car window.,39257,520301
+4731,coco-30k,A very tall building sitting next to a street sign.,53115,503983
+4732,coco-30k,A white toilet sitting next to a bath tub with a chair in it.,22328,532126
+4733,coco-30k,A red motorcycle parked next to a beach near the ocean.,38179,276323
+4734,coco-30k,A sign sitting above a store front entrance.,30933,32391
+4735,coco-30k,a room with all kinds of junk in it,8738,488822
+4736,coco-30k,A motorcycle parked on the side of a road.,89797,174898
+4737,coco-30k,A cat drinking out of a white toilet bowl.,10284,9170
+4738,coco-30k,A brown plane is parked at air port,84813,219754
+4739,coco-30k,A very cute child sitting on the commode with his pants on,79903,121849
+4740,coco-30k,A odd looking bike sitting under a purple tent next to a fountain.,23113,337561
+4741,coco-30k,A man standing next to a motorcycle on the side of a hill.,1580,354132
+4742,coco-30k,A church with a clock under it's pointy roof above a window.,82636,548930
+4743,coco-30k,a number of people riding skis on a snowy surface,18391,131539
+4744,coco-30k,A man riding an ATV  with a dirt bike on the back of it.,55317,106375
+4745,coco-30k,a gray cat is seen laying on top of a blue tube,69164,275219
+4746,coco-30k,A dining room filled with lots of people.,39456,222468
+4747,coco-30k,A row of parked motorcycles sitting next to a tall building.,12840,399942
+4748,coco-30k,A man riding a motorcycle behind a dune buggy.,40633,255004
+4749,coco-30k,A large jetliner airplane sitting next to another airplane on a runway.,73873,239171
+4750,coco-30k,A cat sitting on top of a pile of white towels.,55775,71687
+4751,coco-30k,A man riding a bike down a dark city street.,40232,61897
+4752,coco-30k,A close up of several pikes locked on a gate.,52451,522262
+4753,coco-30k,A photo of a grassy hillside with several sheep grazing.,92809,19253
+4754,coco-30k,A bathroom with a walk in shower next to a toilet.,86620,157084
+4755,coco-30k,A small black dog watching an animal on a TV screen.,73712,14108
+4756,coco-30k,A motorcycle parked in a parking space next to another motorcycle.,32487,73
+4757,coco-30k,The kitchen area is clean and ready to be used.,63705,158760
+4758,coco-30k,A kitchen which looks like its been updated recently.,98677,81315
+4759,coco-30k,A giraffe and its pack standing in an enclosure.,74553,383676
+4760,coco-30k,a bathroom with a big shower and counter,23457,185935
+4761,coco-30k,An airplane flying through a blue sky next to a helicopter.,62745,134328
+4762,coco-30k,An elephant walking down a street next to a crowd of people.,68388,149669
+4763,coco-30k,A row of motorcycles parked next to a building.,64195,572956
+4764,coco-30k,A white tub sitting next to a toilet in a bathroom.,19557,50350
+4765,coco-30k,A lego style kitchen with appliances and cabinets along with a checkered tile floor.,78160,539951
+4766,coco-30k,A backpack next to a television and a gaming system.,7213,396932
+4767,coco-30k,A VERY NICE BATHROOM IN THE MIDDLE OF A REMODEL,11233,293390
+4768,coco-30k,a little kid is standing in a kitchen,78553,348838
+4769,coco-30k,a red wall is behind a white sink,70616,453159
+4770,coco-30k,A bicycle is parked next to a bench. ,13464,75923
+4771,coco-30k,A kitchen that appears to be missing a cabinet door.,49813,298461
+4772,coco-30k,a man sitting on a bench talking on his cell phone,55901,422517
+4773,coco-30k,a laptop computer on a desk and a tv,94169,573823
+4774,coco-30k,A person riding a speed motorcycle on a track.,12606,198972
+4775,coco-30k,The sign on the door says the train is out of service.,79458,231349
+4776,coco-30k,Two toilets in small bathroom stalls with two sinks in a bathroom. ,51372,351149
+4777,coco-30k,Two giraffe are standing close to many trees and shrubs.,54692,451151
+4778,coco-30k,A full view of a kitchen with many things to use. ,21414,511430
+4779,coco-30k,The dining table near the kitchen has a bowl of fruit on it.,12393,37777
+4780,coco-30k,Three urinals in a row in a bathroom.,39387,356725
+4781,coco-30k,A group of bikers wait before riding down the street.,61520,222771
+4782,coco-30k,"A bathroom with a toilet, toilet roll and safety rail.",15681,180792
+4783,coco-30k,A man holding a baby up in a kitchen.,97993,4731
+4784,coco-30k,a yellow and blue cart is parked on a street,77061,373140
+4785,coco-30k,A man is sitting on a little scooter in traffic.,21721,508302
+4786,coco-30k,A large passenger plane on the tarmac of an airport.,31691,393869
+4787,coco-30k,a kitchen next to a wood floored living area,24528,133515
+4788,coco-30k,A blue bowl sitting on a table with a banana in it. ,31969,3093
+4789,coco-30k,A man standing in front of a bathroom mirror.,44253,420697
+4790,coco-30k,a oven is built into a counter in a kitchen,8115,317206
+4791,coco-30k,A man riding a dirt bike up the side of a mountain.,63346,382554
+4792,coco-30k,A man standing next to a woman in a room.,44495,148243
+4793,coco-30k,A restroom with three mirrors above two sinks.,30618,545597
+4794,coco-30k,a subway train with one passenger waiting to board ,35699,568961
+4795,coco-30k,A toilet with plastic over the toilet seat. ,54325,106038
+4796,coco-30k,A room with white walls and bright lights.,61186,293334
+4797,coco-30k,A blue bench covered in different style bags.,24989,532463
+4798,coco-30k,A woman is in the kitchen and cooking. ,48973,429807
+4799,coco-30k,A man riding a bike down a street past a young man.,34880,493846
+4800,coco-30k,A full picture of some white toilets on the side. ,17140,380427
+4801,coco-30k,A dog chasing two sheep on top of a lush green field.,41880,355234
+4802,coco-30k,A man sitting on top of a motorcycle next to a field.,54531,442962
+4803,coco-30k,An airplane flying through a cloudy sky flying over the ocean..,77943,28157
+4804,coco-30k,Two dogs are is sitting in the back seat of a car.,91884,236954
+4805,coco-30k,A man is riding a motorcycle down a wet sidewalk. ,8828,471868
+4806,coco-30k,A full view of a shower with glass.,54482,262284
+4807,coco-30k,There is more than one roll of toilet paper for this toilet. ,31753,278961
+4808,coco-30k,A picture of a white toilet in the rest room. ,50312,581615
+4809,coco-30k,"A restroom with a toilet basin, toilet paper and a mirror",43345,195897
+4810,coco-30k,A woman on a small motorcycle waits in traffic.,49709,45110
+4811,coco-30k,A small bulding is lit up in the dark night.,75865,486164
+4812,coco-30k,Multiple airplanes sit parked on the busy runway.,53882,140565
+4813,coco-30k,a small bathroom has a small toilet and grate in the floor.,16752,388027
+4814,coco-30k,A person at the door with a desk at the center of the room and a potted plant,3378,166401
+4815,coco-30k,A small kitten is sitting in the bowl on the scale.,74177,253216
+4816,coco-30k,A line of people are riding bicycles on the street.,15226,492077
+4817,coco-30k,People gathering at an old building to eat on a sunny day,18787,550666
+4818,coco-30k,Various bowls with food in them sit on the counter.,87028,192458
+4819,coco-30k,A jet is flying through the air leaving smoke behind it.,82014,527644
+4820,coco-30k,"a dog, sits on a rug, looking at a television",96498,435134
+4821,coco-30k,There is a a toilet on the barhrrim,79521,225867
+4822,coco-30k,Three giraffes and one zebra graze is in part of the grasslands,97131,140691
+4823,coco-30k,"Several people sitting around a table in a small room with a laptop, books and papers. ",13828,319579
+4824,coco-30k,There's an outdoor dining area featuring a fountain. ,71571,163076
+4825,coco-30k,A red motorcycle riding down one side of the street and a cow walking down the other side of the street.,90129,142718
+4826,coco-30k,An airplane flies high in the sky while a ship is up close.,64827,254104
+4827,coco-30k,A red and black smart car parked next to a parking meter.,61523,198775
+4828,coco-30k,A person falling off of a surfboard while other surfers watch.,83521,216096
+4829,coco-30k,a bunch of toilets laying on some cement stairs next to a building,17082,275929
+4830,coco-30k,a man on a dirt bike next to some vehicles,97166,148843
+4831,coco-30k,A herd of sheep standing on top of a lush green field.,94514,424289
+4832,coco-30k,A city with tall buildings and a large green park.,52358,259452
+4833,coco-30k,a stove top with a tea kettle with steam pouring out of it.,15184,346940
+4834,coco-30k,A bathroom showing a necklace rack and toiletries grouped on the sink ,29483,389445
+4835,coco-30k,two stunt airplanes touching their wings as the fly,54515,525322
+4836,coco-30k,a cat resting on the ground next to some beer bottles and a table,40040,296871
+4837,coco-30k,A man with oil changing items next to a motorcycle.,43927,131804
+4838,coco-30k,"The view of a kitchen's microwave, oven, and cabinets.",54545,522007
+4839,coco-30k,A group of men riding on the back of a motorcycle.,86188,10104
+4840,coco-30k,A sink in a kitchen with an overhead light on ,89341,367074
+4841,coco-30k,A small bathroom with a toilet and a sink.,45804,151832
+4842,coco-30k,The man is holding a teddy bear over the ledge of a bridge.,7016,61233
+4843,coco-30k,A dog  attached to a motor cycle by a leash.,68926,532426
+4844,coco-30k,The bathroom is equipped with several new appliances.,84061,239376
+4845,coco-30k,A kitchen sink sitting next to a toilet.,27235,32990
+4846,coco-30k,A cat eating food out of a bowl.,78234,230220
+4847,coco-30k,A man riding a bike next to a bus down a street.,39511,17244
+4848,coco-30k,An adorable dog looking out the side of a car door window.,87354,559950
+4849,coco-30k,A metal plane flying through a blue cloudy sky.,82134,11525
+4850,coco-30k,A public restroom in a state of disrepair.,4076,58927
+4851,coco-30k,The view from the airplane shows a mountain range.,79561,484986
+4852,coco-30k,a close up ofa small stuffed animal on the grill of a car,98974,323919
+4853,coco-30k,a cake decorated with an airplane has lit candles in it,89666,293011
+4854,coco-30k,A person taking a selfie in a bathroom mirror.,85956,539251
+4855,coco-30k,A woman in tight pants looking at her cell phone in the rain.,20473,447613
+4856,coco-30k,A bench that looks like a round hut.,99974,167235
+4857,coco-30k,A bowl full of broccoli with spoons on a table.,38464,412592
+4858,coco-30k,An industrial kitchen with a strainer on the counter.,99125,486
+4859,coco-30k,A herd of Giraffes and a herd of Zebra's running together across a field.,43655,553867
+4860,coco-30k,Lamps are the only lighting in this kitchen. ,88763,59479
+4861,coco-30k,An unfinished bathroom with a toilet is being worked on.,30107,424668
+4862,coco-30k,"Two girls sitting on the ground, one with a hat on, the other with an open umbrella. ",42653,333314
+4863,coco-30k,An old brick city has water and a clock tower.,53051,50637
+4864,coco-30k,A bunch of sheep smile are they walk by.,54412,488374
+4865,coco-30k,A shower stall with interesting tile is the focal point.,80829,579003
+4866,coco-30k,"A room filled with different types of items all around.
+",41589,385103
+4867,coco-30k,A young woman is curling her long hair.,39473,549171
+4868,coco-30k,In what country do they allow bicycles on a passenger train?,91692,44825
+4869,coco-30k,A bathroom with both a toilet and a urinal in it.,31305,149304
+4870,coco-30k,A traffic signal and signs attached to a pole.,81648,112329
+4871,coco-30k,a person sitting at a table with a laptop,321,48044
+4872,coco-30k,"A broad panorama of several people getting together.
+",77712,500833
+4873,coco-30k,An intersection that is close to a clock tower.,60927,448697
+4874,coco-30k,A blue table sitting inside of a restaurant with a menu on top of it.,89697,177143
+4875,coco-30k,A man walking a dog on a leash in a parking space.,2853,185156
+4876,coco-30k,a tub toilet sink and medicine cabinet and door,43188,380162
+4877,coco-30k,A kitchen sink with a basket of vegetables and knives beside it.,50103,242422
+4878,coco-30k,"At the picture is a scene of an airplane outside of a town.
+",59015,438704
+4879,coco-30k,A man kneeling down next to a brown cow.,58142,149912
+4880,coco-30k,A humble kitchen has a stove and microwave. ,47507,541550
+4881,coco-30k,There are a lot of air planes that are flying in the sky,58817,443630
+4882,coco-30k,A large fount sitting in the middle of a city.,13195,43202
+4883,coco-30k,A black cat sitting on top of the hood of a car.,61376,3711
+4884,coco-30k,A table full of items and on a sunny day. ,59171,516805
+4885,coco-30k,A very nice bathroom with toilet and mirror. ,50254,210855
+4886,coco-30k,"Photograph of an outdoors zone that looks unbelievable. 
+",63229,561121
+4887,coco-30k,A look of a bathroom sink through an open door.,61498,87929
+4888,coco-30k,"This is a thing that is straightforward and plain. 
+",23098,494991
+4889,coco-30k,There are diffrrnt Apia ces in the kitchen,75230,275695
+4890,coco-30k,a traffic light on a pole on a side walk,42645,168455
+4891,coco-30k,a close up of a dog near a bowl,77960,205834
+4892,coco-30k,a desk with a banana a keyboard and a mouse,76416,267932
+4893,coco-30k,"A full perspective of a restroom view with a few things. 
+",95601,504827
+4894,coco-30k,An open door and a cat inside a house.,21127,228683
+4895,coco-30k,A gang of bikers riding down a street next to tall buildings.,60533,342566
+4896,coco-30k,The tiny white bathroom has a toilet and pedestal sink.,59546,237316
+4897,coco-30k,A man walking across an airport next to a passenger jet.,67344,306908
+4898,coco-30k,Between branches of a tree an airplane is rising in the sky.,64358,457131
+4899,coco-30k,A man on a bicycle rides with his dog as a passenger in the back.,86391,225919
+4900,coco-30k,a giraffe and a zebra are standing in a field,19717,238700
+4901,coco-30k,A hot tub sitting under a window in a room.,47606,60203
+4902,coco-30k,a living room with a chair near a tv,30944,373857
+4903,coco-30k,A car that is sitting next to a building.,70766,563542
+4904,coco-30k,A train is stopped at a station beside a traffic signal.,98473,346954
+4905,coco-30k,A man riding a motorcycle down a street.,71073,523597
+4906,coco-30k,A laptop computer sitting on top of a table.,57753,464476
+4907,coco-30k,A man that is holding an umbrella in the grass.,66583,18666
+4908,coco-30k,A cat walking through a kitchen by a eating tray.,81293,491216
+4909,coco-30k,A street scene looking down at cars and motorcycles parked.,51732,93314
+4910,coco-30k,A couple snugging together on a wooden bench.,6116,202653
+4911,coco-30k,A person holding a computer mouse next to a keyboard.,46691,146504
+4912,coco-30k,A man riding a vintage motorcycle down a street.,65985,477853
+4913,coco-30k,A black motorcycle sits on a paved surface.,36440,346259
+4914,coco-30k,A kitchen table with two chairs against a wall.,54284,130030
+4915,coco-30k,"A photo of an outside with various things in the scene.
+",65679,229747
+4916,coco-30k,A white toilet sitting inside of a bathroom.,50511,540619
+4917,coco-30k,A van is traveling through a green light of an intersection. ,93135,578848
+4918,coco-30k,A chair that is placed in an alley way. ,99527,396209
+4919,coco-30k,A man that is standing next to a bike.,66929,390298
+4920,coco-30k,A young boy working on a wooden bench.,27692,434410
+4921,coco-30k,Some animals are attacking a white car in the middle of nowhere. ,33257,529004
+4922,coco-30k,"A living room has a television, a table, and a painting.",97272,150830
+4923,coco-30k,People behind a barricade watch a man ride a motorcycle.,5461,371365
+4924,coco-30k,"a miniature kitchen with a little fridge, stove and small table and stools",85244,28239
+4925,coco-30k,A man is posing for a great photo shop. ,5029,12896
+4926,coco-30k,A white toilet sitting next to a shower.,769,164242
+4927,coco-30k,a toilet with no tank attached to the wall,13426,531167
+4928,coco-30k,A small sink inside of a very clean and white bathroom. ,15705,241528
+4929,coco-30k,A store selling both ripe and unripe bananas.,48767,477919
+4930,coco-30k,A series of photos showing different restroom items.,60542,330265
+4931,coco-30k,A baby standing next to a  toilet with it's lid down.,77771,227852
+4932,coco-30k,A man is riding a bike and talking on his cell phone. ,33784,239130
+4933,coco-30k,A bike sitting In a glass window in a building,7699,401550
+4934,coco-30k,A white sink in a bathroom next to a toilet.,25817,449731
+4935,coco-30k,A row of motorcycles parked in front of a building.,89003,394240
+4936,coco-30k,Two people on motorcycles are at an intersection in a rural area.,69510,229317
+4937,coco-30k,A toilet with a lot of debris around the base. ,87484,244240
+4938,coco-30k,A bath tub sitting next to a toilet under a window.,1014,240111
+4939,coco-30k,A young man sitting on top of a white bench.,8139,132587
+4940,coco-30k,A bicycle on a road with a motor bike at the front,3905,564132
+4941,coco-30k,A man kneeling with his dog in the snow.,85315,357542
+4942,coco-30k,a silver jet fighter is flying upside down and some cliffs,26140,464181
+4943,coco-30k,A person standing near two cars is watching a jet take off from a field.,96757,153038
+4944,coco-30k,A woman cooking food on a stove while a dog watches.,14315,558671
+4945,coco-30k,"A tv, chair, side table, and other living room items in the dirt. ",13080,500568
+4946,coco-30k,A man posing for a picture beside his bike. ,53315,98043
+4947,coco-30k,"The room is filled with remarkable items well suited.
+",39182,391253
+4948,coco-30k,A fighter jet flying through a blue sky with smoke behind it.,91127,53454
+4949,coco-30k,A table with a plate of food and a urinal basin,15543,325114
+4950,coco-30k,A car with an argyle racing stripe in the rain. ,69547,415904
+4951,coco-30k,An airplane getting ready to take off at the airport,86337,550055
+4952,coco-30k,A man is smiling for the camera while standing in a kitchen.,47040,466986
+4953,coco-30k,A motor bike parked in front of a building with a cover on it ,12123,391637
+4954,coco-30k,A view of a couple types of toilet items.,47816,224742
+4955,coco-30k,a small metallic toilet in a tile bathroom,25241,575606
+4956,coco-30k,a motorcycle is parked near a building by the curb,66951,147758
+4957,coco-30k,a small white toilet is in a tiny bathroom,24212,160283
+4958,coco-30k,a fancy bathroom with some tile walls ,43148,514914
+4959,coco-30k,a brown and black counter a bath tub and a mirror and cups,43107,298732
+4960,coco-30k,a black motorcycle parked carrying a folding bicycle,34175,325557
+4961,coco-30k,A long line a men on bicycles in a race.,77596,442726
+4962,coco-30k,A bathroom has a floating toilet and sink and a walk-in shower.,81747,179921
+4963,coco-30k,people standing outside a building with clocks built into the side of it,87558,378657
+4964,coco-30k,A toilet has several toilet paper roll dispensers.,87296,534300
+4965,coco-30k,Sever airplanes are parked on an airport runway.,33344,320324
+4966,coco-30k,A man riding an elephant into some water of a creek.,9918,384553
+4967,coco-30k,A plain bathroom with toilet and bath tub,50317,186079
+4968,coco-30k,Many buses driving down the street in a city with buildings. ,32755,288435
+4969,coco-30k,Many planes are parked on a plane run way,25598,498666
+4970,coco-30k,Woman stirring boiling pan of food on back burner.,75669,461256
+4971,coco-30k,the back of an air plane flying through a blue sky,73759,500058
+4972,coco-30k,A large white bathroom with large sink and windows.,35868,442428
+4973,coco-30k,A basket of flowers on the counter of a bathroom.,1872,449950
+4974,coco-30k,"There is a classic, black automobile sitting in a showroom. There are people looking at it in the background. ",88103,315501
+4975,coco-30k,A man stares at another man tying a tie.,61183,163289
+4976,coco-30k,A person shows two bowls full of different fruits,22296,489305
+4977,coco-30k,A woman lies on the ground under a suitcase.,72677,233370
+4978,coco-30k,Several sinks lined up by a brick wall ,7552,13432
+4979,coco-30k,A red car driving down a mountain road next to a herd of sheep.,93303,7414
+4980,coco-30k,A city street filled with lots of traffic line with tall buildings.,78954,509675
+4981,coco-30k,A street scene with many people on motorbikes. ,13779,490629
+4982,coco-30k,A group of men riding motorcycle down a country road.,33850,503707
+4983,coco-30k,A vase filled with white flowers on top of a table.,89166,90753
+4984,coco-30k,A man in white swim trunks preparing to go in the water.,11662,534122
+4985,coco-30k,A woman holding up measuring cups and a cat watching on the counter.,27470,114239
+4986,coco-30k,"A macaroni dish with broccoli, onion and tomato",84165,25708
+4987,coco-30k,A man sits at a desk and uses a laptop on it,63601,96832
+4988,coco-30k,A blue and black motorcycle has a leather seat.,98291,282150
+4989,coco-30k,a massive variety of pots and other objects are displayed along a long kitchen counter with a sink and a clock on the wall.,60965,156278
+4990,coco-30k,A man standing in front of a mirror above a counter.,96230,80733
+4991,coco-30k,A cat sitting between two bikes  sitting next to each other.,30505,109055
+4992,coco-30k,A couple riding a motorcycle down a street.,36789,540806
+4993,coco-30k,A man filling jugs with water from a bathroom sink.,10250,382999
+4994,coco-30k,Horses communing with each other on a shady street.,39870,17178
+4995,coco-30k,A brown kitchen table with four chairs next to a counter.,63353,137475
+4996,coco-30k,A bedroom with a large bed sitting under a painting.,94501,178671
+4997,coco-30k,A professional motorcycle driver riding his bike on the track.,88154,374487
+4998,coco-30k,A cross walk crossing a street with lots of traffic.,25282,517674
+4999,coco-30k,A bird perched on the back of a white bench.,18124,328433
