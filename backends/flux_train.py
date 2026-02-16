@@ -1078,16 +1078,29 @@ def main():
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                mu = float(rtimestep)
-                sigma = 0.05 * hyper_train_steps  # 5% of total range (good default)
+                K = 5  # number of timesteps
+                B = batch_prompts.shape[0]
 
-                t_min = 0
-                t_max = hyper_train_steps - 1
+                # Create 5 uniformly spaced timesteps from 0 to hyper_train_steps (inclusive)
+                t_grid = torch.linspace(
+                    0,
+                    hyper_train_steps,
+                    steps=K,
+                    device=accelerator.device
+                ).round().to(torch.long)  # ensure integer timesteps
 
-                t_ = torch.randn(B, device=accelerator.device, dtype=torch.float32) * sigma + mu
-                t_ = t_.round().clamp(t_min, t_max).to(torch.long)
+                # Expand across batch: (K,) -> (B, K) -> (B*K,)
+                t_flat = t_grid.unsqueeze(0).expand(B, K).reshape(B * K)
 
-                hyper.compute_and_cache_loras(batch_prompts, t_)
+                # Expand prompts to match timesteps
+                # (B, D) -> (B, K, D) -> (B*K, D)
+                batch_prompts_exp = (
+                    batch_prompts.unsqueeze(1)
+                        .expand(-1, K, -1)
+                        .reshape(B * K, -1)
+                )
+
+                hyper.compute_and_cache_loras(batch_prompts_exp, t_flat)
                 tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                 # Retain loss: minimize LoRA weight change across timesteps
