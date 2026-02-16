@@ -1078,30 +1078,32 @@ def main():
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                K = 5  # number of timesteps
+                K = 5
                 B = batch_prompts.shape[0]
 
-                # Create 5 uniformly spaced timesteps from 0 to hyper_train_steps (inclusive)
-                t_grid = torch.linspace(
-                    0,
-                    hyper_train_steps,
-                    steps=K,
-                    device=accelerator.device
-                ).round().to(torch.long)  # ensure integer timesteps
-
-                # Expand across batch: (K,) -> (B, K) -> (B*K,)
-                t_flat = t_grid.unsqueeze(0).expand(B, K).reshape(B * K)
-
-                # Expand prompts to match timesteps
-                # (B, D) -> (B, K, D) -> (B*K, D)
+                # Expand prompts once
                 batch_prompts_exp = (
                     batch_prompts.unsqueeze(1)
                         .expand(-1, K, -1)
                         .reshape(B * K, -1)
                 )
 
-                hyper.compute_and_cache_loras(batch_prompts_exp, t_flat)
+                # t = 0 expanded
+                t0 = torch.zeros(B * K, device=accelerator.device, dtype=torch.long)
+                hyper.compute_and_cache_loras(batch_prompts_exp, t0)
+                tensors_flat_t0 = hyper.flatten_cached_from_cache()
+
+                # K uniform timesteps in [0, hyper_train_steps] inclusive
+                t_grid = torch.linspace(
+                    0, hyper_train_steps, steps=K,
+                    device=accelerator.device
+                ).round().to(torch.long)
+
+                t1 = t_grid.unsqueeze(0).expand(B, K).reshape(B * K)
+                hyper.compute_and_cache_loras(batch_prompts_exp, t1)
                 tensors_flat_t1 = hyper.flatten_cached_from_cache()
+
+                delta = tensors_flat_t1 - tensors_flat_t0
 
                 # Retain loss: minimize LoRA weight change across timesteps
                 delta = tensors_flat_t1 - tensors_flat_t0
