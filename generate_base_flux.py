@@ -92,19 +92,38 @@ if __name__ == "__main__":
             print(f"Skip [{int(image_id)}] empty prompt")
             continue
 
-        #seed = 2024#int(row.get("evaluation_seed", 0))
-        generator = torch.Generator(device).manual_seed(seed)
+        seed = int(row.get("evaluation_seed", 0))
+        generator = torch.Generator(device=pipe.device).manual_seed(seed)
 
         start = time.time()
-        image = pipe(
+
+        # 1) Encode prompt once
+        prompt_embeds, pooled_prompt_embeds, text_ids = pipe.encode_prompt(
             prompt=prompt,
-            guidance_scale=3.5,
-            num_inference_steps=args.num_inference_steps,
+            prompt_2=None,  # matches default behavior (prompt_2 := prompt)
+            device=pipe.device,
+            num_images_per_prompt=1,
+            max_sequence_length=256,
+            lora_scale=None,
+        )
+
+        # 2) Apply the "fix": disable pooled projections (CLIP pooled)
+        pooled_prompt_embeds = torch.zeros_like(pooled_prompt_embeds)
+
+        # 3) Call the pipeline using embeds (NOT prompt=...)
+        out = pipe(
+            prompt=None,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
             height=args.image_size,
             width=args.image_size,
+            num_inference_steps=args.num_inference_steps,
+            guidance_scale=3.5,
             generator=generator,
-            max_sequence_length=256
-        ).images[0]
+            max_sequence_length=256,
+        )
+
+        image = out.images[0]
         image.save(image_path)
         images_generated += 1
         end = time.time()
