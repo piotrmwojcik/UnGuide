@@ -137,6 +137,7 @@ def main():
     concepts = config.get('concepts', [])
     mapping_concept = config.get('mapping_concept', [])
     retain_csv_path = config.get('retain_csv_path', None)
+    min_retain_sample = config.get('min_retain_sample', 10)
 
     # Augmentation flags
     augment_target = config.get('augment_target', True)
@@ -151,7 +152,7 @@ def main():
 
     # Retain balancing parameters
     retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
-    retain_batch_size = config.get('retain_batch_size', min(10, retain_steps_per_remove))
+    retain_batch_size = config.get('retain_batch_size', min(min_retain_sample, retain_steps_per_remove))
     learning_rate_retain = learning_rate_retain
 
     # Paths
