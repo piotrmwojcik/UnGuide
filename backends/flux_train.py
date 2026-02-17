@@ -1090,7 +1090,7 @@ def main():
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
                 choices = torch.tensor(
-                    [50, 100, hyper_train_steps],
+                    [10, 25, 50, 75, 100, 125, 150, 200, hyper_train_steps],
                     device=accelerator.device,
                     dtype=torch.long
                 )
