@@ -92,7 +92,7 @@ if __name__ == "__main__":
             print(f"Skip [{int(image_id)}] empty prompt")
             continue
 
-        seed = int(row.get("evaluation_seed", 0))
+        seed = 2024#int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
