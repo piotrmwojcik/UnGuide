@@ -98,7 +98,7 @@ if __name__ == "__main__":
         start = time.time()
         image = pipe(
             prompt=prompt,
-            guidance_scale=3.5,
+            #guidance_scale=3.5,
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
