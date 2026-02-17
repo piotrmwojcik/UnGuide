@@ -102,7 +102,7 @@ if __name__ == "__main__":
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
-            generator=generator,
+            #generator=generator,
             max_sequence_length=256
         ).images[0]
         image.save(image_path)
