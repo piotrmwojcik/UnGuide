@@ -92,17 +92,17 @@ if __name__ == "__main__":
             print(f"Skip [{int(image_id)}] empty prompt")
             continue
 
-        seed = 2024#int(row.get("evaluation_seed", 0))
+        #seed = 2024#int(row.get("evaluation_seed", 0))
         generator = torch.Generator(device).manual_seed(seed)
 
         start = time.time()
         image = pipe(
             prompt=prompt,
-            #guidance_scale=3.5,
+            guidance_scale=3.5,
             num_inference_steps=args.num_inference_steps,
             height=args.image_size,
             width=args.image_size,
-            #generator=generator,
+            generator=generator,
             max_sequence_length=256
         ).images[0]
         image.save(image_path)
