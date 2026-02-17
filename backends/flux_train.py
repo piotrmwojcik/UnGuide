@@ -1089,14 +1089,21 @@ def main():
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                mu = float(rtimestep)
-                sigma = 0.1 * hyper_train_steps  # 5% of total range (good default)
+                choices = torch.tensor(
+                    [50, 100, hyper_train_steps],
+                    device=accelerator.device,
+                    dtype=torch.long
+                )
 
-                t_min = 0
-                t_max = hyper_train_steps - 1
+                # Sample one choice per batch element
+                idx = torch.randint(
+                    low=0,
+                    high=len(choices),
+                    size=(B,),
+                    device=accelerator.device
+                )
 
-                t_ = torch.randn(B, device=accelerator.device, dtype=torch.float32) * sigma + mu
-                t_ = t_.round().clamp(t_min, t_max).to(torch.long)
+                t_ = choices[idx]
 
                 hyper.compute_and_cache_loras(batch_prompts, t_)
                 tensors_flat_t1 = hyper.flatten_cached_from_cache()
