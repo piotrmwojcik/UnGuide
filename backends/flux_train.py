@@ -500,6 +500,7 @@ def main():
     hyper_train_steps = config.get('hyper_train_steps', 300)
     rank = config['rank']
     lora_alpha = config['lora_alpha']
+    retain_steps_per_remove = config.get('retain_steps_per_remove', 1)
     internal_size = config['internal_size']
     seed = config.get('seed', 2024)
 
@@ -1065,46 +1066,47 @@ def main():
             accelerator.backward(loss_remove)
 
             if len(retain_embeddings) > 0:
-                # Sample multiple retain concepts
-                num_retain_samples = min(min_retain_sample, len(retain_embeddings))
-                sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
+                for _ in range(retain_steps_per_remove):
+                    # Sample multiple retain concepts
+                    num_retain_samples = min(min_retain_sample, len(retain_embeddings))
+                    sampled_retain_embs = random.sample(retain_embeddings, num_retain_samples)
 
-                # Batch process retain concepts
-                batch_retain_embs = (
-                    torch.stack(sampled_retain_embs, dim=0)
-                        .to(device=accelerator.device, dtype=torch.bfloat16)
-                )
-                hyper = base.hyper
-                B = batch_retain_embs.shape[0]
-                perm = torch.randperm(B, device=batch_retain_embs.device)
-                batch_prompts = batch_retain_embs[perm]
+                    # Batch process retain concepts
+                    batch_retain_embs = (
+                        torch.stack(sampled_retain_embs, dim=0)
+                            .to(device=accelerator.device, dtype=torch.bfloat16)
+                    )
+                    hyper = base.hyper
+                    B = batch_retain_embs.shape[0]
+                    perm = torch.randperm(B, device=batch_retain_embs.device)
+                    batch_prompts = batch_retain_embs[perm]
 
-                # Compute LoRAs at t=0
-                dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
+                    # Compute LoRAs at t=0
+                    dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
 
-                hyper.compute_and_cache_loras(
-                    batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
-                    torch.zeros(B, device=accelerator.device, dtype=dtype),
-                )
+                    hyper.compute_and_cache_loras(
+                        batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
+                        torch.zeros(B, device=accelerator.device, dtype=dtype),
+                    )
 
-                tensors_flat_t0 = hyper.flatten_cached_from_cache()
+                    tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                t_ = torch.randint(
-                    0,
-                    hyper_train_steps + 1,
-                    (B,),
-                    device=accelerator.device
-                )
+                    t_ = torch.randint(
+                        0,
+                        hyper_train_steps + 1,
+                        (B,),
+                        device=accelerator.device
+                    )
 
-                hyper.compute_and_cache_loras(batch_prompts, t_)
-                tensors_flat_t1 = hyper.flatten_cached_from_cache()
+                    hyper.compute_and_cache_loras(batch_prompts, t_)
+                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
-                # Retain loss: minimize LoRA weight change across timesteps
-                delta = tensors_flat_t1 - tensors_flat_t0
-                loss_retain = retain_weight * delta.pow(2).mean()
-            else:
-                loss_retain = torch.tensor(0.0, device=accelerator.device)
-            accelerator.backward(loss_retain)
+                    # Retain loss: minimize LoRA weight change across timesteps
+                    delta = tensors_flat_t1 - tensors_flat_t0
+                    loss_retain = retain_weight * delta.pow(2).mean()
+                else:
+                    loss_retain = torch.tensor(0.0, device=accelerator.device)
+                accelerator.backward(loss_retain)
 
             loss_remove_log = loss_remove.clone().detach()
             loss_retain_log = loss_retain.clone().detach()
