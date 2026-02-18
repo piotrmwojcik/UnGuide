@@ -1091,7 +1091,7 @@ def main():
 
                 t_ = torch.randint(
                     0,
-                    hyper_timesteps,
+                    hyper_train_steps + 1,
                     (B,),
                     device=accelerator.device
                 )
