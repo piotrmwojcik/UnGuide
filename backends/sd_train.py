@@ -580,21 +580,15 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    choices = torch.tensor(
-                        [50, 100, hyper_train_steps],
-                        device=accelerator.device,
-                        dtype=torch.long
-                    )
-
-                    # Sample one choice per batch element
-                    idx = torch.randint(
-                        low=0,
-                        high=len(choices),
-                        size=(B,),
+                    t_ = torch.randint(
+                        0,
+                        hyper_train_steps + 1,
+                        (B,),
                         device=accelerator.device
                     )
 
-                    t_ = choices[idx]
+                    hyper.compute_and_cache_loras(batch_prompts, t_)
+                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
                     hyper.compute_and_cache_loras(batch_prompts, t_)
                     tensors_flat_t1 = hyper.flatten_cached_from_cache()
