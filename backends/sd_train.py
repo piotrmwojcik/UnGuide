@@ -590,9 +590,6 @@ def main():
                     hyper.compute_and_cache_loras(batch_prompts, t_)
                     tensors_flat_t1 = hyper.flatten_cached_from_cache()
 
-                    hyper.compute_and_cache_loras(batch_prompts, t_)
-                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
-
                     delta = tensors_flat_t1 - tensors_flat_t0
                     loss_retain = retain_weight * delta.pow(2).mean()
                     loss_retain_total = loss_retain_total + loss_retain.detach()
