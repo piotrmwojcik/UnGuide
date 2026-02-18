@@ -1065,6 +1065,14 @@ def main():
             loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
             accelerator.backward(loss_remove)
 
+            loss_remove_log = loss_remove.clone().detach()
+
+            if accelerator.sync_gradients:
+                optimizer_remove.step()
+                optimizer_remove.zero_grad(set_to_none=True)
+                scheduler_remove.step()
+
+            loss_retain_total = torch.tensor(0.0, device=accelerator.device)
             if len(retain_embeddings) > 0:
                 for _ in range(retain_steps_per_remove):
                     # Sample multiple retain concepts
@@ -1104,28 +1112,23 @@ def main():
                     # Retain loss: minimize LoRA weight change across timesteps
                     delta = tensors_flat_t1 - tensors_flat_t0
                     loss_retain = retain_weight * delta.pow(2).mean()
-                else:
-                    loss_retain = torch.tensor(0.0, device=accelerator.device)
-                accelerator.backward(loss_retain)
+                    loss_retain_total = loss_retain_total + loss_retain.detach()
 
-            loss_remove_log = loss_remove.clone().detach()
-            loss_retain_log = loss_retain.clone().detach()
+                    accelerator.backward(loss_retain)
+                    if accelerator.sync_gradients:
+                        optimizer_retain.step()
+                        optimizer_retain.zero_grad(set_to_none=True)
 
-            if accelerator.sync_gradients:
-                optimizer_remove.step()
-                optimizer_retain.step()
+                if accelerator.sync_gradients:
+                    loss_retain_total /= retain_steps_per_remove
+                    scheduler_retain.step()
 
-                optimizer_remove.zero_grad(set_to_none=True)
-                optimizer_retain.zero_grad(set_to_none=True)
-
-                scheduler_remove.step()
-                scheduler_retain.step()
+            loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
 
         # Gather loss across devices
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
             loss_remove_reduced = accelerator.gather(loss_remove_log).mean()
-
         losses.append(float(loss_remove_reduced.item() + loss_retain_reduced.item()))
 
         if accelerator.is_main_process and use_wandb:
