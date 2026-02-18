@@ -1089,21 +1089,12 @@ def main():
 
                 tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                choices = torch.tensor(
-                    [10, 25, 50, 75, 100, 125, 150, 200, hyper_train_steps],
-                    device=accelerator.device,
-                    dtype=torch.long
-                )
-
-                # Sample one choice per batch element
-                idx = torch.randint(
-                    low=0,
-                    high=len(choices),
-                    size=(B,),
+                t_ = torch.randint(
+                    0,
+                    hyper_timesteps,
+                    (B,),
                     device=accelerator.device
                 )
-
-                t_ = choices[idx]
 
                 hyper.compute_and_cache_loras(batch_prompts, t_)
                 tensors_flat_t1 = hyper.flatten_cached_from_cache()
@@ -1176,7 +1167,7 @@ def main():
                 imgs_per_prompt = []
 
                 for h_step in diag_time_steps:
-                    h_step_tensor = torch.tensor([h_step], device=device)
+                    h_step_tensor = torch.tensor([0, h_step], device=device)
 
                     base.hyper.set_context(hyper_emb_diag, h_step_tensor)
                     base.hyper.compute_and_cache_loras(hyper_emb_diag, h_step_tensor)
