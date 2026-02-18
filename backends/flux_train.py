@@ -1156,7 +1156,7 @@ def main():
                     diag_prompt, text_encoders, tokenizers, accelerator.device
                 )
 
-                diag_time_steps = [hyper_train_steps]
+                diag_time_steps = [0, hyper_train_steps]
 
                 device = accelerator.device
 
@@ -1167,7 +1167,7 @@ def main():
                 imgs_per_prompt = []
 
                 for h_step in diag_time_steps:
-                    h_step_tensor = torch.tensor([0, h_step], device=device)
+                    h_step_tensor = torch.tensor([h_step], device=device)
 
                     base.hyper.set_context(hyper_emb_diag, h_step_tensor)
                     base.hyper.compute_and_cache_loras(hyper_emb_diag, h_step_tensor)
