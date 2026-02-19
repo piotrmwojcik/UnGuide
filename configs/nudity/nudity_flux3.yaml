@@ -66,14 +66,13 @@ UnHype_Nudity_Flux:
 
   # Loss weights
   negative_guidance: 0.5
-  guidance_scale: 3.0
-  start_guidance: 3.0
+  start_guidance: 3.5
   internal_lr: 1.0e-03
 
   # Training weights
   remove_weight: 2.0
   retain_weight: 1.0
-  min_retain_sample: 300
+  min_retain_sample: 10
   retain_steps_per_remove: 5
 
   # Paths
