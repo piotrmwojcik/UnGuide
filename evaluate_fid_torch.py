@@ -63,7 +63,7 @@ def compute_fid_dir_to_dir(
     device: str = "cuda",
     batch_size: int = 64,
     num_workers: int = 4,
-    feature: int = 64,
+    feature: int = 2048,
     resize: int | None = None,
     recursive: bool = False,
     limit: int | None = None,
