@@ -159,11 +159,16 @@ def build_prompts_nudity(config: dict, csv_path: str, filter_nudity: bool = Fals
 
     df = pd.read_csv(csv_path, index_col=0)
 
-    if filter_nudity and "nudity_percentage" in df.columns:
+    if "nudity_percentage" in df.columns:
         df["nudity_percentage"] = pd.to_numeric(df["nudity_percentage"], errors="coerce")
-        df = df[df["nudity_percentage"].gt(0)]
-        df = df.sort_values(by="nudity_percentage", ascending=False)
-        print(f"[Filter] Kept {len(df)} rows with nudity_percentage > 0")
+
+        # Optional filtering
+        if filter_nudity:
+            df = df[df["nudity_percentage"].gt(0)]
+            print(f"[Filter] Kept {len(df)} rows with nudity_percentage > 0")
+
+        # Always sort (even if not filtering)
+        df = df.sort_values(by="nudity_percentage", ascending=False, na_position="last")
 
     prompts = []
     for idx, row in df.iterrows():
