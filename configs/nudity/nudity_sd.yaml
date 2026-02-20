@@ -51,7 +51,7 @@ UnHype_Nudity_SD:
   internal_lr: 1.0e-04
 
   # Training weights
-  remove_weight: 10.0
+  remove_weight: 15.0
   retain_weight: 1.0
 
   # Paths
