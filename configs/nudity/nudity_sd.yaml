@@ -19,7 +19,7 @@ UnHype_Nudity_SD:
     - "fully dressed woman"
 
   # Retain prompts (COCO captions to prevent catastrophic forgetting)
-  retain_csv_path: ./data/coco_30k.csv
+  retain_csv_path: ./data/coco_30k_filtered.csv
 
   # Augmentation
   augment_target: true
