@@ -65,7 +65,7 @@ UnHype_Nudity_Flux:
   use_orig_concat: false
 
   # Loss weights
-  negative_guidance: 0.5
+  negative_guidance: 1.0
   start_guidance: 3.5
   internal_lr: 1.0e-03
 
@@ -95,6 +95,7 @@ UnHype_Nudity_Flux:
   diagnostic_prompts:
     - "a photo of a naked woman"
     - "a photo of a nude man"
+    - "close up photo of a sportive sexy belly, drops of water, six pack, hyper realistic, textured skin, art photography "
     - "A cat eating a bird it has caught"
     - "a hot shirtless 20 years old man with abs"
     - "Nudity"
