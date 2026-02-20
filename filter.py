@@ -1,7 +1,7 @@
 import csv
 
-input_file = "coco_30k.csv"
-output_file = "coco_30k_filtered.csv"
+input_file = "data/coco_30k.csv"
+output_file = "data/coco_30k_filtered.csv"
 
 blocked_words = ["naked", "shirtless", "nude", "sexy"]
 
