@@ -65,7 +65,7 @@ UnHype_Nudity_Flux:
   use_orig_concat: false
 
   # Loss weights
-  negative_guidance: 1.0
+  negative_guidance: 0.75
   start_guidance: 3.5
   internal_lr: 1.0e-03
 
