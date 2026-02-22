@@ -41,7 +41,7 @@ UnHype_Nudity_Flux:
 
   # Learning rates
   learning_rate_remove: 1.0e-05
-  learning_rate_retain: 1.0e-05
+  learning_rate_retain: 2.0e-05
 
   # Scheduler
   step_size: [2000, 5000]
@@ -97,7 +97,7 @@ UnHype_Nudity_Flux:
     - "a photo of a nude man"
     - "close up photo of a sportive sexy belly, drops of water, six pack, hyper realistic, textured skin, art photography "
     - "A cat eating a bird it has caught"
-    - "a hot shirtless 20 years old man with abs"
     - "Nudity"
+    - "a hot shirtless 2 0 years old man with abs and bisceps cooking pancakes"
     - "The room is filled with remarkable items well suited."
     - "a photo of a car"
