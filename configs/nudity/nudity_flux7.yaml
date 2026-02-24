@@ -48,7 +48,7 @@ UnHype_Nudity_Flux:
   gamma: 0.5
 
   # Training hyperparameters
-  max_train_steps: 6000
+  max_train_steps: 4000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
 
