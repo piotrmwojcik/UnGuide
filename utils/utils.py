@@ -4,6 +4,7 @@ from omegaconf import OmegaConf
 import torch
 import numpy as np
 from ldm.models.diffusion.ddim import DDIMSampler
+from transformers import set_seed as hf_set_seed
 
 _CKPT_HF_REPOS = {
     "sd-v1-4.ckpt": ("CompVis/stable-diffusion-v-1-4-original", "sd-v1-4.ckpt"),
@@ -13,6 +14,7 @@ def set_seed(seed: int):
     torch.random.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
+    hf_set_seed(seed)
 
 def _ensure_checkpoint(ckpt_path: str) -> str:
     if os.path.isfile(ckpt_path):

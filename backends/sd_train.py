@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import wandb
 from accelerate import Accelerator
-from accelerate.utils import ProjectConfiguration, set_seed as hf_set_seed
+from accelerate.utils import ProjectConfiguration, set_seed 
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
@@ -201,7 +201,7 @@ def main():
     print("=" * 48)
 
     if seed is not None:
-        hf_set_seed(seed)
+        set_seed(seed)
 
     accelerator_project_config = ProjectConfiguration(
         project_dir=output_dir,
