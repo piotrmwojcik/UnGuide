@@ -633,7 +633,14 @@ def main():
                 diag_emb = hyper_cache.get(diag_prompt, accelerator.device)
 
                 diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
-                start_code_diag = torch.randn((1, 4, resolution // 8, resolution // 8), device=accelerator.device)
+                gen = torch.Generator(device=accelerator.device)
+                gen.manual_seed(seed)
+
+                start_code_diag = torch.randn(
+                    (1, 4, resolution // 8, resolution // 8),
+                    generator=gen,
+                    device=accelerator.device
+                )
                 imgs_per_prompt = []
 
                 for h_step in diag_time_steps:
