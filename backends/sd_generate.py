@@ -360,7 +360,7 @@ def main():
 
         t_prompt = embed_fn(prompt)
         hyper_device = model.hyper.hyper_layers[0].alpha.device if model.hyper.hyper_layers else device
-        weight_dtype = model.hyper.hyper_layers[0].alpha.dtype if model.hyper.hyper_layers else torch.float32
+        weight_dtype = model.hyper.hyper_layers[0].alpha.dtype if model.hyper.hyper_layers else torch.float64
 
         t_prompt = t_prompt.to(dtype=weight_dtype, device=hyper_device)
         timestep = torch.tensor([hyper_train_steps], dtype=weight_dtype, device=hyper_device)
