@@ -17,7 +17,8 @@ import torch
 import torch.nn as nn
 import wandb
 from accelerate import Accelerator
-from accelerate.utils import ProjectConfiguration, set_seed 
+from accelerate.utils import ProjectConfiguration
+from utils import set_seed
 from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
