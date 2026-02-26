@@ -573,12 +573,18 @@ def main():
                     batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
 
                     hyper = base.hyper
-                    batch_prompts = batch_retain_embs.repeat(max(1, hyper_train_steps // num_retain_samples), 1)
-                    B = batch_prompts.shape[0]
-                    perm = torch.randperm(B, device=batch_prompts.device)
-                    batch_prompts = batch_prompts[perm]
+                    B = batch_retain_embs.shape[0]
+                    perm = torch.randperm(B, device=batch_retain_embs.device)
+                    batch_prompts = batch_retain_embs[perm]
 
-                    hyper.compute_and_cache_loras(batch_prompts, torch.zeros(B, device=accelerator.device))
+                    # Compute LoRAs at t=0
+                    dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
+
+                    hyper.compute_and_cache_loras(
+                        batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
+                        torch.zeros(B, device=accelerator.device, dtype=dtype),
+                    )
+
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
                     t_ = torch.randint(
