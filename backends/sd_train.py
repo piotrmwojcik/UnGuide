@@ -578,7 +578,7 @@ def main():
                     batch_prompts = batch_retain_embs[perm]
 
                     # Compute LoRAs at t=0
-                    dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
+                    weight_dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
 
                     hyper.compute_and_cache_loras(
                         batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
