@@ -52,7 +52,7 @@ UnHype_Nudity_SD:
 
   # Training weights
   remove_weight: 15.0
-  retain_weight: 1.0
+  retain_weight: 0.1
 
   # Paths
   output_dir: output/nudity_sd
