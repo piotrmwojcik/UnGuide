@@ -581,8 +581,8 @@ def main():
                     weight_dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
 
                     hyper.compute_and_cache_loras(
-                        batch_prompts.to(dtype=dtype).to(dtype=weight_dtype),
-                        torch.zeros(B, device=accelerator.device, dtype=dtype),
+                        batch_prompts.to(dtype=weight_dtype).to(dtype=weight_dtype),
+                        torch.zeros(B, device=accelerator.device, dtype=weight_dtype),
                     )
 
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
