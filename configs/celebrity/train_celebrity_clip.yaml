@@ -217,8 +217,8 @@ UnHype_Celebrity_CLIP:
   celebrity_mode: true
 
   # Training hyperparameters
-  learning_rate_remove: 5.0e-04
-  learning_rate_retain: 5.0e-04
+  learning_rate_remove: 5.0e-05
+  learning_rate_retain: 5.0e-05
   max_train_steps: 6000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
@@ -240,7 +240,7 @@ UnHype_Celebrity_CLIP:
   # Training weights
   remove_weight: 10.0
   retain_weight: 5.0
-  retain_steps_per_remove: 20
+  retain_steps_per_remove: 5
   retain_batch_size: 1000
 
   # Paths
