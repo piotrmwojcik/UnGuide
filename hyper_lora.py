@@ -205,6 +205,70 @@ class HyperLora(nn.Module):
         return ret
 
 
+class LinearLora(nn.Module):
+    """Ablation baseline: simple linear projection from CLIP embedding to LoRA weights.
+    No timestep dependence, no Fourier features, no MLP — just nn.Linear."""
+
+    def __init__(
+            self,
+            in_dim: int,
+            out_dim: int,
+            rank: int = 4,
+            clip_size: int = 768,
+            alpha_init: float = 16.0,
+            use_scaling=True,
+            original_linear=None,
+            dtype: torch.dtype = torch.float32,
+            **kwargs,  # absorb unused args (train_steps, internal_size, etc.)
+    ):
+        super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.rank = rank
+        self.clip_size = clip_size
+        self.original = original_linear
+        self.use_orig_concat = False  # not used
+        self.dtype = dtype
+
+        self.left_proj = nn.Linear(clip_size, in_dim * rank, dtype=dtype)
+        self.right_proj = nn.Linear(clip_size, out_dim * rank, dtype=dtype)
+
+        # Zero-init right side so LoRA starts as identity
+        nn.init.zeros_(self.right_proj.weight)
+        nn.init.zeros_(self.right_proj.bias)
+
+        self.use_scaling = use_scaling
+        if self.use_scaling:
+            self.alpha = nn.Parameter(torch.tensor(alpha_init, dtype=dtype))
+
+    def get_lora_matrices(self, clip, t=None):
+        """t is accepted but ignored — no timestep dependence."""
+        x_L = self.left_proj(clip.to(dtype=self.dtype))
+        x_R = self.right_proj(clip.to(dtype=self.dtype))
+
+        if self.use_scaling:
+            alpha = self.alpha.unsqueeze(0).expand(clip.shape[0], 1)
+            x_L = alpha * x_L
+        else:
+            alpha = torch.ones(clip.shape[0], 1, device=clip.device, dtype=self.dtype)
+
+        if alpha.requires_grad:
+            alpha.retain_grad()
+        if x_L.requires_grad:
+            x_L.retain_grad()
+        if x_R.requires_grad:
+            x_R.retain_grad()
+
+        x_L = x_L.view(-1, self.in_dim, self.rank)
+        x_R = x_R.view(-1, self.rank, self.out_dim)
+
+        return alpha, x_L, x_R
+
+    def forward(self, x, clip, t=None):
+        alpha, x_L, x_R = self.get_lora_matrices(clip, t)
+        return (x @ x_L) @ x_R
+
+
 class HyperLoRALinear(nn.Module):
 
     def __init__(
@@ -216,23 +280,35 @@ class HyperLoRALinear(nn.Module):
             layer_name: str = None,
             train_steps: int = None,
             use_orig_concat: bool = False,
+            use_linear_projection: bool = False,
             dtype: torch.dtype = torch.float32,
             internal_size: int = 100,
     ):
         super().__init__()
         self.original = original_linear
-        self.hyper_lora = HyperLora(
-            original_linear.in_features,
-            original_linear.out_features,
-            rank,
-            clip_size,
-            alpha,
-            train_steps=train_steps,
-            original_linear=original_linear,
-            use_orig_concat=use_orig_concat,
-            dtype=dtype,
-            internal_size=internal_size,
-        )
+        if use_linear_projection:
+            self.hyper_lora = LinearLora(
+                original_linear.in_features,
+                original_linear.out_features,
+                rank,
+                clip_size,
+                alpha_init=alpha,
+                original_linear=original_linear,
+                dtype=dtype,
+            )
+        else:
+            self.hyper_lora = HyperLora(
+                original_linear.in_features,
+                original_linear.out_features,
+                rank,
+                clip_size,
+                alpha,
+                train_steps=train_steps,
+                original_linear=original_linear,
+                use_orig_concat=use_orig_concat,
+                dtype=dtype,
+                internal_size=internal_size,
+            )
         self.parent_model = None
         self.layer_name = layer_name
 

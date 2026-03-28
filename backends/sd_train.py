@@ -23,7 +23,7 @@ from torchvision.transforms.functional import to_pil_image
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm import tqdm
 
-from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora
+from hyper_lora import HyperLoRALinear, HypernetworkManager, inject_hyper_lora, LinearLora
 from ldm.models.diffusion.ddim import DDIMSampler
 from utils.sampling import sample_model
 from utils import load_model_from_config, print_trainable_parameters
@@ -132,6 +132,7 @@ def main():
     resolution = config.get('resolution', 512)
     diagnostic_freq = config.get('diagnostic_freq', 500)
     use_orig_concat = config.get('use_orig_concat', False)
+    use_linear_projection = config.get('use_linear_projection', False)
     gradient_accumulation_steps = config.get('gradient_accumulation_steps', 1)
 
     # Multi-concept configuration
@@ -185,6 +186,7 @@ def main():
         'internal_size': internal_size,
         'hyper_train_steps': hyper_train_steps,
         'use_orig_concat': use_orig_concat,
+        'use_linear_projection': use_linear_projection,
         'use_pooler': use_pooler,
         'embedding_model': embedding_model,
         'backend': 'sd',
@@ -263,6 +265,7 @@ def main():
         alpha=lora_alpha,
         train_steps=hyper_train_steps,
         use_orig_concat=use_orig_concat,
+        use_linear_projection=use_linear_projection,
         internal_size=internal_size,
     )
 
@@ -515,103 +518,166 @@ def main():
                 emb_n = base.get_learned_conditioning([target_text_augmented])
                 emb_m = base.get_learned_conditioning([mapping_text_augmented])
 
-            valid_timesteps = torch.arange(rank_proc, hyper_train_steps, world_size, device=accelerator.device)
-            rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(),
-                                                          (1,))]) if valid_timesteps.numel() > 0 else int(
-                torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+            if use_linear_projection:
+                # ── Linear projection path: direct optimization, no timestep delta ──
+                t_zero = torch.zeros(1, device=accelerator.device)
+                base.hyper.set_context(target_emb, t_zero)
+                base.hyper.compute_and_cache_loras(target_emb, t_zero)
 
-            base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
-            _, current_timestep = base.hyper.get_context()
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+                with torch.no_grad():
+                    with base.hyper.no_lora():
+                        z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
+                        e_m = base.apply_model(z, t_enc_ddpm, emb_m)
+                        e_p = base.apply_model(z, t_enc_ddpm, emb_p)
 
-            with torch.no_grad():
-                # Use base model without LoRA for reference outputs
-                with base.hyper.no_lora():
-                    z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
-                    e_m = base.apply_model(z, t_enc_ddpm, emb_m)
-                    e_p = base.apply_model(z, t_enc_ddpm, emb_p)
+                base.hyper.set_context(target_emb, t_zero)
+                base.hyper.compute_and_cache_loras(target_emb, t_zero)
+                e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
-            base.hyper.set_context(target_emb, current_timestep)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            base.hyper.retain_grad_for_cached_lora()
-            e_n = base.apply_model(z, t_enc_ddpm, emb_n)
+                target = e_m - (negative_guidance * (e_p - e_m))
+                loss_remove = remove_weight * criterion(e_n, target)
+                accelerator.backward(loss_remove)
 
-            target = e_m - (negative_guidance * (e_p - e_m))
-            loss_aux = criterion(e_n, target)
-            accelerator.backward(loss_aux)
-
-            grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
-            if grads_flat_t is None:
-                raise RuntimeError("No gradients found in cached LoRA tensors.")
-
-            grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
-
-            base.hyper.set_context(target_emb, current_timestep)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            tensors_flat_t = base.hyper.flatten_cached_from_cache()
-
-            base.hyper.set_context(target_emb, current_timestep + 1)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
-            tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
-
-            delta_live = tensors_flat_t1 - tensors_flat_t
-            loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
-            accelerator.backward(loss_remove)
-
-            loss_remove_log = loss_remove.clone().detach()
-
-            if accelerator.sync_gradients:
-                optimizer_remove.step()
-                optimizer_remove.zero_grad(set_to_none=True)
-                scheduler_remove.step()
-
-            loss_retain_total = torch.tensor(0.0, device=accelerator.device)
-            if len(retain_prompts) > 0:
-                for _ in range(retain_steps_per_remove):
-                    num_retain_samples = min(retain_batch_size, len(retain_prompts))
-                    sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
-                    batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
-
-                    hyper = base.hyper
-                    B = batch_retain_embs.shape[0]
-                    perm = torch.randperm(B, device=batch_retain_embs.device)
-                    batch_prompts = batch_retain_embs[perm]
-
-                    # Compute LoRAs at t=0
-                    weight_dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
-
-                    hyper.compute_and_cache_loras(
-                        batch_prompts.to(dtype=weight_dtype).to(dtype=weight_dtype),
-                        torch.zeros(B, device=accelerator.device, dtype=weight_dtype),
-                    )
-
-                    tensors_flat_t0 = hyper.flatten_cached_from_cache()
-
-                    t_ = torch.randint(
-                        0,
-                        hyper_train_steps + 1,
-                        (B,),
-                        device=accelerator.device
-                    )
-
-                    hyper.compute_and_cache_loras(batch_prompts, t_)
-                    tensors_flat_t1 = hyper.flatten_cached_from_cache()
-
-                    delta = tensors_flat_t1 - tensors_flat_t0
-                    loss_retain = retain_weight * delta.pow(2).mean()
-                    loss_retain_total = loss_retain_total + loss_retain.detach()
-
-                    accelerator.backward(loss_retain)
-
-                    if accelerator.sync_gradients:
-                        optimizer_retain.step()
-                        optimizer_retain.zero_grad(set_to_none=True)
+                loss_remove_log = loss_remove.clone().detach()
 
                 if accelerator.sync_gradients:
-                    loss_retain_total /= retain_steps_per_remove
-                    scheduler_retain.step()
+                    optimizer_remove.step()
+                    optimizer_remove.zero_grad(set_to_none=True)
+                    scheduler_remove.step()
 
-            loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
+                # Retain: penalize LoRA magnitude for retain concepts
+                loss_retain_total = torch.tensor(0.0, device=accelerator.device)
+                if len(retain_prompts) > 0:
+                    for _ in range(retain_steps_per_remove):
+                        num_retain_samples = min(retain_batch_size, len(retain_prompts))
+                        sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
+                        batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
+
+                        hyper = base.hyper
+                        B = batch_retain_embs.shape[0]
+                        perm = torch.randperm(B, device=batch_retain_embs.device)
+                        batch_prompts = batch_retain_embs[perm]
+                        weight_dtype = next(hyper.parameters()).dtype
+
+                        hyper.compute_and_cache_loras(
+                            batch_prompts.to(dtype=weight_dtype),
+                            torch.zeros(B, device=accelerator.device, dtype=weight_dtype),
+                        )
+                        tensors_flat = hyper.flatten_cached_from_cache()
+                        loss_retain = retain_weight * tensors_flat.pow(2).mean()
+                        loss_retain_total = loss_retain_total + loss_retain.detach()
+
+                        accelerator.backward(loss_retain)
+
+                        if accelerator.sync_gradients:
+                            optimizer_retain.step()
+                            optimizer_retain.zero_grad(set_to_none=True)
+
+                    if accelerator.sync_gradients:
+                        loss_retain_total /= retain_steps_per_remove
+                        scheduler_retain.step()
+
+                loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
+
+            else:
+                # ── Hypernetwork path: delta-based training ──
+                valid_timesteps = torch.arange(rank_proc, hyper_train_steps, world_size, device=accelerator.device)
+                rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(),
+                                                              (1,))]) if valid_timesteps.numel() > 0 else int(
+                    torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+
+                base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
+                _, current_timestep = base.hyper.get_context()
+                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+
+                with torch.no_grad():
+                    # Use base model without LoRA for reference outputs
+                    with base.hyper.no_lora():
+                        z = quick_sampler(emb_p, start_guidance, start_code, int(t_enc))
+                        e_m = base.apply_model(z, t_enc_ddpm, emb_m)
+                        e_p = base.apply_model(z, t_enc_ddpm, emb_p)
+
+                base.hyper.set_context(target_emb, current_timestep)
+                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+                base.hyper.retain_grad_for_cached_lora()
+                e_n = base.apply_model(z, t_enc_ddpm, emb_n)
+
+                target = e_m - (negative_guidance * (e_p - e_m))
+                loss_aux = criterion(e_n, target)
+                accelerator.backward(loss_aux)
+
+                grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
+                if grads_flat_t is None:
+                    raise RuntimeError("No gradients found in cached LoRA tensors.")
+
+                grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
+
+                base.hyper.set_context(target_emb, current_timestep)
+                base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+                tensors_flat_t = base.hyper.flatten_cached_from_cache()
+
+                base.hyper.set_context(target_emb, current_timestep + 1)
+                base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
+                tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
+
+                delta_live = tensors_flat_t1 - tensors_flat_t
+                loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+                accelerator.backward(loss_remove)
+
+                loss_remove_log = loss_remove.clone().detach()
+
+                if accelerator.sync_gradients:
+                    optimizer_remove.step()
+                    optimizer_remove.zero_grad(set_to_none=True)
+                    scheduler_remove.step()
+
+                loss_retain_total = torch.tensor(0.0, device=accelerator.device)
+                if len(retain_prompts) > 0:
+                    for _ in range(retain_steps_per_remove):
+                        num_retain_samples = min(retain_batch_size, len(retain_prompts))
+                        sampled_retain_prompts = random.sample(retain_prompts, num_retain_samples)
+                        batch_retain_embs = hyper_cache.get_batch(sampled_retain_prompts, accelerator.device)
+
+                        hyper = base.hyper
+                        B = batch_retain_embs.shape[0]
+                        perm = torch.randperm(B, device=batch_retain_embs.device)
+                        batch_prompts = batch_retain_embs[perm]
+
+                        # Compute LoRAs at t=0
+                        weight_dtype = next(hyper.parameters()).dtype  # hyper’s param dtype (bf16 if you casted it)
+
+                        hyper.compute_and_cache_loras(
+                            batch_prompts.to(dtype=weight_dtype).to(dtype=weight_dtype),
+                            torch.zeros(B, device=accelerator.device, dtype=weight_dtype),
+                        )
+
+                        tensors_flat_t0 = hyper.flatten_cached_from_cache()
+
+                        t_ = torch.randint(
+                            0,
+                            hyper_train_steps + 1,
+                            (B,),
+                            device=accelerator.device
+                        )
+
+                        hyper.compute_and_cache_loras(batch_prompts, t_)
+                        tensors_flat_t1 = hyper.flatten_cached_from_cache()
+
+                        delta = tensors_flat_t1 - tensors_flat_t0
+                        loss_retain = retain_weight * delta.pow(2).mean()
+                        loss_retain_total = loss_retain_total + loss_retain.detach()
+
+                        accelerator.backward(loss_retain)
+
+                        if accelerator.sync_gradients:
+                            optimizer_retain.step()
+                            optimizer_retain.zero_grad(set_to_none=True)
+
+                    if accelerator.sync_gradients:
+                        loss_retain_total /= retain_steps_per_remove
+                        scheduler_retain.step()
+
+                loss_retain_log = loss_retain_total / max(1, retain_steps_per_remove)
 
         with torch.no_grad():
             loss_retain_reduced = accelerator.gather(loss_retain_log).mean()
@@ -638,7 +704,7 @@ def main():
                 # Get diagnostic embedding from cache
                 diag_emb = hyper_cache.get(diag_prompt, accelerator.device)
 
-                diag_time_steps = [0, hyper_train_steps // 2, hyper_train_steps]
+                diag_time_steps = [0] if use_linear_projection else [0, hyper_train_steps // 2, hyper_train_steps]
                 gen = torch.Generator(device=accelerator.device)
                 gen.manual_seed(seed)
 

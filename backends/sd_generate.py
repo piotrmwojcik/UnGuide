@@ -262,6 +262,7 @@ def main():
     hidden_size = config.get('internal_size', ckpt_config.get('internal_size'))
     hyper_train_steps = config.get('hyper_train_steps', ckpt_config.get('hyper_train_steps', 300))
     use_orig_concat = config.get('use_orig_concat', ckpt_config.get('use_orig_concat', False))
+    use_linear_projection = config.get('use_linear_projection', ckpt_config.get('use_linear_projection', False))
 
     if rank is None:
         raise ValueError("rank not found in config or checkpoint")
@@ -312,6 +313,7 @@ def main():
         train_steps=hyper_train_steps,
         internal_size=hidden_size,
         use_orig_concat=use_orig_concat,
+        use_linear_projection=use_linear_projection,
     )
 
     model.hyper = HypernetworkManager()

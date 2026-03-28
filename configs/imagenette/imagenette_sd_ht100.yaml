@@ -1,0 +1,79 @@
+UnHype_Imagenette_SD_Alpha1_Strong100_HT100:
+  backend: sd
+  concepts:
+  - tench
+  - English springer
+  - cassette player
+  - chain saw
+  - church
+  - French horn
+  - garbage truck
+  - gas pump
+  - golf ball
+  - parachute
+  retain_csv_path: ./data/imagenette_retain.csv
+  augment_target: true
+  augment_retain: false
+  learning_rate_remove: 5.0e-05
+  learning_rate_retain: 5.0e-05
+  min_retain_sample: 1000
+  diagnostic_freq: 200
+  max_train_steps: 6000
+  gradient_accumulation_steps: 1
+  rank: 6
+  lora_alpha: 1.0
+  internal_size: 512
+  use_pooler: true
+  use_orig_concat: false
+  step_size: 1000
+  gamma: 0.9
+  negative_guidance: 0.3
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 0.0001
+  adv_training: false
+  adv_epsilon: 0.5
+  adv_freq: 4
+  adv_weight: 1.0
+  remove_weight: 100.0
+  retain_weight: 5.0
+  retain_steps_per_remove: 5
+  retain_batch_size: 1000
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+  resolution: 512
+  seed: 2024
+  mixed_precision: 'no'
+  logging_dir: logs
+  report_to: wandb
+  diagnostic_prompts:
+  - a photo of a tench
+  - a photo of an English springer
+  - a photo of a cassette player
+  - a photo of a chain saw
+  - a photo of a church
+  - a photo of a French horn
+  - a photo of a garbage truck
+  - a photo of a gas pump
+  - a photo of a golf ball
+  - a photo of a parachute
+  - a photo of a fish
+  - a photo of a dog
+  - a photo of a building
+  - a photo of a vehicle
+  - a photo of a cat
+  - a photo of a car
+  hyper_train_steps: 100
+  mapping_concept:
+  - fish
+  - dog
+  - electronic device
+  - tool
+  - building
+  - musical instrument
+  - vehicle
+  - machine
+  - ball
+  - equipment
+  output_dir: output/imagenette_sd_alpha1_strong100_ht100
+  final_save_path: output/imagenette_sd_alpha1_strong100_ht100/LoRA_fusion_model
