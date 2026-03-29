@@ -515,10 +515,12 @@ def main():
                 emb_n = base.get_learned_conditioning([target_text_augmented])
                 emb_m = base.get_learned_conditioning([mapping_text_augmented])
 
-            valid_timesteps = torch.arange(rank_proc, hyper_train_steps, world_size, device=accelerator.device)
-            rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(),
-                                                          (1,))]) if valid_timesteps.numel() > 0 else int(
-                torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+            #valid_timesteps = torch.arange(rank_proc, hyper_train_steps, world_size, device=accelerator.device)
+            #rtimestep = int(valid_timesteps[torch.randint(0, valid_timesteps.numel(),
+            #                                              (1,))]) if valid_timesteps.numel() > 0 else int(
+            #    torch.randint(0, hyper_train_steps, (1,), device=accelerator.device))
+            # ABLATION
+            rtimestep = hyper_train_steps
 
             base.hyper.set_context(target_emb, torch.tensor([rtimestep], device=accelerator.device))
             _, current_timestep = base.hyper.get_context()
@@ -537,26 +539,27 @@ def main():
             e_n = base.apply_model(z, t_enc_ddpm, emb_n)
 
             target = e_m - (negative_guidance * (e_p - e_m))
-            loss_aux = criterion(e_n, target)
-            accelerator.backward(loss_aux)
-
-            grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
-            if grads_flat_t is None:
-                raise RuntimeError("No gradients found in cached LoRA tensors.")
-
-            grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
-
-            base.hyper.set_context(target_emb, current_timestep)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep)
-            tensors_flat_t = base.hyper.flatten_cached_from_cache()
-
-            base.hyper.set_context(target_emb, current_timestep + 1)
-            base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
-            tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
-
-            delta_live = tensors_flat_t1 - tensors_flat_t
-            loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+            loss_remove = remove_weight * criterion(e_n, target)
             accelerator.backward(loss_remove)
+
+            # ABLATION
+            # grads_flat_t = base.hyper.flatten_cached_grads_from_cache()
+            # if grads_flat_t is None:
+            #     raise RuntimeError("No gradients found in cached LoRA tensors.")
+
+            # grads_flat_t = (-1.0 * internal_lr) * grads_flat_t.detach()
+
+            # base.hyper.set_context(target_emb, current_timestep)
+            # base.hyper.compute_and_cache_loras(target_emb, current_timestep)
+            # tensors_flat_t = base.hyper.flatten_cached_from_cache()
+
+            # base.hyper.set_context(target_emb, current_timestep + 1)
+            # base.hyper.compute_and_cache_loras(target_emb, current_timestep + 1)
+            # tensors_flat_t1 = base.hyper.flatten_cached_from_cache()
+
+            # delta_live = tensors_flat_t1 - tensors_flat_t
+            # loss_remove = remove_weight * criterion(delta_live, grads_flat_t)
+            # accelerator.backward(loss_remove)
 
             loss_remove_log = loss_remove.clone().detach()
 
@@ -587,11 +590,18 @@ def main():
 
                     tensors_flat_t0 = hyper.flatten_cached_from_cache()
 
-                    t_ = torch.randint(
-                        0,
-                        hyper_train_steps + 1,
+                    # ABLATION
+                    # t_ = torch.randint(
+                    #     0,
+                    #     hyper_train_steps + 1,
+                    #     (B,),
+                    #     device=accelerator.device
+                    # )
+                    t_ = torch.full(
                         (B,),
-                        device=accelerator.device
+                        hyper_train_steps,
+                        device=accelerator.device,
+                        dtype=torch.long
                     )
 
                     hyper.compute_and_cache_loras(batch_prompts, t_)
