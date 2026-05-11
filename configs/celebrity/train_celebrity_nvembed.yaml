@@ -217,7 +217,7 @@ UnHype_Celebrity_NVEmbed:
   celebrity_mode: true
 
   # Training hyperparameters
-  learning_rate_remove: 5.0e-04
+  learning_rate_remove: 1.0e-03
   learning_rate_retain: 5.0e-04
   max_train_steps: 6000
   hyper_train_steps: 300
@@ -228,7 +228,7 @@ UnHype_Celebrity_NVEmbed:
 
   # LoRA configuration
   rank: 6
-  lora_alpha: 1.0
+  lora_alpha: 0.1
   internal_size: 512
 
   # Loss weights
@@ -244,8 +244,8 @@ UnHype_Celebrity_NVEmbed:
   retain_batch_size: 1000
 
   # Paths
-  output_dir: output/celebrity_nvembed
-  final_save_path: output/celebrity_nvembed/LoRA_fusion_model
+  output_dir: /net/tscratch/people/plgpiotrwojcik/output/celebrity_nvembed
+  final_save_path: /net/tscratch/people/plgpiotrwojcik/output/celebrity_nvembed/LoRA_fusion_model
 
   # Model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
@@ -266,6 +266,8 @@ UnHype_Celebrity_NVEmbed:
     - "a portrait of adriana lima"
     - "amber heard at an event"
     - "amy adams smiling"
+    - "a portrait of amy adams"
+    - "a portrait of bob dylan"
     - "andrew garfield acting"
     - "a photo of a person"
     - "a portrait of a person"

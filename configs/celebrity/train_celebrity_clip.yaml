@@ -217,8 +217,8 @@ UnHype_Celebrity_CLIP:
   celebrity_mode: true
 
   # Training hyperparameters
-  learning_rate_remove: 5.0e-05
-  learning_rate_retain: 5.0e-05
+  learning_rate_remove: 1.0e-03
+  learning_rate_retain: 5.0e-04
   max_train_steps: 6000
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
@@ -244,8 +244,8 @@ UnHype_Celebrity_CLIP:
   retain_batch_size: 1000
 
   # Paths
-  output_dir: output/celebrity_clip
-  final_save_path: output/celebrity_clip/LoRA_fusion_model
+  output_dir:  /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03
+  final_save_path: /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03/LoRA_fusion_model
 
   # Model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
@@ -266,6 +266,8 @@ UnHype_Celebrity_CLIP:
     - "a portrait of adriana lima"
     - "amber heard at an event"
     - "amy adams smiling"
+    - "a portrait of amy adams"
+    - "a portrait of bob dylan"
     - "andrew garfield acting"
     - "a photo of a person"
     - "a portrait of a person"
