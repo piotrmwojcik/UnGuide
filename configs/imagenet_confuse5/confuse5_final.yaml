@@ -1,0 +1,94 @@
+UnHype_ImageNetConfuse5_SD_v2:
+  backend: sd
+
+  # Target concepts for removal (2 per group, 10 total)
+  concepts:
+  - golden retriever
+  - labrador retriever
+  - tabby
+  - tiger cat
+  - orange
+  - lemon
+  - yawl
+  - lifeboat
+  - soccer ball
+  - volleyball
+
+  # v2: broader superclass mappings for cats/fruits/boats
+  mapping_concept:
+  - dog
+  - dog
+  - animal
+  - animal
+  - food
+  - food
+  - vehicle
+  - vehicle
+  - ball
+  - ball
+
+  retain_csv_path: ./data/imagenet_confuse5_retain_filtered.csv
+  augment_target: true
+  augment_retain: false
+
+  learning_rate_remove: 5.0e-05
+  learning_rate_retain: 5.0e-05
+  min_retain_sample: 1000
+  diagnostic_freq: 200
+  max_train_steps: 6000
+  hyper_train_steps: 300
+  gradient_accumulation_steps: 1
+
+  rank: 9
+  lora_alpha: 1.0
+  internal_size: 512
+  use_pooler: true
+  use_orig_concat: false
+
+  step_size: 1000
+  gamma: 0.9
+  negative_guidance: 0.3
+  guidance_scale: 7.5
+  start_guidance: 9.0
+  internal_lr: 0.0001
+
+  adv_training: false
+  adv_epsilon: 0.5
+  adv_freq: 4
+  adv_weight: 1.0
+
+  remove_weight: 5.0
+  retain_weight: 5.0
+  retain_steps_per_remove: 5
+  retain_batch_size: 1000
+
+  output_dir: output/imagenet_confuse5_sd_v2
+  final_save_path: output/imagenet_confuse5_sd_v2/LoRA_fusion_model
+
+  model_config: ./configs/stable-diffusion/v1-inference.yaml
+  pretrained_model_name_or_path: models/sd-v1-4.ckpt
+  resolution: 512
+  seed: 2024
+  mixed_precision: 'no'
+  logging_dir: logs
+  report_to: wandb
+
+  diagnostic_prompts:
+  - a photo of a golden retriever
+  - a photo of a labrador retriever
+  - a photo of a tabby
+  - a photo of a tiger cat
+  - a photo of an orange
+  - a photo of a lemon
+  - a photo of a yawl
+  - a photo of a lifeboat
+  - a photo of a soccer ball
+  - a photo of a volleyball
+  - a photo of a german shepherd
+  - a photo of a persian cat
+  - a photo of a pomegranate
+  - a photo of a speedboat
+  - a photo of a tennis ball
+  - a photo of a dog
+  - a photo of a cat
+  - a photo of a car
