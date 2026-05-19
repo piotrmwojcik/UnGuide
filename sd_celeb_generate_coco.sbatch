@@ -46,6 +46,6 @@ export HUGGINGFACE_HUB_CACHE=/net/tscratch/people/plgpiotrwojcik/.cache/huggingf
 $PY generate.py \
     --config configs/celebrity/train_celebrity_clip.yaml \
     --task celebrity \
-    --lora-path /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03/LoRA_fusion_model/hyper_lora_1999.pth \
+    --lora-path /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03_eq/LoRA_fusion_model/hyper_lora_1999.pth \
     --prompts-csv data/coco_10k.csv \
-    --output-dir $SCRATCH_HOME/output/celebrity_camera_coco/images
+    --output-dir $SCRATCH_HOME/output/celebrity_camera_coco_eq/images

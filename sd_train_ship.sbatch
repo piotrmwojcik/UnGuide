@@ -1,15 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=unhype-celeb
+#SBATCH --job-name=ship
 #SBATCH --partition=plgrid-gpu-a100
 #SBATCH --nodes=1
-#SBATCH -A plgunhype-gpu-a100
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:1
 #SBATCH --mem=32GB
 #SBATCH --time=24:00:00
-#SBATCH --output=logs/job_%j.out
-#SBATCH --error=logs/job_%j.err
+#SBATCH --output=logs/airplane_%j.out
+#SBATCH --error=logs/airplane_%j.err
 
 export HF_HOME=/net/tscratch/people/plgpiotrwojcik/.cache/huggingface
 export HUGGINGFACE_HUB_CACHE=/net/tscratch/people/plgpiotrwojcik/.cache/huggingface/hub
@@ -25,5 +24,5 @@ export SCRATCH_HOME=/net/tscratch/people/plgpiotrwojcik/
 cd /net/tscratch/people/plgpiotrwojcik/projects/UnGuide/UnHype
 
 CUDA_VISIBLE_DEVICES=0 python train.py \
-    --config configs/celebrity/train_celebrity_clip_3.yaml \
+    --config configs/cifar_camera/train_ship.yaml \
     --use-wandb

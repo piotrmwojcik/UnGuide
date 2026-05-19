@@ -1,5 +1,5 @@
-UnHype_Celebrity_NVEmbed:
-  # Celebrity unlearning config using NV-Embed-v2 embeddings (4096-dim)
+UnHype_Celebrity_CLIP:
+  # Celebrity unlearning config using CLIP embeddings (768-dim)
   backend: sd
 
   # Target celebrities for removal (100 from MACE benchmark)
@@ -223,8 +223,8 @@ UnHype_Celebrity_NVEmbed:
   hyper_train_steps: 300
   gradient_accumulation_steps: 1
 
-  # Embedding model: nv_embed (4096-dim)
-  embedding_model: nv_embed
+  # Embedding model
+  use_huge: true  # Use CLIP-ViT-H (1024-dim) instead of CLIP-ViT-L (768-dim)
 
   # LoRA configuration
   rank: 6
@@ -240,12 +240,12 @@ UnHype_Celebrity_NVEmbed:
   # Training weights
   remove_weight: 10.0
   retain_weight: 5.0
-  retain_steps_per_remove: 20
+  retain_steps_per_remove: 5
   retain_batch_size: 1000
 
   # Paths
-  output_dir: /net/tscratch/people/plgpiotrwojcik/output/celebrity_nvembed
-  final_save_path: /net/tscratch/people/plgpiotrwojcik/output/celebrity_nvembed/LoRA_fusion_model
+  output_dir:  /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03_eq
+  final_save_path: /net/tscratch/people/plgpiotrwojcik/output/celebrity_clip_h_lr_03_eq/LoRA_fusion_model
 
   # Model
   model_config: ./configs/stable-diffusion/v1-inference.yaml
